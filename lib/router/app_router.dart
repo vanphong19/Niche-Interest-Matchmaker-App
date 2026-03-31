@@ -13,6 +13,9 @@ class AppRouter extends RootStackRouter {
   // ignore: override_on_non_overriding_member
   List<AutoRoute> get routes => [
     AutoRoute(page: HomeRoute.page, initial: true),
+    AutoRoute(page: SignInRoute.page),
+    AutoRoute(page: OtpRoute.page),
+    AutoRoute(page: SettingRoute.page),
   ];
 }
 

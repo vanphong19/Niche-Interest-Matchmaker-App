@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:niche_interest_matchmaker_app/core/constants/constants.dart';
+import 'package:niche_interest_matchmaker_app/core/theme/theme.dart';
+
 import 'router/app_router.dart';
 
 class App extends StatelessWidget {
@@ -10,14 +13,10 @@ class App extends StatelessWidget {
     final appRouter = AppRouterProvider.instance;
 
     return MaterialApp.router(
-      title: 'Niche Interest Matchmaker',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      title: AppConstants.appName,
+      theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter.config(),
     );
   }
 }
-
