@@ -33,7 +33,7 @@ class SettingPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: state.languageCode,
+                  initialValue: state.languageCode,
                   decoration: const InputDecoration(labelText: 'Language'),
                   items: const [
                     DropdownMenuItem(value: 'vi', child: Text('Vietnamese')),
