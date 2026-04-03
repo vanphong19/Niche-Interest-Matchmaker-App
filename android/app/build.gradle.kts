@@ -1,8 +1,24 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// --- Load keystore properties ---
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key-dev.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+val prodKeystoreProperties = Properties()
+val prodKeystorePropertiesFile = rootProject.file("key-prod.properties")
+if (prodKeystorePropertiesFile.exists()) {
+    prodKeystoreProperties.load(FileInputStream(prodKeystorePropertiesFile))
 }
 
 android {
@@ -30,11 +46,55 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("dev_config") {
+            if (System.getenv("DEV_KEY_ALIAS") != null) { // Chạy trên GitHub Actions nhánh Dev
+                keyAlias = System.getenv("DEV_KEY_ALIAS")
+                keyPassword = System.getenv("DEV_KEY_PASSWORD")
+                storePassword = System.getenv("DEV_STORE_PASSWORD")
+                storeFile = file(System.getenv("KEYSTORE_PATH") ?: "dev-keystore.jks")
+            } else if (keystorePropertiesFile.exists()) { // Chạy dưới máy Local
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storePassword = keystoreProperties["storePassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+            }
+        }
+
+        create("prod_config") {
+            if (System.getenv("KEY_ALIAS") != null) { // Chạy trên GitHub Actions nhánh Main
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+                storePassword = System.getenv("STORE_PASSWORD")
+                storeFile = file(System.getenv("KEYSTORE_PATH") ?: "release-keystore.jks")
+            } else if (prodKeystoreProperties.exists()) { // Chạy dưới máy Local
+                keyAlias = prodKeystoreProperties["keyAlias"] as String
+                keyPassword = prodKeystoreProperties["keyPassword"] as String
+                storePassword = prodKeystoreProperties["storePassword"] as String
+                storeFile = file(prodKeystoreProperties["storeFile"] as String)
+            }
+        }
+    }
+
+    flavorDimensions += "env"
+
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            // Tùy chọn: Thêm hậu tố ".dev" vào mã gói ứng dụng
+            // App của bạn sẽ thành com.example...app.dev (Giúp cài 2 app cùng lúc trên máy)
+            applicationIdSuffix = ".dev" 
+            signingConfig = signingConfigs.getByName("dev_config")
+        }
+        create("prod") {
+            dimension = "env"
+            signingConfig = signingConfigs.getByName("prod_config")
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            
         }
     }
 }
