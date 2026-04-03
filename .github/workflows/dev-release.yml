@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ !startsWith(github.event.head_commit.message, 'ci: bump versionCode to') }}
     name: Bump Version, Build, Tag & Release (Develop)
 
     runs-on: ubuntu-latest
@@ -270,7 +271,7 @@ jobs:
 
           git add pubspec.yaml
 
-          git commit -m "ci: bump versionCode to ${{ steps.version.outputs.VERSION_CODE }} [skip ci]"
+          git commit -m "ci: bump versionCode to ${{ steps.version.outputs.VERSION_CODE }}"
 
           git push origin dev
 
