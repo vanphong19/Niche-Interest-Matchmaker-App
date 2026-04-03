@@ -57,3 +57,7 @@ app.*.map.json
 *.keystore
 *.jks
 key.properties
+
+# Project-specific signing property files (do not commit secrets)
+/android/key-prod.properties
+/android/key-dev.properties
