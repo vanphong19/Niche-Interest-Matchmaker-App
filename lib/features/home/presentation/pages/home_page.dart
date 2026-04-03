@@ -31,7 +31,7 @@ class HomePage extends StatelessWidget {
                   subtitle: const Text('Clean Architecture + BLoC scaffold'),
                 );
               },
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemCount: state.modules.length,
             );
           },
