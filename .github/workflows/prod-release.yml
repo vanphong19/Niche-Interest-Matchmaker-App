@@ -98,14 +98,11 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEYSTORE_PATH: "release-keystore.jks"
         run: |
-          flutter build apk --release --flavor prod --target lib/main.dart \
-            --build-name=${{ steps.version.outputs.VERSION_NAME }} \
-            --build-number=${{ steps.version.outputs.VERSION_CODE }}
+          flutter build apk --release --flavor prod --target lib/main.dart --build-name=${{ steps.version.outputs.VERSION_NAME }} --build-number=${{ steps.version.outputs.VERSION_CODE }}
 
       - name: Rename APK
         run: |
-          mv build/app/outputs/flutter-apk/app-prod-release.apk \
-             build/app/outputs/flutter-apk/app-release-${{ steps.version.outputs.FULL_VERSION }}.apk
+          mv build/app/outputs/flutter-apk/app-prod-release.apk build/app/outputs/flutter-apk/app-release-${{ steps.version.outputs.FULL_VERSION }}.apk
 
       # ── Tag & Release ───────────────────────────────────────────────────────
       - name: Create Git Tag
