@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   build:
-    name: Bump Version, Build, Tag & Release (Production)
+    name: Build, Tag & Release (Production)
     runs-on: ubuntu-latest
 
     permissions:
@@ -68,7 +68,7 @@ jobs:
       - name: Generate Code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      # ── Version Management ──────────────────────────────────────────────────
+      # ── Version Management (Read-only on main) ─────────────────────────────
       - name: Read Current Version from pubspec.yaml
         id: version
         run: |
@@ -76,19 +76,12 @@ jobs:
           VERSION_NAME=$(echo "$FULL_VERSION" | cut -d'+' -f1)
           VERSION_CODE=$(echo "$FULL_VERSION" | cut -d'+' -f2)
 
-          NEW_VERSION_CODE=$((VERSION_CODE + 1))
-          NEW_FULL_VERSION="${VERSION_NAME}+${NEW_VERSION_CODE}"
-
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
-          echo "VERSION_CODE=$NEW_VERSION_CODE" >> $GITHUB_OUTPUT
-          echo "NEW_FULL_VERSION=$NEW_FULL_VERSION" >> $GITHUB_OUTPUT
-          echo "TAG_NAME=v${VERSION_NAME}+${NEW_VERSION_CODE}" >> $GITHUB_OUTPUT
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=v${VERSION_NAME}+${VERSION_CODE}" >> $GITHUB_OUTPUT
 
-          echo "✅ Bumping version: $FULL_VERSION → $NEW_FULL_VERSION"
-
-      - name: Bump versionCode in pubspec.yaml (local only)
-        run: |
-          sed -i "s/^version: .*/version: ${{ steps.version.outputs.NEW_FULL_VERSION }}/" pubspec.yaml
+          echo "✅ Using version from merged source: $FULL_VERSION"
 
       # ── Signing (ĐÃ SỬA CHO PROD) ───────────────────────────────────────────
       - name: Restore Signing Keys
@@ -112,22 +105,17 @@ jobs:
       - name: Rename APK
         run: |
           mv build/app/outputs/flutter-apk/app-prod-release.apk \
-             build/app/outputs/flutter-apk/app-release-${{ steps.version.outputs.NEW_FULL_VERSION }}.apk
-
-      # ── Commit version bump ─────────────────────────────────────────────────
-      - name: Commit Version Bump
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pubspec.yaml
-          git commit -m "ci: bump versionCode to ${{ steps.version.outputs.VERSION_CODE }} [skip ci]"
-          git push origin main
+             build/app/outputs/flutter-apk/app-release-${{ steps.version.outputs.FULL_VERSION }}.apk
 
       # ── Tag & Release ───────────────────────────────────────────────────────
       - name: Create Git Tag
         run: |
-          git tag ${{ steps.version.outputs.TAG_NAME }}
-          git push origin ${{ steps.version.outputs.TAG_NAME }}
+          if git ls-remote --exit-code --tags origin "${{ steps.version.outputs.TAG_NAME }}" >/dev/null 2>&1; then
+            echo "Tag already exists on origin: ${{ steps.version.outputs.TAG_NAME }}"
+          else
+            git tag ${{ steps.version.outputs.TAG_NAME }}
+            git push origin ${{ steps.version.outputs.TAG_NAME }}
+          fi
 
       - name: Create GitHub Release (Production)
         uses: softprops/action-gh-release@v2
@@ -146,4 +134,4 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            build/app/outputs/flutter-apk/app-release-${{ steps.version.outputs.NEW_FULL_VERSION }}.apk
+            build/app/outputs/flutter-apk/app-release-${{ steps.version.outputs.FULL_VERSION }}.apk

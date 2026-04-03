@@ -63,4 +63,4 @@ jobs:
 
       # ĐÃ SỬA: Thêm flavor và target
       - name: Build APK (Debug)
-        run: flutter build apk --debug --flavor dev --target lib/main_dev.dart
+        run: flutter build apk --debug --flavor dev --target lib/main.dart

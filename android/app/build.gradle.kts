@@ -31,10 +31,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.niche_interest_matchmaker_app"
@@ -67,7 +63,7 @@ android {
                 keyPassword = System.getenv("KEY_PASSWORD")
                 storePassword = System.getenv("STORE_PASSWORD")
                 storeFile = file(System.getenv("KEYSTORE_PATH") ?: "release-keystore.jks")
-            } else if (prodKeystoreProperties.exists()) { // Chạy dưới máy Local
+            } else if (prodKeystorePropertiesFile.exists()) { // Chạy dưới máy Local
                 keyAlias = prodKeystoreProperties["keyAlias"] as String
                 keyPassword = prodKeystoreProperties["keyPassword"] as String
                 storePassword = prodKeystoreProperties["storePassword"] as String
@@ -96,6 +92,12 @@ android {
         release {
             
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
