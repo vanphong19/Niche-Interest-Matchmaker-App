@@ -8,12 +8,14 @@ on:
 concurrency:
   group: build-develop
 
+
   cancel-in-progress: false
 
 jobs:
   build:
     if: ${{ !startsWith(github.event.head_commit.message, 'ci: bump versionCode to') }}
     name: Bump Version, Build, Tag & Release (Develop)
+
 
     runs-on: ubuntu-latest
 
@@ -23,7 +25,9 @@ jobs:
     steps:
       - name: Checkout Repository
 
+
         uses: actions/checkout@v4
+
 
         with:
           fetch-depth: 0
@@ -32,42 +36,57 @@ jobs:
 
       - name: Setup Java
 
+
         uses: actions/setup-java@v4
+
 
         with:
           distribution: "zulu"
+
 
           java-version: "17"
 
       - name: Setup Flutter
 
+
         uses: subosito/flutter-action@v2
+
 
         with:
           channel: "stable"
+
 
           cache: true
 
       - name: Cache pub
 
+
         uses: actions/cache@v4
+
 
         with:
           path: |
 
+
             ~/.pub-cache
+
 
             .dart_tool
 
+
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
 
+
           restore-keys: |
+
 
             ${{ runner.os }}-pub-
 
       - name: Cache build_runner
 
+
         uses: actions/cache@v4
+
 
         with:
           path: |
@@ -105,7 +124,96 @@ jobs:
 
           VERSION_NAME=$(echo "$FULL_VERSION" | cut -d'+' -f1)
 
-          RAW_VERSION_CODE=$(echo "$FULL_VERSION" | cut -s -d'+' -f2)
+
+          RAW_RAW_VERSION_CODE=$(echo "$FULL_VERSION" | cut -s -s -d'+' -f2)
+
+
+
+          if [ -z "$VERSION_NAME" ]; then
+
+            echo "❌ Invalid version in pubspec.yaml: '$FULL_VERSION'"
+
+            exit 1
+
+          fi
+
+
+
+          if [ -z "$RAW_VERSION_CODE" ]; then
+
+            echo "⚠️ Missing versionCode in pubspec ('$FULL_VERSION'). Trying to recover from latest tag."
+
+            git fetch --tags --force
+
+            RECOVERED_CODE=$(git tag -l "develop/v${VERSION_NAME}+*" \
+
+              | sed -nE "s#^develop/v${VERSION_NAME}\\+([0-9]+)$#\\1#p" \
+
+              | sort -n \
+
+              | tail -1)
+
+
+
+            RECOVER_SOURCE="tag"
+
+
+
+            if [ -z "$RECOVERED_CODE" ]; then
+
+              echo "⚠️ No matching develop tag found. Trying to recover from pubspec history on this branch."
+
+              RECOVERED_CODE=$(git log --format='%H' -- pubspec.yaml | while read -r SHA; do
+
+                HIST_VERSION=$(git show "${SHA}:pubspec.yaml" 2>/dev/null | sed -n 's/^version: //p' | tr -d '\r')
+
+                HIST_CODE=$(echo "$HIST_VERSION" | cut -s -d'+' -f2)
+
+
+
+                if [[ "$HIST_CODE" =~ ^[0-9]+$ ]]; then
+
+                  echo "$HIST_CODE"
+
+                  break
+
+                fi
+
+              done)
+
+              RECOVER_SOURCE="history"
+
+            fi
+
+
+
+            if [ -z "$RECOVERED_CODE" ]; then
+
+              echo "❌ Cannot recover versionCode for ${VERSION_NAME}. No valid code found in tags or pubspec history."
+
+              exit 1
+
+            fi
+
+
+
+            VERSION_CODE=$RECOVERED_CODE
+
+            echo "ℹ️ Recovered versionCode from ${RECOVER_SOURCE}: $VERSION_CODE"
+
+          elif [[ "$RAW_VERSION_CODE" =~ ^[0-9]+$ ]]; then
+
+            VERSION_CODE=$RAW_VERSION_CODE
+
+          else
+
+            echo "❌ Invalid versionCode in pubspec.yaml: '$RAW_VERSION_CODE'"
+
+            exit 1
+
+          fi
+
+
 
 
 
@@ -269,13 +377,17 @@ jobs:
 
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+
           git add pubspec.yaml
 
+
           git commit -m "ci: bump versionCode to ${{ steps.version.outputs.VERSION_CODE }}"
+
 
           git push origin dev
 
       # ── Tag & Release ───────────────────────────────────────────────────────
+
 
       - name: Create Git Tag
 
