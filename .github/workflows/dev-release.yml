@@ -82,10 +82,7 @@ jobs:
           if [ -z "$RAW_VERSION_CODE" ]; then
             echo "⚠️ Missing versionCode in pubspec ('$FULL_VERSION'). Trying to recover from latest tag."
             git fetch --tags --force
-            RECOVERED_CODE=$(git tag -l "develop/v${VERSION_NAME}+*" \
-              | sed -nE "s#^develop/v${VERSION_NAME}\\+([0-9]+)$#\\1#p" \
-              | sort -n \
-              | tail -1)
+            RECOVERED_CODE=$(git tag -l "develop/v${VERSION_NAME}+*" | sed -nE "s#^develop/v${VERSION_NAME}\\+([0-9]+)$#\\1#p" | sort -n | tail -1)
 
             RECOVER_SOURCE="tag"
 
