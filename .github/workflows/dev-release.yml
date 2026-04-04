@@ -167,11 +167,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout dev
           git add pubspec.yaml
           git commit -m "ci: bump versionCode to ${{ steps.version.outputs.VERSION_CODE }} [skip ci]"
-          git stash --include-untracked
-          git pull --rebase origin dev
-          git stash drop || true
           git push origin dev
 
       # ── Tag & Release ───────────────────────────────────────────────────────
