@@ -145,13 +145,7 @@ jobs:
 
             git fetch --tags --force
 
-            RECOVERED_CODE=$(git tag -l "develop/v${VERSION_NAME}+*" \
-
-              | sed -nE "s#^develop/v${VERSION_NAME}\\+([0-9]+)$#\\1#p" \
-
-              | sort -n \
-
-              | tail -1)
+            RECOVERED_CODE=$(git tag -l "develop/v${VERSION_NAME}+*" | sed -nE "s#^develop/v${VERSION_NAME}\\+([0-9]+)$#\\1#p" | sort -n | tail -1)
 
 
 
