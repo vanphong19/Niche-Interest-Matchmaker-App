@@ -1,7 +1,24 @@
-abstract class UseCase<Result, Params> {
-  Future<Result> call(Params params);
+// lib/core/usecases/use_case.dart
+import 'package:dartz/dartz.dart';
+import 'package:equatable/equatable.dart';
+
+import '../errors/failures.dart';
+
+abstract class UseCase<Type, Params> {
+  Future<Either<Failure, Type>> call(Params params);
 }
 
-class NoParams {
+abstract class NoParamsUseCase<Type> {
+  Future<Either<Failure, Type>> call();
+}
+
+abstract class StreamUseCase<Type, Params> {
+  Stream<Either<Failure, Type>> call(Params params);
+}
+
+class NoParams extends Equatable {
   const NoParams();
+
+  @override
+  List<Object?> get props => [];
 }
