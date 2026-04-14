@@ -104,22 +104,38 @@ class CreateEventCubit extends Cubit<CreateEventState> {
     emit(state.copyWith(title: title, category: category, vibeTags: tags));
   }
 
-  void updateSchedule(DateTime date, TimeOfDay time, int participants, bool isElite, bool isPub) {
-    emit(state.copyWith(date: date, time: time, participants: participants, isEliteOnly: isElite, isPublic: isPub));
+  void updateSchedule(
+    DateTime date,
+    TimeOfDay time,
+    int participants,
+    bool isElite,
+    bool isPub,
+  ) {
+    emit(
+      state.copyWith(
+        date: date,
+        time: time,
+        participants: participants,
+        isEliteOnly: isElite,
+        isPublic: isPub,
+      ),
+    );
   }
 
   void updateLocation(String name, String address, LatLng coords) {
-    emit(state.copyWith(locationName: name, address: address, coordinates: coords));
-  }
-  
-  void initForEdit(Map<String, dynamic> event) {
-     // Optional: load existing event data to states here
+    emit(
+      state.copyWith(locationName: name, address: address, coordinates: coords),
+    );
   }
 
-  Future<void> submitEvent() async {
+  void initForEdit(Map<String, dynamic> event) {
+    // Optional: load existing event data to states here
+  }
+
+  Future<void> submitEvent({Map<String, dynamic> extraData = const {}}) async {
     emit(state.copyWith(isSubmitting: true, error: null));
     try {
-      await _apiService.createEvent({
+      final payload = {
         'title': state.title,
         'category': state.category,
         'participants': state.participants,
@@ -130,7 +146,8 @@ class CreateEventCubit extends Cubit<CreateEventState> {
         'isEliteOnly': state.isEliteOnly,
         'isPublic': state.isPublic,
         'vibeTags': state.vibeTags.join(', '),
-      });
+      };
+      await _apiService.createEvent({...payload, ...extraData});
       emit(state.copyWith(isSubmitting: false, isSuccess: true));
     } catch (e) {
       emit(state.copyWith(isSubmitting: false, error: e.toString()));

@@ -341,7 +341,7 @@ class _ProfilePageState extends State<ProfilePage>
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -361,7 +361,7 @@ class _ProfilePageState extends State<ProfilePage>
                     AppLocalizations.tr('reputation_score').toUpperCase(),
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: Colors.white70,
+                      color: Color.fromARGB(194, 255, 255, 255),
                       letterSpacing: 1.5,
                       fontSize: 10,
                       height: 1,
@@ -386,12 +386,6 @@ class _ProfilePageState extends State<ProfilePage>
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white70,
-                size: 20,
               ),
             ],
           ),
@@ -509,7 +503,7 @@ class _ProfilePageState extends State<ProfilePage>
               decoration: BoxDecoration(
                 color: isDark
                     ? const Color(0xFF262C3A)
-                    : const Color(0xFFF3F5F9),
+                    : const Color.fromARGB(146, 255, 255, 255),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isDark
@@ -613,8 +607,8 @@ class _ProfilePageState extends State<ProfilePage>
                 icon: Icons.military_tech_rounded,
                 name: 'Top Host',
                 gradient: [
-                  Color(0xFF3D6B9E),
-                  Color(0xFF264F80),
+                  Color.fromARGB(255, 72, 132, 201),
+                  Color.fromARGB(255, 48, 109, 185),
                 ], // navy xanh — authority
                 isUnlocked: true,
               ),
@@ -622,8 +616,8 @@ class _ProfilePageState extends State<ProfilePage>
                 icon: Icons.bolt_rounded,
                 name: 'Punctual King',
                 gradient: [
-                  Color(0xFFB8862A),
-                  Color(0xFF8F6318),
+                  Color.fromARGB(255, 243, 181, 65),
+                  Color.fromARGB(255, 250, 170, 32),
                 ], // amber đậm — prestige
                 isUnlocked: true,
               ),
@@ -631,8 +625,8 @@ class _ProfilePageState extends State<ProfilePage>
                 icon: Icons.people_alt_rounded,
                 name: 'Social Butterfly',
                 gradient: [
-                  Color(0xFF2E7D6B),
-                  Color(0xFF1A5E50),
+                  Color.fromARGB(255, 76, 176, 152),
+                  Color.fromARGB(255, 29, 161, 135),
                 ], // emerald — connection
                 isUnlocked: true,
               ),
@@ -640,8 +634,8 @@ class _ProfilePageState extends State<ProfilePage>
                 icon: Icons.explore_rounded,
                 name: 'Explorer',
                 gradient: [
-                  Color(0xFF5C3D9E),
-                  Color(0xFF3E2478),
+                  Color.fromARGB(255, 109, 72, 189),
+                  Color.fromARGB(255, 78, 45, 149),
                 ], // indigo — discovery
                 isUnlocked: true,
               ),
@@ -649,8 +643,8 @@ class _ProfilePageState extends State<ProfilePage>
                 icon: Icons.emoji_events_rounded,
                 name: 'Champion',
                 gradient: [
-                  Color(0xFF9E3D3D),
-                  Color(0xFF7A2020),
+                  Color.fromARGB(255, 198, 80, 80),
+                  Color.fromARGB(255, 176, 45, 45),
                 ], // crimson — victory
                 isUnlocked: true,
               ),
@@ -658,8 +652,8 @@ class _ProfilePageState extends State<ProfilePage>
                 icon: Icons.local_fire_department_rounded,
                 name: 'Streak Master',
                 gradient: [
-                  Color(0xFF3D3D3D),
-                  Color(0xFF252525),
+                  Color.fromARGB(255, 34, 34, 34),
+                  Color.fromARGB(255, 17, 17, 17),
                 ], // charcoal — locked
                 isUnlocked: false,
               ),
@@ -895,7 +889,9 @@ class _PremiumBadgeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isUnlocked ? gradient.first : Colors.grey;
+    final primaryColor = isUnlocked
+        ? gradient.first
+        : const Color.fromARGB(255, 79, 79, 79);
 
     return Container(
       width: 140, // Slightly wider for better balance
@@ -906,9 +902,9 @@ class _PremiumBadgeCard extends StatelessWidget {
         boxShadow: isUnlocked
             ? [
                 BoxShadow(
-                  color: primaryColor.withValues(alpha: isDark ? 0.35 : 0.2),
+                  color: primaryColor.withValues(alpha: isDark ? 0.25 : 0.1),
                   blurRadius: 24,
-                  offset: const Offset(0, 10),
+                  offset: const Offset(0, 5),
                   spreadRadius: -4,
                 ),
               ]
@@ -929,13 +925,17 @@ class _PremiumBadgeCard extends StatelessWidget {
                         gradient.last.withValues(alpha: isDark ? 0.75 : 0.9),
                       ]
                     : [
-                        (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
-                        (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
+                        (isDark ? Colors.white : Colors.black).withValues(
+                          alpha: 0.9,
+                        ),
+                        (isDark ? Colors.white : Colors.black).withValues(
+                          alpha: 0.4,
+                        ),
                       ],
               ),
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Colors.white.withValues(alpha: isUnlocked ? 0.4 : 0.15),
+                color: Colors.white.withValues(alpha: 0.4),
                 width: 1.5,
               ),
             ),
@@ -973,22 +973,30 @@ class _PremiumBadgeCard extends StatelessWidget {
                         height: 62,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: isUnlocked ? 0.25 : 0.05),
+                          color: Colors.white.withValues(
+                            alpha: isUnlocked ? 0.25 : 0.15,
+                          ),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: isUnlocked ? 0.5 : 0.1),
+                            color: Colors.white.withValues(
+                              alpha: isUnlocked ? 0.5 : 0.3,
+                            ),
                             width: 2,
                           ),
-                          boxShadow: isUnlocked ? [
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              blurRadius: 15,
-                            )
-                          ] : [],
+                          boxShadow: isUnlocked
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    blurRadius: 15,
+                                  ),
+                                ]
+                              : [],
                         ),
                         child: Center(
                           child: Icon(
                             icon,
-                            color: Colors.white.withValues(alpha: isUnlocked ? 1.0 : 0.2),
+                            color: Colors.white.withValues(
+                              alpha: isUnlocked ? 1.0 : 0.5,
+                            ),
                             size: 32,
                           ),
                         ),
@@ -1002,7 +1010,9 @@ class _PremiumBadgeCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white.withValues(alpha: isUnlocked ? 1.0 : 0.3),
+                          color: Colors.white.withValues(
+                            alpha: isUnlocked ? 1.0 : 0.7,
+                          ),
                           height: 1.1,
                           letterSpacing: -0.4,
                         ),
@@ -1010,12 +1020,16 @@ class _PremiumBadgeCard extends StatelessWidget {
                       if (!isUnlocked) ...[
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                            color: (isDark ? Colors.black : Colors.white)
+                                .withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.1),
+                              color: Colors.white.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -1023,8 +1037,9 @@ class _PremiumBadgeCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.lock_rounded, 
-                                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.4), 
+                                Icons.lock_rounded,
+                                color: (isDark ? Colors.white : Colors.black)
+                                    .withValues(alpha: 0.5),
                                 size: 12,
                               ),
                               const SizedBox(width: 6),
@@ -1033,7 +1048,8 @@ class _PremiumBadgeCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w900,
-                                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.4),
+                                  color: (isDark ? Colors.white : Colors.black)
+                                      .withValues(alpha: 0.5),
                                   letterSpacing: 0.8,
                                 ),
                               ),

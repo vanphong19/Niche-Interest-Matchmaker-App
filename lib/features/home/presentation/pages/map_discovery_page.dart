@@ -133,7 +133,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   options: MapOptions(
                     initialCenter: const LatLng(10.7769, 106.7009),
                     initialZoom: 14.0,
-                    onTap: (_, __) {
+                    onTap: (_, _) {
                       FocusScope.of(context).unfocus();
                       setState(() => _showSuggestions = false);
                     },
@@ -268,7 +268,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   // Search bar
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    height: 46,
+                    height: 50,
                     decoration: BoxDecoration(
                       color: isDark
                           ? Colors.black.withValues(alpha: 0.8)
@@ -277,8 +277,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                       border: Border.all(
                         color: _searchFocus.hasFocus
                             ? AppColors.primary
-                            : (isDark ? Colors.white : Colors.black)
-                                .withValues(alpha: 0.1),
+                            : (isDark ? Colors.white : Colors.black).withValues(
+                                alpha: 0.1,
+                              ),
                         width: 1.2,
                       ),
                       boxShadow: [
@@ -313,62 +314,70 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
-                        prefixIcon: const Padding(
-                          padding: EdgeInsets.only(left: 16, right: 8),
-                          child: Icon(
-                            Icons.search_rounded,
-                            color: AppColors.primary,
-                            size: 22,
+                        prefixIcon: Center(
+                          widthFactor: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 16, right: 8),
+                            child: const Icon(
+                              Icons.search_rounded,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
                           ),
                         ),
                         prefixIconConstraints: const BoxConstraints(
                           minWidth: 48,
-                          minHeight: 46,
+                          minHeight: 50,
                         ),
-                        suffixIcon: Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _searchCtrl.text.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: () {
-                                    _searchCtrl.clear();
-                                    _onSearch('');
-                                    _searchFocus.unfocus();
-                                  },
-                                  behavior: HitTestBehavior.opaque,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 8,
+                        suffixIcon: Center(
+                          widthFactor: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _searchCtrl.text.isNotEmpty
+                                ? GestureDetector(
+                                    onTap: () {
+                                      _searchCtrl.clear();
+                                      _onSearch('');
+                                      _searchFocus.unfocus();
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        color: AppColors.textSecondary,
+                                        size: 16,
+                                      ),
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.withValues(alpha: 0.2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.close_rounded,
-                                      color: AppColors.textSecondary,
-                                      size: 16,
+                                  )
+                                : GestureDetector(
+                                    onTap: () {},
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Icon(
+                                        Icons.tune_rounded,
+                                        color: isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.textSecondary,
+                                        size: 22,
+                                      ),
                                     ),
                                   ),
-                                )
-                              : GestureDetector(
-                                  onTap: () {},
-                                  behavior: HitTestBehavior.opaque,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Icon(
-                                      Icons.tune_rounded,
-                                      color: isDark
-                                          ? AppColors.darkTextSecondary
-                                          : AppColors.textSecondary,
-                                      size: 22,
-                                    ),
-                                  ),
-                                ),
+                          ),
                         ),
                         suffixIconConstraints: const BoxConstraints(
                           minWidth: 44,
-                          minHeight: 46,
+                          minHeight: 50,
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -376,7 +385,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 9,
+                          vertical: 11,
                         ),
                         filled: false,
                       ),
@@ -485,7 +494,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shrinkWrap: true,
                           itemCount: _searchResults.length,
-                          separatorBuilder: (_, __) => Divider(
+                          separatorBuilder: (_, _) => Divider(
                             height: 1,
                             color: isDark
                                 ? AppColors.darkBorderLight
@@ -679,6 +688,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
               decoration: BoxDecoration(
                 color: (isDark ? AppColors.darkCardBackground : Colors.white)
                     .withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: (isDark ? Colors.white : Colors.white).withValues(
                     alpha: 0.3,
@@ -699,7 +709,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                             ? event.photoUrls.first
                             : 'https://picsum.photos/200',
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           color: AppColors.bgSecondary,
                           child: const Icon(
                             Icons.image,

@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,9 +9,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/app_localizations.dart';
+import '../../../../core/widgets/ios_primary_button.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../data/services/event_api_service.dart';
+import '../../domain/entities/event.dart';
 import '../bloc/create_event_cubit.dart';
 
 @RoutePage()
@@ -19,128 +25,473 @@ class CreateEventPage extends StatefulWidget {
   State<CreateEventPage> createState() => _CreateEventPageState();
 }
 
-class _CreateEventPageState extends State<CreateEventPage> {
+class _CreateEventPageState extends State<CreateEventPage>
+    with SingleTickerProviderStateMixin {
   late final CreateEventCubit _cubit;
   late final EventApiService _apiService;
   final ScrollController _scrollController = ScrollController();
 
-  // Step 1 State
+  final TextEditingController _idCtrl = TextEditingController();
   final TextEditingController _titleCtrl = TextEditingController();
+  final TextEditingController _descriptionCtrl = TextEditingController();
+  final TextEditingController _hostIdCtrl = TextEditingController();
+  final TextEditingController _hostNameCtrl = TextEditingController();
+  final TextEditingController _hostAvatarCtrl = TextEditingController();
+  final TextEditingController _locationNameCtrl = TextEditingController();
+  final TextEditingController _addressCtrl = TextEditingController();
+  final TextEditingController _placeIdCtrl = TextEditingController();
   final TextEditingController _tagCtrl = TextEditingController();
-  String _selectedCat = 'Sports';
-  final List<String> _vibeTags = [];
-  final List<String> _photos = []; // mock photo paths
 
-  // Step 2 State
-  late DateTime _date;
-  late TimeOfDay _time;
-  double _participants = 12;
-  bool _isElite = false;
+  late DateTime _createdAt;
+  late DateTime _startDate;
+  late TimeOfDay _startTime;
+  DateTime? _endDate;
+  TimeOfDay? _endTime;
+
+  EventCategory _selectedCategory = EventCategory.sports;
+  final EventStatus _status = EventStatus.draft;
+
+  int _maxParticipants = 12;
+  bool _isEliteOnly = false;
   bool _isPublic = true;
+  final bool _isJoined = false;
 
-  // Step 3 State
+  final double _matchScore = 75;
+
+  final List<String> _vibeTags = [];
+  final List<String> _photoUrls = [];
+  final List<String> _participantIds = [];
+  static const List<String> _galleryPresets = [
+    'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80',
+  ];
+
   final MapController _mapController = MapController();
-  LatLng _coords = const LatLng(10.7769, 106.7009); // Default HCMC D1
-  String _address = 'District 1, Ho Chi Minh City';
-  String _locName = 'District 1 Center';
+  LatLng _coords = const LatLng(10.7769, 106.7009);
+  final TextEditingController _locationSearchCtrl = TextEditingController();
+
+  List<Map<String, dynamic>> _placeSuggestions = const [];
+  bool _isSearchingPlaces = false;
+  int _searchSequence = 0;
+  int _selectedCoverPreset = 0;
+  late final AnimationController _heroPulse;
+
+  static const List<String> _locationQuickQueries = [
+    'Đại học',
+    'Trường THPT',
+    'Sân bay',
+    'Trung tâm thương mại',
+    'Bến xe',
+    'Ga tàu',
+  ];
 
   @override
   void initState() {
     super.initState();
     _cubit = sl<CreateEventCubit>();
     _apiService = sl<EventApiService>();
-    _date = DateTime.now().add(const Duration(days: 1));
-    _time = const TimeOfDay(hour: 19, minute: 0);
+    _heroPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2900),
+    )..repeat(reverse: true);
+
+    final now = DateTime.now();
+    _createdAt = now;
+    _startDate = now.add(const Duration(days: 1));
+    _startTime = const TimeOfDay(hour: 19, minute: 0);
+    _endDate = _startDate;
+    _endTime = const TimeOfDay(hour: 21, minute: 0);
+
+    _idCtrl.text = 'evt-${now.millisecondsSinceEpoch}';
+    _hostIdCtrl.text = 'current-user';
+    _hostNameCtrl.text = 'Current User';
+    _hostAvatarCtrl.text = 'https://i.pravatar.cc/100?img=11';
+    _locationNameCtrl.text = 'District 1 Center';
+    _addressCtrl.text = 'Ho Chi Minh City, Vietnam';
+    _locationSearchCtrl.text = 'District 1 Center';
   }
 
   @override
   void dispose() {
     _cubit.close();
     _scrollController.dispose();
+
+    _idCtrl.dispose();
     _titleCtrl.dispose();
+    _descriptionCtrl.dispose();
+    _hostIdCtrl.dispose();
+    _hostNameCtrl.dispose();
+    _hostAvatarCtrl.dispose();
+    _locationNameCtrl.dispose();
+    _addressCtrl.dispose();
+    _placeIdCtrl.dispose();
     _tagCtrl.dispose();
+    _locationSearchCtrl.dispose();
+    _heroPulse.dispose();
+
     super.dispose();
   }
 
-  void _submitVibe() {
-    if (_titleCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a vibe title!')));
-      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
+  String _tr(String key) => AppLocalizations.tr(key);
+
+  TextStyle get _inputTextStyle => TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    height: 1.25,
+    color: _isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+  );
+
+  Future<void> _pickDate({required bool isEnd}) async {
+    final initialDate = isEnd ? (_endDate ?? _startDate) : _startDate;
+    final firstDate = isEnd ? _startDate : DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked == null) return;
+
+    setState(() {
+      if (isEnd) {
+        _endDate = picked;
+      } else {
+        _startDate = picked;
+        if (_endDate != null && _endDate!.isBefore(_startDate)) {
+          _endDate = _startDate;
+        }
+      }
+    });
+  }
+
+  Future<void> _pickTime({required bool isEnd}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isEnd ? (_endTime ?? _startTime) : _startTime,
+    );
+    if (picked == null) return;
+
+    setState(() {
+      if (isEnd) {
+        _endTime = picked;
+      } else {
+        _startTime = picked;
+      }
+    });
+  }
+
+  DateTime _mergeDateTime(DateTime date, TimeOfDay time) {
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  String _formatDate(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    return '$day/$month/${value.year}';
+  }
+
+  String _categoryLabel(EventCategory category) {
+    switch (category) {
+      case EventCategory.sports:
+        return _tr('event_category_sports');
+      case EventCategory.dining:
+        return _tr('event_category_dining');
+      case EventCategory.social:
+        return _tr('event_category_social');
+      case EventCategory.arts:
+        return _tr('event_category_arts');
+      case EventCategory.outdoors:
+        return _tr('event_category_outdoors');
+      case EventCategory.gaming:
+        return _tr('event_category_gaming');
+    }
+  }
+
+  String _categoryEmoji(EventCategory category) {
+    switch (category) {
+      case EventCategory.sports:
+        return '🏃';
+      case EventCategory.dining:
+        return '🍜';
+      case EventCategory.social:
+        return '💬';
+      case EventCategory.arts:
+        return '🎨';
+      case EventCategory.outdoors:
+        return '⛺';
+      case EventCategory.gaming:
+        return '🎮';
+    }
+  }
+
+  Color _categoryColor(EventCategory category) {
+    switch (category) {
+      case EventCategory.sports:
+        return AppColors.categorySports;
+      case EventCategory.dining:
+        return AppColors.categoryDining;
+      case EventCategory.social:
+        return AppColors.categorySocial;
+      case EventCategory.arts:
+        return AppColors.categoryArts;
+      case EventCategory.outdoors:
+        return AppColors.categoryOutdoors;
+      case EventCategory.gaming:
+        return AppColors.categoryGaming;
+    }
+  }
+
+  void _addTag() {
+    final value = _tagCtrl.text.trim();
+    if (value.isEmpty || _vibeTags.contains(value)) return;
+    setState(() {
+      _vibeTags.add(value);
+      _tagCtrl.clear();
+    });
+  }
+
+  void _addPresetPhoto() {
+    if (_photoUrls.length >= 5) {
       return;
     }
-    
-    _cubit.updateVibe(_titleCtrl.text.trim(), _selectedCat, _vibeTags);
-    _cubit.updateSchedule(_date, _time, _participants.toInt(), _isElite, _isPublic);
-    _cubit.updateLocation(_locName, _address, _coords);
-    _cubit.submitEvent();
+    final next = _galleryPresets.firstWhere(
+      (url) => !_photoUrls.contains(url),
+      orElse: () => _galleryPresets[_photoUrls.length % _galleryPresets.length],
+    );
+    setState(() {
+      if (!_photoUrls.contains(next)) {
+        _photoUrls.add(next);
+      }
+    });
+  }
+
+  Future<void> _searchPlaces(String query) async {
+    if (query.trim().length < 2) {
+      setState(() {
+        _placeSuggestions = const [];
+        _isSearchingPlaces = false;
+      });
+      return;
+    }
+
+    final requestId = ++_searchSequence;
+    setState(() => _isSearchingPlaces = true);
+
+    final result = await _apiService.searchPlaces(query.trim());
+
+    if (!mounted || requestId != _searchSequence) {
+      return;
+    }
+
+    setState(() {
+      _placeSuggestions = result;
+      _isSearchingPlaces = false;
+    });
+  }
+
+  void _applyPlaceSelection(Map<String, dynamic> place) {
+    final lat = (place['lat'] as num?)?.toDouble() ?? _coords.latitude;
+    final lng = (place['lng'] as num?)?.toDouble() ?? _coords.longitude;
+    final point = LatLng(lat, lng);
+
+    setState(() {
+      _locationSearchCtrl.text = place['name'] as String? ?? '';
+      _locationNameCtrl.text = place['name'] as String? ?? '';
+      _addressCtrl.text = place['address'] as String? ?? '';
+      _placeIdCtrl.text = place['placeId']?.toString() ?? '';
+      _coords = point;
+      _placeSuggestions = const [];
+    });
+
+    _mapController.move(point, 16.2);
+    _apiService.recordPlaceSelection(place);
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _submitEvent() async {
+    if (_titleCtrl.text.trim().isEmpty ||
+        _descriptionCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_tr('event_validation_title_description'))),
+      );
+      return;
+    }
+
+    if (_locationNameCtrl.text.trim().isEmpty ||
+        _addressCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_tr('event_validation_location'))));
+      return;
+    }
+
+    final startDateTime = _mergeDateTime(_startDate, _startTime);
+    DateTime? endDateTime;
+    if (_endDate != null && _endTime != null) {
+      endDateTime = _mergeDateTime(_endDate!, _endTime!);
+      if (endDateTime.isBefore(startDateTime)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_tr('event_validation_end_time'))),
+        );
+        return;
+      }
+    }
+
+    _cubit.updateVibe(
+      _titleCtrl.text.trim(),
+      _selectedCategory.name,
+      _vibeTags,
+    );
+    _cubit.updateSchedule(
+      _startDate,
+      _startTime,
+      _maxParticipants,
+      _isEliteOnly,
+      _isPublic,
+    );
+    _cubit.updateLocation(
+      _locationNameCtrl.text.trim(),
+      _addressCtrl.text.trim(),
+      _coords,
+    );
+
+    await _cubit.submitEvent(
+      extraData: {
+        'id': _idCtrl.text.trim(),
+        'description': _descriptionCtrl.text.trim(),
+        'category': _selectedCategory.name,
+        'hostId': _hostIdCtrl.text.trim(),
+        'hostName': _hostNameCtrl.text.trim(),
+        'hostAvatar': _hostAvatarCtrl.text.trim(),
+        'startDateTime': startDateTime.toIso8601String(),
+        'endDateTime': endDateTime?.toIso8601String(),
+        'maxParticipants': _maxParticipants,
+        'currentParticipants': 1,
+        'latitude': _coords.latitude,
+        'longitude': _coords.longitude,
+        'participantIds': _participantIds,
+        'status': _status.name,
+        'isEliteOnly': _isEliteOnly,
+        'photoUrls': _photoUrls,
+        'matchScore': _matchScore,
+        'vibeTags': _vibeTags.join(', '),
+        'isJoined': _isJoined,
+        'createdAt': _createdAt.toIso8601String(),
+        'locationName': _locationNameCtrl.text.trim(),
+        'location': _addressCtrl.text.trim(),
+        'placeId': _placeIdCtrl.text.trim().isEmpty
+            ? null
+            : _placeIdCtrl.text.trim(),
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bg = _isDark ? const Color(0xFF0E121A) : const Color(0xFFF4F6FB);
+    final card = _isDark ? const Color(0xFF161D2A) : Colors.white;
+    final border = _isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
+    final textPrimary = _isDark
+        ? AppColors.darkTextPrimary
+        : const Color(0xFF1B2A57);
+    final sectionHint = _isDark
+        ? AppColors.darkTextHint
+        : const Color(0xFF8B97B6);
+
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: bg,
         body: SafeArea(
           child: BlocConsumer<CreateEventCubit, CreateEventState>(
             listener: (context, state) {
               if (state.isSuccess) {
-                 context.router.replaceAll([const HomeRoute()]);
-                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vibe created successfully! 🎉'), backgroundColor: AppColors.success));
+                context.router.replaceAll([const HomeRoute()]);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_tr('event_create_success')),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
               } else if (state.error != null) {
-                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${state.error}'), backgroundColor: AppColors.error));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${_tr('event_create_error')}: ${state.error}',
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
               }
             },
             builder: (context, state) {
               return Stack(
                 children: [
-                  Column(
+                  ListView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 112),
                     children: [
-                      _buildHeader(),
-                      Expanded(
-                        child: ListView(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 24),
-                          children: [
-                             const SizedBox(height: 24),
-                             _buildSectionTitle("What's the Vibe?", "Give your event a persona"),
-                             const SizedBox(height: 24),
-                             _buildVibeSection(),
-                             
-                             const SizedBox(height: 40),
-                             _buildSectionTitle("Schedule & Size", "When and how many?"),
-                             const SizedBox(height: 24),
-                             _buildScheduleSection(),
-
-                             const SizedBox(height: 40),
-                             _buildSectionTitle("The Destination", "Where is it happening?"),
-                             const SizedBox(height: 24),
-                             _buildDestinationSection(),
-
-                             const SizedBox(height: 48),
-                             _buildCreateSection(state),
-                             const SizedBox(height: 40),
-                          ],
-                        ),
+                      _topBar(textPrimary, card),
+                      const SizedBox(height: 14),
+                      _coverComposer(card, border),
+                      const SizedBox(height: 20),
+                      _sectionHeader(
+                        _tr('event_section_core').toUpperCase(),
+                        sectionHint,
                       ),
+                      const SizedBox(height: 10),
+                      _cardShell(card, border, _coreSection()),
+                      const SizedBox(height: 18),
+                      _sectionHeader(
+                        _tr('event_section_schedule').toUpperCase(),
+                        sectionHint,
+                      ),
+                      const SizedBox(height: 10),
+                      _cardShell(card, border, _scheduleSection()),
+                      const SizedBox(height: 18),
+                      _sectionHeader(
+                        _tr('event_section_location').toUpperCase(),
+                        sectionHint,
+                      ),
+                      const SizedBox(height: 10),
+                      _cardShell(card, border, _locationSection()),
                     ],
                   ),
+                  _bottomButton(state),
                   if (state.isSubmitting)
                     Container(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      child: const Center(
-                        child: Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircularProgressIndicator(color: AppColors.primary),
-                                SizedBox(height: 16),
-                                Text('Casting your vibe...', style: TextStyle(fontWeight: FontWeight.bold)),
-                              ],
+                      color: Colors.black.withValues(alpha: 0.35),
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 10),
+                            Text(_tr('event_create_loading')),
+                          ],
                         ),
                       ),
                     ),
@@ -153,565 +504,1325 @@ class _CreateEventPageState extends State<CreateEventPage> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.bgSecondary, width: 2)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: () => context.router.maybePop(),
-            icon: const Icon(Icons.close_rounded, color: AppColors.secondary, size: 24),
-          ),
-          const Text('Create Vibe', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w900, fontSize: 18)),
-          const SizedBox(width: 48), 
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _topBar(Color textPrimary, Color card) {
+    return Row(
       children: [
-        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.secondary)),
-        const SizedBox(height: 4),
-        Text(subtitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textHint)),
+        _iconSurface(
+          icon: Icons.arrow_back_ios_new_rounded,
+          onTap: () => context.router.maybePop(),
+          color: textPrimary,
+          card: card,
+        ),
+        Expanded(
+          child: Text(
+            _tr('create_event_title_new'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: textPrimary,
+            ),
+          ),
+        ),
+        _iconSurface(
+          icon: Icons.auto_awesome_rounded,
+          onTap: () {},
+          color: AppColors.primary,
+          card: card,
+        ),
       ],
     );
   }
 
-  // ──────────────────────────────────────────
-  // SECTION: VIBE
-  // ──────────────────────────────────────────
-  Widget _buildVibeSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _titleCtrl,
-          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary, fontSize: 18),
-          decoration: InputDecoration(
-            hintText: 'e.g., Midnight Padel & Smoothie',
-            hintStyle: const TextStyle(color: AppColors.textHint, fontWeight: FontWeight.w600),
-            filled: true,
-            fillColor: AppColors.bgSecondary,
-            contentPadding: const EdgeInsets.all(20),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: AppColors.borderLight, width: 1.5),
+  Widget _iconSurface({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color color,
+    required Color card,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-          ),
+          ],
         ),
-        const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _suggestChip('Weekend Coffee Run'),
-              _suggestChip('Casual Bowling'),
-              _suggestChip('Photography Walk'),
+        child: Icon(icon, size: 18, color: color),
+      ),
+    );
+  }
+
+  Widget _coverComposer(Color card, Color border) {
+    const presets = <List<Color>>[
+      [Color(0xFF161B3A), Color(0xFF28418D), Color(0xFF1EB9D8)],
+      [Color(0xFF0B1220), Color(0xFF123E68), Color(0xFF2A6EF3)],
+      [Color(0xFF1B1333), Color(0xFF503EA3), Color(0xFF2D95EA)],
+    ];
+    final colors = presets[_selectedCoverPreset % presets.length];
+    final previewUrl = _photoUrls.isNotEmpty ? _photoUrls.first : null;
+
+    return AnimatedBuilder(
+      animation: _heroPulse,
+      builder: (context, _) {
+        final pulse = Curves.easeInOut.transform(_heroPulse.value);
+
+        return Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: border),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: colors,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: _isDark ? 0.24 : 0.14),
+                blurRadius: 30,
+                offset: const Offset(0, 14),
+              ),
             ],
           ),
-        ),
-        const SizedBox(height: 32),
-        const Text("Event Category", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.secondary)),
-        const SizedBox(height: 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 3,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.95,
-          children: [
-             _catBox('🏃', 'Sports', AppColors.categorySports),
-             _catBox('🍜', 'Dining', AppColors.categoryDining),
-             _catBox('💬', 'Social', AppColors.categorySocial),
-             _catBox('🎨', 'Arts', AppColors.categoryArts),
-             _catBox('⛺', 'Outdoors', AppColors.categoryOutdoors),
-             _catBox('🎮', 'Gaming', AppColors.categoryGaming),
-          ],
-        ),
-        const SizedBox(height: 32),
-        const Text("Vibe Tags", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.secondary)),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8, runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            ..._vibeTags.map((tag) => Container(
-               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-               decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(20),
-               ),
-               child: Row(
-                 mainAxisSize: MainAxisSize.min,
-                 children: [
-                   Text(tag, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
-                   const SizedBox(width: 6),
-                   GestureDetector(
-                     onTap: () => setState(() => _vibeTags.remove(tag)),
-                     child: const Icon(Icons.close, color: AppColors.primary, size: 14),
-                   ),
-                 ],
-               ),
-            )),
-            SizedBox(
-              width: 140,
-              height: 40,
-              child: TextField(
-                controller: _tagCtrl,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                onSubmitted: (val) {
-                  if (val.trim().isNotEmpty && !_vibeTags.contains(val.trim())) {
-                    setState(() { _vibeTags.add(val.trim()); _tagCtrl.clear(); });
-                  }
-                },
-                decoration: InputDecoration(
-                  hintText: '+ Add tag',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textHint, fontWeight: FontWeight.w600),
-                  filled: true,
-                  fillColor: AppColors.bgSecondary,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: AppColors.borderLight, width: 1.5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'EVENT COVER PRO',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.bolt_rounded,
+                      color: Colors.white,
+                      size: 15,
+                    ),
                   ),
-                ),
+                ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 32),
-        const Text("Photos (Max 5)", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.secondary)),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            InkWell(
-              onTap: () {
-                if (_photos.length < 5) {
-                  setState(() => _photos.add('https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/200/200'));
-                }
-              },
-              child: Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.bgSecondary,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderLight, width: 2, style: BorderStyle.solid),
-                ),
-                child: const Icon(Icons.add_a_photo_rounded, color: AppColors.textHint),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _photos.map((url) => Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.network(url, width: 72, height: 72, fit: BoxFit.cover),
-                        ),
-                        Positioned(
-                          top: 4, right: 4,
-                          child: GestureDetector(
-                            onTap: () => setState(() => _photos.remove(url)),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                              child: const Icon(Icons.close, size: 10, color: Colors.white),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: SizedBox(
+                  height: 144,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (previewUrl != null)
+                            Image.network(
+                              previewUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  Container(color: Colors.black12),
+                            )
+                          else
+                            Container(color: Colors.black12),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.06),
+                                  Colors.black.withValues(alpha: 0.45),
+                                ],
+                              ),
                             ),
                           ),
-                        )
-                      ],
-                    ),
-                  )).toList(),
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _GalaxyPainter(progress: pulse),
+                            ),
+                          ),
+                          Positioned(
+                            left: 14,
+                            top: 14,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.26),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: const Text(
+                                'Live Preview',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Positioned(
+                            left: 14,
+                            right: 14,
+                            bottom: 12,
+                            child: Text(
+                              'Your event cover appears exactly like this in feed.',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
-            )
-          ],
-        )
-      ],
-    );
-  }
-
-  Widget _suggestChip(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ActionChip(
-        label: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w700)),
-        backgroundColor: Colors.white,
-        side: const BorderSide(color: AppColors.primarySurface, width: 1.5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        onPressed: () => setState(() => _titleCtrl.text = text),
-      ),
-    );
-  }
-
-  Widget _catBox(String emoji, String text, Color catColor) {
-    final isSelected = _selectedCat == text;
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        setState(() => _selectedCat = text);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: [catColor.withValues(alpha: 0.15), catColor.withValues(alpha: 0.08)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: isSelected ? null : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? catColor.withValues(alpha: 0.5) : AppColors.borderLight,
-            width: isSelected ? 2 : 1.5,
+              const SizedBox(height: 12),
+              TextField(
+                controller: _titleCtrl,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 19,
+                  height: 1.2,
+                  letterSpacing: 0.05,
+                ),
+                maxLines: 1,
+                decoration: InputDecoration(
+                  hintText: _tr('event_field_title_hint'),
+                  hintStyle: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.18),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.74),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 30,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: presets.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final selected = index == _selectedCoverPreset;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _selectedCoverPreset = index);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? Colors.white.withValues(alpha: 0.26)
+                              : Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: selected
+                                ? Colors.white.withValues(alpha: 0.66)
+                                : Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          switch (index) {
+                            0 => 'Deep Space',
+                            1 => 'Ocean Neon',
+                            _ => 'Electric Mist',
+                          },
+                          style: TextStyle(
+                            color: Colors.white.withValues(
+                              alpha: selected ? 1 : 0.86,
+                            ),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          boxShadow: isSelected
-              ? [BoxShadow(color: catColor.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))]
-              : [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: isSelected ? catColor.withValues(alpha: 0.15) : AppColors.bgSecondary,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? catColor : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
+        );
+      },
+    );
+  }
+
+  Widget _sectionHeader(String text, Color sectionHint) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.w800,
+        color: sectionHint,
       ),
     );
   }
 
-  // ──────────────────────────────────────────
-  // SECTION: SCHEDULE
-  // ──────────────────────────────────────────
-  Widget _buildScheduleSection() {
+  Widget _cardShell(Color card, Color border, Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: _isDark ? 0.18 : 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _coreSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Date & Time", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.secondary)),
-        const SizedBox(height: 12),
+        _fieldLabel(_tr('event_field_description')),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _descriptionCtrl,
+          style: _inputTextStyle,
+          maxLines: 3,
+          decoration: _fieldDecoration(_tr('event_field_description_hint')),
+        ),
+        const SizedBox(height: 14),
+        _fieldLabel(_tr('event_field_category')),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: EventCategory.values.map((category) {
+            final selected = _selectedCategory == category;
+            final color = _categoryColor(category);
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _selectedCategory = category);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? color.withValues(alpha: 0.15)
+                      : AppColors.bgSecondary,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: selected
+                        ? color.withValues(alpha: 0.6)
+                        : AppColors.borderLight,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_categoryEmoji(category)),
+                    const SizedBox(width: 6),
+                    Text(
+                      _categoryLabel(category),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? color : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 14),
+        _fieldLabel(_tr('event_field_vibe_tags')),
+        const SizedBox(height: 8),
         Row(
-           children: [
-             Expanded(
-               child: _pickerButton(Icons.calendar_month_rounded, '${_date.day}/${_date.month}/${_date.year}', () async {
-                 final dt = await showDatePicker(context: context, initialDate: _date, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 100)));
-                 if (dt != null) setState(() => _date = dt);
-               }),
-             ),
-             const SizedBox(width: 12),
-             Expanded(
-               child: _pickerButton(Icons.access_time_rounded, _time.format(context), () async {
-                 final t = await showTimePicker(context: context, initialTime: _time);
-                 if (t != null) setState(() => _time = t);
-               }),
-             ),
-           ],
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _tagCtrl,
+                style: _inputTextStyle,
+                onSubmitted: (value) => _addTag(),
+                decoration: _fieldDecoration(_tr('event_field_add_tag_hint')),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filledTonal(
+              onPressed: _addTag,
+              icon: const Icon(Icons.add_rounded),
+            ),
+          ],
         ),
-        const SizedBox(height: 32),
-        const Text("Circle Size", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.secondary)),
-        const SizedBox(height: 16),
-        Container(
-           padding: const EdgeInsets.all(20),
-           decoration: BoxDecoration(color: AppColors.bgSecondary, borderRadius: BorderRadius.circular(20)),
-           child: Column(
-             children: [
-               Text('${_participants.toInt()} Participants', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primary)),
-               const SizedBox(height: 12),
-               Slider(
-                 value: _participants,
-                 min: 2, max: 50, divisions: 48,
-                 activeColor: AppColors.primary,
-                 inactiveColor: AppColors.borderLight,
-                 onChanged: (v) => setState(() => _participants = v),
-               ),
-               Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: const [
-                   Text('Intimate (2)', style: TextStyle(color: AppColors.textHint, fontWeight: FontWeight.w700, fontSize: 12)),
-                   Text('Party (50)', style: TextStyle(color: AppColors.textHint, fontWeight: FontWeight.w700, fontSize: 12)),
-                 ],
-               ),
-             ],
-           ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _vibeTags
+              .map(
+                (tag) => Chip(
+                  label: Text(tag),
+                  deleteIcon: const Icon(Icons.close, size: 16),
+                  onDeleted: () => setState(() => _vibeTags.remove(tag)),
+                ),
+              )
+              .toList(),
         ),
-        const SizedBox(height: 24),
-        _buildToggleRow(
+        const SizedBox(height: 14),
+        _fieldLabel(_tr('event_field_photo_urls')),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Pick up to 5 photos',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: _addPresetPhoto,
+              icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
+              label: const Text('Add photo'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_photoUrls.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              color: AppColors.bgSecondary,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.photo_library_outlined,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Add at least 1 photo to unlock premium cover quality.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 84,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _photoUrls.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final url = _photoUrls[index];
+                return Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        url,
+                        width: 84,
+                        height: 84,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 84,
+                          height: 84,
+                          decoration: BoxDecoration(
+                            color: AppColors.bgSecondary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.broken_image_outlined),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _photoUrls.remove(url)),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 10,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _scheduleSection() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _pickerButton(
+                Icons.calendar_month_rounded,
+                _formatDate(_startDate),
+                () => _pickDate(isEnd: false),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _pickerButton(
+                Icons.schedule_rounded,
+                _startTime.format(context),
+                () => _pickTime(isEnd: false),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _pickerButton(
+                Icons.event_available_rounded,
+                _endDate == null ? '-' : _formatDate(_endDate!),
+                () => _pickDate(isEnd: true),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _pickerButton(
+                Icons.timelapse_rounded,
+                _endTime == null ? '-' : _endTime!.format(context),
+                () => _pickTime(isEnd: true),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _stepperRow(
+          title: _tr('event_field_max_participants'),
+          value: _maxParticipants,
+          min: 2,
+          max: 50,
+          onChanged: (value) => setState(() => _maxParticipants = value),
+        ),
+        const SizedBox(height: 12),
+        _toggleRow(
           icon: Icons.public_rounded,
-          title: 'Publicly Visible',
+          title: _tr('event_field_is_public'),
           subtitle: 'Appear on discovery map',
-          val: _isPublic,
-          onChanged: (v) => setState(() => _isPublic = v),
+          value: _isPublic,
+          onChanged: (value) => setState(() => _isPublic = value),
         ),
-        const SizedBox(height: 16),
-        _buildToggleRow(
-          icon: Icons.verified_rounded,
-          title: 'Elite Match Priority',
-          subtitle: 'Boost vibe exclusively to top profiles.',
-          val: _isElite,
-          onChanged: (v) => setState(() => _isElite = v),
+        const SizedBox(height: 10),
+        _toggleRow(
+          icon: Icons.workspace_premium_rounded,
+          title: _tr('event_field_is_elite_only'),
+          subtitle: 'Prioritize premium matching audience',
+          value: _isEliteOnly,
+          onChanged: (value) => setState(() => _isEliteOnly = value),
         ),
       ],
+    );
+  }
+
+  Widget _locationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(_tr('event_field_search_place')),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _locationSearchCtrl,
+          style: _inputTextStyle,
+          onChanged: _searchPlaces,
+          decoration: _fieldDecoration(_tr('event_field_search_place_hint'))
+              .copyWith(
+                prefixIcon: const Icon(Icons.search_rounded, size: 19),
+                suffixIcon: _isSearchingPlaces
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : null,
+              ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 32,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _locationQuickQueries.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final query = _locationQuickQueries[index];
+              return InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () {
+                  _locationSearchCtrl.text = query;
+                  _searchPlaces(query);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Text(
+                    query,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (_placeSuggestions.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: _isDark ? const Color(0xFF151B2A) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.borderLight),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 270),
+              child: Scrollbar(
+                thumbVisibility: _placeSuggestions.length > 5,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _placeSuggestions.length,
+                  separatorBuilder: (_, _) => Divider(
+                    height: 1,
+                    color: AppColors.borderLight.withValues(alpha: 0.65),
+                  ),
+                  itemBuilder: (context, index) {
+                    final option = _placeSuggestions[index];
+                    return InkWell(
+                      onTap: () => _applyPlaceSelection(option),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                              child: const Icon(
+                                Icons.place_rounded,
+                                color: AppColors.primary,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    option['name'] as String? ?? '',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    option['address'] as String? ?? '',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Container(
+          height: 230,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.borderLight, width: 1.2),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(
+              children: [
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _coords,
+                    initialZoom: 15.0,
+                    onTap: (tapPosition, point) {
+                      setState(() {
+                        _coords = point;
+                        _addressCtrl.text =
+                            '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
+                        _locationNameCtrl.text = 'Pinned Location';
+                        _locationSearchCtrl.text = 'Pinned Location';
+                        _placeSuggestions = const [];
+                      });
+                      _mapController.move(point, 15.0);
+                    },
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.vibepulse.app',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _coords,
+                          width: 40,
+                          height: 40,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primary.withValues(alpha: 0.16),
+                            ),
+                            child: const Icon(
+                              Icons.navigation_rounded,
+                              color: AppColors.primary,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Positioned(
+                  bottom: 10,
+                  left: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _isDark
+                          ? const Color(0xFF151B2A).withValues(alpha: 0.94)
+                          : Colors.white.withValues(alpha: 0.94),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.my_location_rounded,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _locationNameCtrl.text,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: _isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                _addressCtrl.text,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fieldLabel(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.1,
+        color: _isDark ? AppColors.darkTextPrimary : AppColors.secondary,
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(
+        color: AppColors.textHint,
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+      ),
+      filled: true,
+      fillColor: AppColors.bgSecondary,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.borderLight, width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
+      ),
     );
   }
 
   Widget _pickerButton(IconData icon, String text, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(color: AppColors.bgSecondary, borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.bgSecondary,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderLight, width: 1.1),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-             Icon(icon, color: AppColors.primary, size: 18),
-             const SizedBox(width: 8),
-             Text(text, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.secondary, fontSize: 14)),
+            Icon(icon, color: AppColors.primary, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: AppColors.secondary,
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildToggleRow({required IconData icon, required String title, required String subtitle, required bool val, required ValueChanged<bool> onChanged}) {
-     return Container(
-       padding: const EdgeInsets.all(16),
-       decoration: BoxDecoration(
-         border: Border.all(color: val ? AppColors.primarySurface : AppColors.bgSecondary, width: 2),
-         borderRadius: BorderRadius.circular(16),
-       ),
-       child: Row(
-         children: [
-           Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: val ? AppColors.primarySurface : AppColors.bgSecondary, shape: BoxShape.circle), child: Icon(icon, color: val ? AppColors.primary : AppColors.textHint, size: 20)),
-           const SizedBox(width: 16),
-           Expanded(
-             child: Column(
-               crossAxisAlignment: CrossAxisAlignment.start,
-               children: [
-                 Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: val ? AppColors.primary : AppColors.secondary)),
-                 const SizedBox(height: 2),
-                 Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-               ],
-             ),
-           ),
-           Switch(value: val, activeTrackColor: AppColors.primary, onChanged: onChanged),
-         ],
-       ),
-     );
-  }
-
-  // ──────────────────────────────────────────
-  // SECTION: DESTINATION
-  // ──────────────────────────────────────────
-  Widget _buildDestinationSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Autocomplete<Map<String, dynamic>>(
-          optionsBuilder: (TextEditingValue textEditingValue) async {
-            if (textEditingValue.text.length < 2) return const Iterable<Map<String, dynamic>>.empty();
-            return await _apiService.searchPlaces(textEditingValue.text);
-          },
-          displayStringForOption: (option) => option['name'],
-          onSelected: (option) {
-            final lat = option['lat'] as double;
-            final lng = option['lng'] as double;
-            final pos = LatLng(lat, lng);
-            setState(() {
-              _locName = option['name'];
-              _address = option['address'];
-              _coords = pos;
-            });
-            _mapController.move(pos, 16.0);
-            FocusScope.of(context).unfocus(); // dismiss kb
-          },
-          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                hintText: 'Search for places...',
-                hintStyle: const TextStyle(color: AppColors.textHint, fontWeight: FontWeight.w600),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
-                filled: true,
-                fillColor: AppColors.bgSecondary,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.borderLight, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                ),
-              ),
-            );
-          },
-          optionsViewBuilder: (context, onSelected, options) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 12,
-                shadowColor: Colors.black26,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: MediaQuery.of(context).size.width - 48,
-                  constraints: const BoxConstraints(maxHeight: 280),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: options.length,
-                    separatorBuilder: (c, i) => const Divider(height: 1, color: AppColors.bgSecondary),
-                    itemBuilder: (BuildContext context, int index) {
-                      final option = options.elementAt(index);
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: AppColors.bgSecondary, borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.place_rounded, color: AppColors.primary, size: 20),
-                        ),
-                        title: Text(option['name'], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        subtitle: Text(option['address'], style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        onTap: () => onSelected(option),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 20),
-        Container(
-          height: 220,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.bgSecondary, width: 2),
-          ),
-          child: ClipRRect(
-             borderRadius: BorderRadius.circular(18),
-             child: Stack(
-               children: [
-                  FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                       initialCenter: _coords,
-                       initialZoom: 15.0,
-                       onTap: (tapPosition, point) {
-                          setState(() { _coords = point; _address = 'Custom Location'; _locName = 'Pinned Location'; });
-                          _mapController.move(point, 15.0);
-                       },
-                    ),
-                    children: [
-                       TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.vibepulse.app'),
-                       MarkerLayer(
-                         markers: [
-                           Marker(point: _coords, width: 40, height: 40, child: const Icon(Icons.location_on, color: AppColors.primary, size: 40)),
-                         ],
-                       ),
-                    ],
-                  ),
-                  Positioned(
-                    bottom: 12, left: 12, right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [BoxShadow(blurRadius: 10, color: Colors.black12)],
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.my_location_rounded, color: AppColors.primary),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(_locName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                const SizedBox(height: 2),
-                                Text(_address, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  )
-               ],
-             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ──────────────────────────────────────────
-  // SECTION: CREATE BUTTON
-  // ──────────────────────────────────────────
-  Widget _buildCreateSection(CreateEventState state) {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 60,
-          child: ElevatedButton(
-            onPressed: state.isSubmitting ? null : _submitVibe,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              elevation: 4,
-              shadowColor: AppColors.primary.withValues(alpha: 0.4),
+  Widget _stepperRow({
+    required String title,
+    required int value,
+    required int min,
+    required int max,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.bgSecondary,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderLight, width: 1.2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            child: const Text('CREATE VIBE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1)),
           ),
-        ),
-      ],
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(32, 32),
+            onPressed: value > min ? () => onChanged(value - 1) : null,
+            child: const Icon(Icons.remove_circle_outline_rounded),
+          ),
+          Text(
+            '$value',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+          ),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(32, 32),
+            onPressed: value < max ? () => onChanged(value + 1) : null,
+            child: const Icon(Icons.add_circle_outline_rounded),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _toggleRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final cardBg = _isDark
+        ? Colors.white.withValues(alpha: 0.03)
+        : const Color(0xFFF7F9FF);
+    final activeBorder = AppColors.primary.withValues(alpha: 0.24);
+    final normalBorder = _isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : AppColors.borderLight;
+    final titleColor = _isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.secondary;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: value ? activeBorder : normalBorder,
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: value
+                  ? AppColors.primary.withValues(alpha: 0.14)
+                  : (_isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.white),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: value
+                  ? AppColors.primary
+                  : (_isDark ? AppColors.darkTextHint : AppColors.textHint),
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: value ? AppColors.primary : titleColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          CupertinoSwitch(
+            value: value,
+            activeTrackColor: AppColors.primary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomButton(CreateEventState state) {
+    return Positioned(
+      left: 20,
+      right: 20,
+      bottom: 14,
+      child: IosPrimaryButton(
+        label: state.isSubmitting
+            ? _tr('event_create_loading')
+            : _tr('event_create_button'),
+        isLoading: state.isSubmitting,
+        onPressed: state.isSubmitting ? null : _submitEvent,
+      ),
+    );
+  }
+}
+
+class _GalaxyPainter extends CustomPainter {
+  _GalaxyPainter({required this.progress});
+
+  final double progress;
+
+  static const List<Offset> _stars = [
+    Offset(0.05, 0.12),
+    Offset(0.12, 0.22),
+    Offset(0.18, 0.15),
+    Offset(0.23, 0.33),
+    Offset(0.31, 0.18),
+    Offset(0.38, 0.09),
+    Offset(0.45, 0.24),
+    Offset(0.54, 0.16),
+    Offset(0.6, 0.31),
+    Offset(0.68, 0.13),
+    Offset(0.75, 0.23),
+    Offset(0.84, 0.14),
+    Offset(0.91, 0.31),
+    Offset(0.2, 0.43),
+    Offset(0.33, 0.39),
+    Offset(0.47, 0.45),
+    Offset(0.62, 0.42),
+    Offset(0.79, 0.41),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final spin = progress * math.pi * 2;
+
+    final topNebula = Paint()
+      ..shader =
+          RadialGradient(
+            colors: [
+              const Color(0xFF8BD5FF).withValues(alpha: 0.23),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(size.width * 0.72, size.height * 0.18),
+              radius: size.width * 0.42,
+            ),
+          );
+    canvas.drawCircle(
+      Offset(size.width * 0.72, size.height * 0.18),
+      size.width * 0.42,
+      topNebula,
+    );
+
+    final leftNebula = Paint()
+      ..shader =
+          RadialGradient(
+            colors: [
+              const Color(0xFF9B7BFF).withValues(alpha: 0.16),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(size.width * 0.14, size.height * 0.38),
+              radius: size.width * 0.36,
+            ),
+          );
+    canvas.drawCircle(
+      Offset(size.width * 0.14, size.height * 0.38),
+      size.width * 0.36,
+      leftNebula,
+    );
+
+    final core = Offset(
+      size.width * 0.56,
+      size.height * (0.28 + (math.sin(progress * 2 * math.pi) * 0.02)),
+    );
+    final corePaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.9),
+          const Color(0xFF8FD1FF).withValues(alpha: 0.62),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: core, radius: size.width * 0.18));
+    canvas.drawCircle(core, size.width * 0.18, corePaint);
+
+    final armPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 3; i++) {
+      final alpha = 0.12 + (i * 0.06);
+      final direction = i.isEven ? 1.0 : -1.0;
+      armPaint
+        ..strokeWidth = 1.2 + (i * 0.6)
+        ..color = Colors.white.withValues(alpha: alpha);
+      final radius = size.width * (0.16 + (i * 0.05));
+      final rect = Rect.fromCircle(center: core, radius: radius);
+      canvas.drawArc(
+        rect,
+        (-0.55 + (i * 0.18)) + (spin * direction * 0.35),
+        2.75,
+        false,
+        armPaint,
+      );
+    }
+
+    final orbitPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..color = Colors.white.withValues(alpha: 0.2)
+      ..strokeWidth = 1.0;
+    for (var i = 0; i < 2; i++) {
+      final radius = size.width * (0.24 + (i * 0.06));
+      final rect = Rect.fromCircle(center: core, radius: radius);
+      final direction = i == 0 ? 1.0 : -1.0;
+      canvas.drawArc(
+        rect,
+        (0.25 + (i * 0.5)) + (spin * direction * 0.42),
+        1.6,
+        false,
+        orbitPaint,
+      );
+    }
+
+    for (var i = 0; i < _stars.length; i++) {
+      final star = _stars[i];
+      final twinkle = 0.4 + (0.6 * math.sin((progress * 2 * math.pi) + i));
+      final radius = i.isEven ? 1.0 : 1.7;
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.22 + (twinkle * 0.68));
+      final center = Offset(star.dx * size.width, star.dy * size.height);
+      canvas.drawCircle(center, radius, paint);
+
+      if (i % 4 == 0) {
+        final crossPaint = Paint()
+          ..color = Colors.white.withValues(alpha: 0.3 + (twinkle * 0.4))
+          ..strokeWidth = 0.8;
+        canvas.drawLine(
+          Offset(center.dx - 2.4, center.dy),
+          Offset(center.dx + 2.4, center.dy),
+          crossPaint,
+        );
+        canvas.drawLine(
+          Offset(center.dx, center.dy - 2.4),
+          Offset(center.dx, center.dy + 2.4),
+          crossPaint,
+        );
+      }
+    }
+
+    final planetCenter = Offset(
+      size.width * 0.83,
+      size.height * (0.68 + (math.sin(progress * 2 * math.pi) * 0.01)),
+    );
+    final planetRadius = size.height * 0.16;
+
+    final planetShadow = Paint()
+      ..color = Colors.black.withValues(alpha: 0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    canvas.drawCircle(
+      Offset(planetCenter.dx + 8, planetCenter.dy + 10),
+      planetRadius,
+      planetShadow,
+    );
+
+    final planet = Paint()
+      ..shader =
+          LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFFA6D4FF).withValues(alpha: 0.96),
+              const Color(0xFF4C7BEA).withValues(alpha: 0.9),
+              const Color(0xFF262F6F).withValues(alpha: 0.94),
+            ],
+          ).createShader(
+            Rect.fromCircle(center: planetCenter, radius: planetRadius),
+          );
+    canvas.drawCircle(planetCenter, planetRadius, planet);
+
+    final highlight = Paint()
+      ..shader =
+          RadialGradient(
+            colors: [Colors.white.withValues(alpha: 0.52), Colors.transparent],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(
+                planetCenter.dx - (planetRadius * 0.3),
+                planetCenter.dy - (planetRadius * 0.28),
+              ),
+              radius: planetRadius * 0.78,
+            ),
+          );
+    canvas.drawCircle(planetCenter, planetRadius, highlight);
+
+    canvas.save();
+    canvas.translate(planetCenter.dx, planetCenter.dy);
+    canvas.rotate(-0.35);
+    final ringRect = Rect.fromCenter(
+      center: Offset.zero,
+      width: planetRadius * 2.7,
+      height: planetRadius * 0.88,
+    );
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.2
+      ..shader = LinearGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.1),
+          Colors.white.withValues(alpha: 0.75),
+          Colors.white.withValues(alpha: 0.1),
+        ],
+      ).createShader(ringRect);
+    canvas.drawOval(ringRect, ring);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _GalaxyPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
