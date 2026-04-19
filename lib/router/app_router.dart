@@ -26,7 +26,7 @@ class AppRouter extends RootStackRouter {
           path: '/base',
           children: [
             AutoRoute(page: HomeRoute.page, path: 'home', initial: true),
-            AutoRoute(page: MapDiscoveryRoute.page, path: 'map'),
+            AutoRoute(page: VibeMatchRoute.page, path: 'match'),
             AutoRoute(page: ActivityRoute.page, path: 'activity'),
             AutoRoute(page: ProfileRoute.page, path: 'profile'),
           ],
@@ -35,6 +35,7 @@ class AppRouter extends RootStackRouter {
         // ─── Event Routes ─────────────────────────────────────────
         AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
         AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
+        AutoRoute(page: UserMatchListRoute.page, path: '/match/list'),
 
         // ─── Settings ─────────────────────────────────────────────
         AutoRoute(page: SettingsRoute.page, path: '/settings'),

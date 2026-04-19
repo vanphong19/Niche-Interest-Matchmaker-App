@@ -8,6 +8,7 @@ import '../features/auth/data/repositories/auth_repository_impl.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/settings/presentation/bloc/settings_bloc.dart';
+import '../features/vibe_check/presentation/bloc/vibe_match_bloc.dart';
 import '../router/app_router.dart';
 
 import '../features/event/data/services/event_api_service.dart' as import_event_api;
@@ -45,6 +46,9 @@ Future<void> configureDependencies() async {
 
   // ─── Settings Feature ─────────────────────────────────────────
   sl.registerFactory<SettingsBloc>(() => SettingsBloc());
+
+  // ─── Vibe Match Feature ───────────────────────────────────────
+  sl.registerFactory<VibeMatchBloc>(() => VibeMatchBloc());
 
   // ─── Event Feature ────────────────────────────────────────────
   sl.registerLazySingleton<import_event_api.EventApiService>(

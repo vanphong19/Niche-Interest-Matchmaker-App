@@ -61,9 +61,9 @@ class VibeBottomNav extends StatelessWidget {
                     onTap: () => _handleTap(0),
                   ),
                   _NavItem(
-                    icon: Icons.map_outlined,
-                    activeIcon: Icons.map_rounded,
-                    label: 'Map',
+                    icon: Icons.diversity_3_outlined,
+                    activeIcon: Icons.diversity_3,
+                    label: 'Match',
                     isSelected: currentIndex == 1,
                     onTap: () => _handleTap(1),
                   ),
