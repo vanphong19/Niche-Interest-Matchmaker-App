@@ -4,13 +4,16 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../router/app_router.gr.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/utils/profile_state.dart';
+import '../../../../injection/injection_container.dart';
+import '../../../../router/app_router.gr.dart';
+import '../../../event/data/services/event_api_service.dart';
+import '../../../event/domain/entities/event.dart';
+import 'all_activity_history_page.dart';
 
 @RoutePage()
 class ProfilePage extends StatefulWidget {
@@ -26,34 +29,48 @@ class _ProfilePageState extends State<ProfilePage>
   late Animation<double> _headerFade;
   late Animation<Offset> _statsSlide;
   late Animation<double> _sectionsFade;
+  List<Event> _joinedEvents = const [];
+  List<Event> _pastEvents = const [];
+  bool _historyLoading = true;
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 900),
     );
     _headerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _statsSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _animController,
-            curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic),
-          ),
-        );
+    _statsSlide =
+        Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.2, 0.65, curve: Curves.easeOutCubic),
+      ),
+    );
     _sectionsFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+        curve: const Interval(0.45, 1.0, curve: Curves.easeOut),
       ),
     );
     _animController.forward();
+    _loadMyEvents();
+  }
+
+  Future<void> _loadMyEvents() async {
+    final result = await sl<EventApiService>().getMyEvents();
+    if (!mounted) return;
+    setState(() {
+      _joinedEvents = result['joined'] ?? const [];
+      _pastEvents = result['past'] ?? const [];
+      _historyLoading = false;
+    });
   }
 
   @override
@@ -62,18 +79,16 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
+  // ────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBgPrimary : const Color(0xFFF5F7FF);
-    final cardColor = isDark ? AppColors.darkCardBackground : Colors.white;
-    final textPrimary = isDark
-        ? AppColors.darkTextPrimary
-        : const Color(0xFF1C2C58);
+    final bgColor =
+        isDark ? AppColors.darkBgPrimary : const Color(0xFFF5F7FF);
 
     return ValueListenableBuilder<String>(
       valueListenable: AppLocalizations.localeNotifier,
-      builder: (context, _, _) {
+      builder: (context, locale, child) {
         return ValueListenableBuilder<ProfileData>(
           valueListenable: ProfileState.notifier,
           builder: (context, profileData, _) {
@@ -81,66 +96,49 @@ class _ProfilePageState extends State<ProfilePage>
               backgroundColor: bgColor,
               body: SafeArea(
                 child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
                   slivers: [
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
+                        padding:
+                            const EdgeInsets.fromLTRB(20, 16, 20, 110),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Header (Needs centering)
                             FadeTransition(
                               opacity: _headerFade,
-                              child: Center(
-                                child: _buildHeader(
-                                  isDark,
-                                  textPrimary,
-                                  cardColor,
-                                ),
-                              ),
+                              child: _buildTopBar(isDark, profileData),
                             ),
                             const SizedBox(height: 24),
-                            // Avatar & Info (Needs centering)
                             FadeTransition(
                               opacity: _headerFade,
-                              child: Center(
-                                child: _buildProfileHeader(
-                                  isDark,
-                                  textPrimary,
-                                  profileData,
-                                ),
-                              ),
+                              child: _buildProfileHeader(isDark, profileData),
                             ),
-                            const SizedBox(height: 28),
-                            // Stats (Needs centering)
+                            const SizedBox(height: 24),
                             SlideTransition(
                               position: _statsSlide,
                               child: FadeTransition(
                                 opacity: _headerFade,
-                                child: _buildStats(cardColor, isDark),
+                                child: _buildStatsRow(isDark),
                               ),
                             ),
                             const SizedBox(height: 28),
-                            // Interests
                             FadeTransition(
                               opacity: _sectionsFade,
                               child: _buildInterestsSection(
-                                isDark,
-                                textPrimary,
-                                profileData,
-                              ),
+                                  isDark, profileData),
                             ),
                             const SizedBox(height: 28),
-                            // Badges Gallery
                             FadeTransition(
                               opacity: _sectionsFade,
-                              child: _buildBadgesSection(isDark, textPrimary),
+                              child: _buildBadgesSection(isDark),
                             ),
                             const SizedBox(height: 28),
-                            // Activity History
                             FadeTransition(
                               opacity: _sectionsFade,
-                              child: _buildActivitySection(isDark, textPrimary),
+                              child: _buildActivitySection(isDark),
                             ),
                           ],
                         ),
@@ -156,118 +154,109 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildHeader(bool isDark, Color textPrimary, Color cardColor) {
+  // ─── Top bar ────────────────────────────────────────
+  Widget _buildTopBar(bool isDark, ProfileData profile) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            const Icon(
-              Icons.location_on_rounded,
-              size: 18,
-              color: AppColors.primary,
-            ),
-            const SizedBox(width: 6),
+            Icon(Icons.location_on_rounded,
+                size: 16, color: AppColors.primary),
+            const SizedBox(width: 5),
             Text(
-              'Ho Chi Minh City',
+              profile.location.isNotEmpty
+                  ? profile.location
+                  : 'Ho Chi Minh City',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: textPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.secondary,
               ),
             ),
           ],
         ),
-        Row(
-          children: [
-            _headerIcon(Icons.notifications_none_rounded, cardColor, isDark),
-            const SizedBox(width: 8),
-            _headerIcon(
-              Icons.settings_outlined,
-              cardColor,
-              isDark,
-              onTap: () {
-                context.router.push(const SettingsRoute());
-              },
-            ),
-          ],
+        const Spacer(),
+        _HeaderIcon(
+          icon: Icons.notifications_none_rounded,
+          isDark: isDark,
+        ),
+        const SizedBox(width: 8),
+        _HeaderIcon(
+          icon: Icons.settings_outlined,
+          isDark: isDark,
+          onTap: () => context.router.push(const SettingsRoute()),
         ),
       ],
     );
   }
 
-  Widget _headerIcon(
-    IconData icon,
-    Color cardColor,
-    bool isDark, {
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(icon, size: 20, color: AppColors.primary),
-      ),
-    );
-  }
+  // ─── Profile header ─────────────────────────────────
+  Widget _buildProfileHeader(bool isDark, ProfileData profile) {
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : const Color(0xFF1C2C58);
 
-  Widget _buildProfileHeader(
-    bool isDark,
-    Color textPrimary,
-    ProfileData profile,
-  ) {
     return Column(
       children: [
+        // Avatar
         Stack(
           clipBehavior: Clip.none,
           children: [
             Container(
-              width: 112,
-              height: 112,
+              width: 110,
+              height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 3),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 20,
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 24,
                     spreadRadius: 4,
                   ),
                 ],
               ),
-              child: VibeAvatar(
-                imageUrl: profile.avatarUrl,
-                name: profile.name,
-                size: 106,
-                showBorder: false,
+              child: Padding(
+                padding: const EdgeInsets.all(3),
+                child: VibeAvatar(
+                  imageUrl: profile.avatarUrl,
+                  name: profile.name,
+                  size: 104,
+                  showBorder: false,
+                ),
               ),
             ),
             Positioned(
-              right: -2,
+              right: 0,
               bottom: 4,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.verified_rounded,
-                  color: Colors.white,
-                  size: 16,
+              child: GestureDetector(
+                onTap: () => context.router.push(const EditProfileRoute()),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBgPrimary
+                          : const Color(0xFFF5F7FF),
+                      width: 2.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.edit_rounded,
+                      color: Colors.white, size: 14),
                 ),
               ),
             ),
@@ -277,129 +266,52 @@ class _ProfilePageState extends State<ProfilePage>
         Text(
           profile.name,
           style: AppTextStyles.headingLarge.copyWith(
-            fontSize: 32,
+            fontSize: 28,
             color: textPrimary,
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
         Text(
           '@${profile.username}',
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+          style: TextStyle(
+            color: AppColors.textHint,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             profile.bio,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.5,
-              fontSize: 13,
-            ),
             textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.textSecondary,
+              fontSize: 14,
+              height: 1.55,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         const SizedBox(height: 16),
-        // Premium Reputation Badge - Solid Vibrant Gold Mesh
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFFFD700), // Pure Gold
-                Color(0xFFFFA000), // Amber Gold
-                Color(0xFFFF8F00), // Darker Gold for depth
-              ],
-              stops: [0.0, 0.5, 1.0],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFFD700).withValues(alpha: 0.3),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 8),
-              ),
-            ],
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Decorative Badge Icon
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ],
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppLocalizations.tr('reputation_score').toUpperCase(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: Color.fromARGB(194, 255, 255, 255),
-                      letterSpacing: 1.5,
-                      fontSize: 10,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '982',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      fontSize: 26,
-                      letterSpacing: -0.5,
-                      height: 1,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        // Reputation pill – premium gold
+        _ReputationBadge(),
       ],
     );
   }
 
-  Widget _buildStats(Color cardColor, bool isDark) {
+  // ─── Stats row ──────────────────────────────────────
+  Widget _buildStatsRow(bool isDark) {
+    final cardBg = isDark ? AppColors.darkCardBackground : Colors.white;
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -411,155 +323,70 @@ class _ProfilePageState extends State<ProfilePage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _StatItem(
-            value: '12',
-            label: AppLocalizations.tr('created'),
-            isDark: isDark,
-          ),
-          _divider(),
-          _StatItem(
-            value: '34',
-            label: AppLocalizations.tr('joined'),
-            isDark: isDark,
-          ),
-          _divider(),
-          _StatItem(
-            value: '156',
-            label: AppLocalizations.tr('connections'),
-            isDark: isDark,
-          ),
-          _divider(),
-          _StatItem(
-            value: '8',
-            label: AppLocalizations.tr('badges'),
-            isDark: isDark,
-          ),
+          _StatChip(value: '12', label: 'Created', isDark: isDark),
+          _StatDivider(),
+          _StatChip(value: '34', label: 'Joined', isDark: isDark),
+          _StatDivider(),
+          _StatChip(value: '156', label: 'Friends', isDark: isDark),
+          _StatDivider(),
+          _StatChip(value: '8', label: 'Badges', isDark: isDark),
         ],
       ),
     );
   }
 
-  Widget _divider() {
-    return Container(height: 32, width: 1, color: const Color(0xFFE8ECF4));
-  }
-
-  Widget _buildInterestsSection(
-    bool isDark,
-    Color textPrimary,
-    ProfileData profile,
-  ) {
-    final selectedInterests = profile.interests
+  // ─── Interests section ──────────────────────────────
+  Widget _buildInterestsSection(bool isDark, ProfileData profile) {
+    final selected = profile.interests
         .where((i) => i['selected'] == true)
         .toList();
-    if (selectedInterests.isEmpty) return const SizedBox();
+    if (selected.isEmpty) return const SizedBox.shrink();
 
-    IconData getIcon(String name) {
-      switch (name) {
-        case 'sports_basketball':
-          return Icons.sports_basketball;
-        case 'music_note':
-          return Icons.music_note;
-        case 'computer':
-          return Icons.computer;
-        case 'sports_esports':
-          return Icons.sports_esports;
-        case 'restaurant':
-          return Icons.restaurant;
-        case 'palette':
-          return Icons.palette;
-        case 'terrain':
-          return Icons.terrain;
-        case 'people':
-          return Icons.people;
-        case 'camera_alt':
-          return Icons.camera_alt;
-        case 'flight':
-          return Icons.flight;
-        case 'fitness_center':
-          return Icons.fitness_center;
-        case 'movie':
-          return Icons.movie;
-        default:
-          return Icons.local_activity;
-      }
-    }
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : const Color(0xFF1C2C58);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.tr('interests'),
-          style: AppTextStyles.headingSmall.copyWith(color: textPrimary),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: selectedInterests.map((interest) {
-            final name = interest['name'] as String;
-            final icon = getIcon(interest['icon'] as String);
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        Row(
+          children: [
+            Text(
+              AppLocalizations.tr('interests'),
+              style: AppTextStyles.headingSmall.copyWith(color: textPrimary),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF262C3A)
-                    : const Color.fromARGB(146, 255, 255, 255),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.05),
-                  width: 1,
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${selected.length}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: isDark
-                          ? []
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                    ),
-                    child: Center(
-                      child: Icon(
-                        icon,
-                        color: isDark
-                            ? AppColors.getCategoryColor(
-                                name,
-                              ).withValues(alpha: 0.9)
-                            : AppColors.getCategoryColor(name),
-                        size: 15,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.secondary.withValues(alpha: 0.9),
-                      fontSize: 13,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ],
-              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: selected.map((interest) {
+            final name = interest['name'] as String;
+            final icon = _getIcon(interest['icon'] as String);
+            final color = AppColors.getCategoryColor(name);
+
+            return _InterestPill(
+              name: name,
+              icon: icon,
+              color: color,
+              isDark: isDark,
             );
           }).toList(),
         ),
@@ -567,7 +394,63 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildBadgesSection(bool isDark, Color textPrimary) {
+  // ─── Badges section ─────────────────────────────────
+  Widget _buildBadgesSection(bool isDark) {
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : const Color(0xFF1C2C58);
+
+    final badges = [
+      _BadgeData(
+        icon: Icons.military_tech_rounded,
+        name: 'Top Host',
+        gradient: const [Color(0xFF4884C9), Color(0xFF306DB9)],
+        isUnlocked: true,
+        desc: '5+ events hosted',
+      ),
+      _BadgeData(
+        icon: Icons.bolt_rounded,
+        name: 'Always On Time',
+        gradient: const [Color(0xFFF3B541), Color(0xFFFAA320)],
+        isUnlocked: true,
+        desc: '10 on-time joins',
+      ),
+      _BadgeData(
+        icon: Icons.people_alt_rounded,
+        name: 'Social Butterfly',
+        gradient: const [Color(0xFF4CB098), Color(0xFF1DA187)],
+        isUnlocked: true,
+        desc: '20+ connections',
+      ),
+      _BadgeData(
+        icon: Icons.explore_rounded,
+        name: 'Explorer',
+        gradient: const [Color(0xFF6D48BD), Color(0xFF4E2D95)],
+        isUnlocked: true,
+        desc: '5 categories',
+      ),
+      _BadgeData(
+        icon: Icons.emoji_events_rounded,
+        name: 'Champion',
+        gradient: const [Color(0xFFC65050), Color(0xFFB02D2D)],
+        isUnlocked: true,
+        desc: 'Top rated host',
+      ),
+      _BadgeData(
+        icon: Icons.local_fire_department_rounded,
+        name: 'Streak Master',
+        gradient: const [Color(0xFF444444), Color(0xFF222222)],
+        isUnlocked: false,
+        desc: '7-day streak',
+      ),
+      _BadgeData(
+        icon: Icons.auto_graph_rounded,
+        name: 'Growth Aura',
+        gradient: const [Color(0xFF5197E0), Color(0xFF356FDB)],
+        isUnlocked: true,
+        desc: 'Rising star',
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -576,16 +459,18 @@ class _ProfilePageState extends State<ProfilePage>
           children: [
             Text(
               AppLocalizations.tr('badges_gallery'),
-              style: AppTextStyles.headingSmall.copyWith(color: textPrimary),
+              style:
+                  AppTextStyles.headingSmall.copyWith(color: textPrimary),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '8 ${AppLocalizations.tr('unlocked')}',
+                '${badges.where((b) => b.isUnlocked).length} unlocked',
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -595,201 +480,309 @@ class _ProfilePageState extends State<ProfilePage>
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: 14),
         SizedBox(
-          height: 185,
-          child: ListView(
+          height: 172,
+          child: ListView.separated(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
             physics: const BouncingScrollPhysics(),
-            children: const [
-              _PremiumBadgeCard(
-                icon: Icons.military_tech_rounded,
-                name: 'Top Host',
-                gradient: [
-                  Color.fromARGB(255, 72, 132, 201),
-                  Color.fromARGB(255, 48, 109, 185),
-                ], // navy xanh — authority
-                isUnlocked: true,
-              ),
-              _PremiumBadgeCard(
-                icon: Icons.bolt_rounded,
-                name: 'Punctual King',
-                gradient: [
-                  Color.fromARGB(255, 243, 181, 65),
-                  Color.fromARGB(255, 250, 170, 32),
-                ], // amber đậm — prestige
-                isUnlocked: true,
-              ),
-              _PremiumBadgeCard(
-                icon: Icons.people_alt_rounded,
-                name: 'Social Butterfly',
-                gradient: [
-                  Color.fromARGB(255, 76, 176, 152),
-                  Color.fromARGB(255, 29, 161, 135),
-                ], // emerald — connection
-                isUnlocked: true,
-              ),
-              _PremiumBadgeCard(
-                icon: Icons.explore_rounded,
-                name: 'Explorer',
-                gradient: [
-                  Color.fromARGB(255, 109, 72, 189),
-                  Color.fromARGB(255, 78, 45, 149),
-                ], // indigo — discovery
-                isUnlocked: true,
-              ),
-              _PremiumBadgeCard(
-                icon: Icons.emoji_events_rounded,
-                name: 'Champion',
-                gradient: [
-                  Color.fromARGB(255, 198, 80, 80),
-                  Color.fromARGB(255, 176, 45, 45),
-                ], // crimson — victory
-                isUnlocked: true,
-              ),
-              _PremiumBadgeCard(
-                icon: Icons.local_fire_department_rounded,
-                name: 'Streak Master',
-                gradient: [
-                  Color.fromARGB(255, 34, 34, 34),
-                  Color.fromARGB(255, 17, 17, 17),
-                ], // charcoal — locked
-                isUnlocked: false,
-              ),
-            ],
+            itemCount: badges.length,
+            separatorBuilder: (e, s) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              return _BadgeCard(data: badges[index]);
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildActivitySection(bool isDark, Color textPrimary) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // ─── Activity section ───────────────────────────────
+  Widget _buildActivitySection(bool isDark) {
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : const Color(0xFF1C2C58);
+    final allParticipated = [..._joinedEvents, ..._pastEvents];
+
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: ProfileState.pinnedEventIdsNotifier,
+      builder: (context, pinnedIds, _) {
+        final pinned = allParticipated
+            .where((e) => pinnedIds.contains(e.id))
+            .toList();
+        final featured = pinned.isNotEmpty ? pinned.first : null;
+        final rest = pinned.skip(1).take(3).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              AppLocalizations.tr('activity_history'),
-              style: AppTextStyles.headingSmall.copyWith(color: textPrimary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppLocalizations.tr('activity_history'),
+                  style: AppTextStyles.headingSmall
+                      .copyWith(color: textPrimary),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AllActivityHistoryPage(
+                          initialTab: 1,
+                          showPinActions: true,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySurface,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          AppLocalizations.tr('view_all'),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 10, color: AppColors.primary),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                // Navigate to Activity tab (index 2 visible, which is tab index 3 because of create button)
-                final tabsRouter = AutoTabsRouter.of(context, watch: false);
-                tabsRouter.setActiveIndex(2); // Activity tab
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+            const SizedBox(height: 14),
+            if (_historyLoading)
+              Container(
+                height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(12),
+                  color: isDark
+                      ? const Color(0xFF1A2232)
+                      : AppColors.bgSecondary,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(
-                  AppLocalizations.tr('view_all'),
-                  style: const TextStyle(
-                    fontSize: 12,
+              )
+            else if (pinned.isEmpty)
+              _buildPinPrompt(isDark)
+            else ...[
+              if (featured != null)
+                GestureDetector(
+                  onTap: () => context.router.push(
+                    EventDetailRoute(eventId: featured.id),
+                  ),
+                  child: _buildFeaturedActivity(featured, isDark),
+                ),
+              if (rest.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 116,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: rest.length,
+                    separatorBuilder: (e, s) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final event = rest[index];
+                      return GestureDetector(
+                        onTap: () => context.router.push(
+                          EventDetailRoute(eventId: event.id),
+                        ),
+                        child: SizedBox(
+                          width: 200,
+                          child: _buildMiniActivity(event),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPinPrompt(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A2232) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.borderLight,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.push_pin_rounded,
+                color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pin events to show here',
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    fontSize: 14,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.secondary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Tap "View all" → pin events to show on your profile',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textHint,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturedActivity(Event event, bool isDark) {
+    return Container(
+      height: 180,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              event.photoUrls.isNotEmpty
+                  ? event.photoUrls.first
+                  : 'https://picsum.photos/seed/${event.id}/900/500',
+              fit: BoxFit.cover,
+              errorBuilder: (e, s, t) =>
+                  Container(color: AppColors.bgSecondary),
+            ),
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black87],
+                  stops: [0.35, 1.0],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 12,
+              left: 14,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    color: Colors.white.withValues(alpha: 0.25),
+                    child: Text(
+                      '📌 Pinned',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        GestureDetector(
-          onTap: () =>
-              context.router.push(EventDetailRoute(eventId: 'evt-005')),
-          child: _buildHeroActivity(),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () =>
-                    context.router.push(EventDetailRoute(eventId: 'evt-002')),
-                child: _buildMiniActivity(
-                  'Artisan Coffee Crawl',
-                  'Dec 12, 2024',
-                  'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=500&q=80',
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () =>
-                    context.router.push(EventDetailRoute(eventId: 'evt-001')),
-                child: _buildMiniActivity(
-                  'Sunrise HIIT Squad',
-                  'Dec 08, 2024',
-                  'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=500&q=80',
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHeroActivity() {
-    return Container(
-      height: 170,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        image: const DecorationImage(
-          image: NetworkImage(
-            'https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=900&q=80',
-          ),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black87],
-          ),
-        ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              'LAST SUNDAY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Hudson Valley Peak Trail',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 22,
-              ),
-            ),
-            Text(
-              '12 Participants',
-              style: TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.w600,
+            Positioned(
+              bottom: 14,
+              left: 16,
+              right: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.people_rounded,
+                          color: Colors.white70, size: 13),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${event.currentParticipants} participants',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.location_on_rounded,
+                          color: Colors.white70, size: 13),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event.location.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -798,57 +791,460 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildMiniActivity(String title, String date, String image) {
-    return Container(
-      height: 108,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        image: DecorationImage(image: NetworkImage(image), fit: BoxFit.cover),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black87],
+  Widget _buildMiniActivity(Event event) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            event.photoUrls.isNotEmpty
+                ? event.photoUrls.first
+                : 'https://picsum.photos/seed/${event.id}/400',
+            fit: BoxFit.cover,
+            errorBuilder: (e, s, t) =>
+                Container(color: AppColors.bgSecondary),
           ),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black87],
+                stops: [0.3, 1.0],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 10,
+            left: 10,
+            right: 10,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${event.startDateTime.day}/${event.startDateTime.month}/${event.startDateTime.year}',
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Helper ─────────────────────────────────────────
+  static IconData _getIcon(String name) {
+    switch (name) {
+      case 'sports_basketball':
+        return Icons.sports_basketball;
+      case 'music_note':
+        return Icons.music_note;
+      case 'computer':
+        return Icons.computer;
+      case 'sports_esports':
+        return Icons.sports_esports;
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'palette':
+        return Icons.palette;
+      case 'terrain':
+        return Icons.terrain;
+      case 'people':
+        return Icons.people;
+      case 'camera_alt':
+        return Icons.camera_alt;
+      case 'flight':
+        return Icons.flight;
+      case 'fitness_center':
+        return Icons.fitness_center;
+      case 'movie':
+        return Icons.movie;
+      default:
+        return Icons.local_activity;
+    }
+  }
+}
+
+// ─── Reputation Badge ─────────────────────────────────────────────────────────
+class _ReputationBadge extends StatelessWidget {
+  const _ReputationBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFFFA000), Color(0xFFFF8F00)],
+          stops: [0.0, 0.5, 1.0],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.45),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.25),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.auto_awesome_rounded,
+                color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'REPUTATION',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  letterSpacing: 1.5,
+                  fontSize: 9,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '982',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  fontSize: 26,
+                  letterSpacing: -0.5,
+                  height: 1,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Interest Pill ────────────────────────────────────────────────────────────
+class _InterestPill extends StatelessWidget {
+  const _InterestPill({
+    required this.name,
+    required this.icon,
+    required this.color,
+    required this.isDark,
+  });
+  final String name;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [color.withValues(alpha: 0.22), const Color(0xFF1B2232)]
+              : [color.withValues(alpha: 0.14), Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.35 : 0.22),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: isDark ? 0.14 : 0.09),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? color.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 14),
+          ),
+          const SizedBox(width: 9),
+          Text(
+            name,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : color.withValues(alpha: 0.85),
+              fontSize: 13,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Badge Data ────────────────────────────────────────────────────────────────
+class _BadgeData {
+  const _BadgeData({
+    required this.icon,
+    required this.name,
+    required this.gradient,
+    required this.isUnlocked,
+    required this.desc,
+  });
+  final IconData icon;
+  final String name;
+  final List<Color> gradient;
+  final bool isUnlocked;
+  final String desc;
+}
+
+// ─── Badge Card ───────────────────────────────────────────────────────────────
+class _BadgeCard extends StatelessWidget {
+  const _BadgeCard({required this.data});
+  final _BadgeData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = data.isUnlocked ? data.gradient.first : const Color(0xFF5A5A5A);
+
+    return Container(
+      width: 130,
+      height: 168,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: data.isUnlocked
+            ? [
+                BoxShadow(
+                  color: primary.withValues(alpha: isDark ? 0.28 : 0.14),
+                  blurRadius: 22,
+                  offset: const Offset(0, 6),
+                  spreadRadius: -3,
+                ),
+              ]
+            : [],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: data.isUnlocked
+                    ? [
+                        data.gradient.first
+                            .withValues(alpha: isDark ? 0.88 : 0.96),
+                        data.gradient.last
+                            .withValues(alpha: isDark ? 0.78 : 0.92),
+                      ]
+                    : [
+                        const Color(0xFF3A3A3A),
+                        const Color(0xFF222222),
+                      ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withValues(
+                    alpha: data.isUnlocked ? 0.35 : 0.15),
+                width: 1.2,
               ),
             ),
-            Text(
-              date,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Stack(
+              children: [
+                // Glow highlight
+                if (data.isUnlocked)
+                  Positioned(
+                    top: -48,
+                    right: -48,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0.22),
+                            Colors.white.withValues(alpha: 0.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Icon circle
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(
+                              alpha: data.isUnlocked ? 0.22 : 0.1),
+                          border: Border.all(
+                            color: Colors.white.withValues(
+                                alpha: data.isUnlocked ? 0.45 : 0.2),
+                            width: 1.5,
+                          ),
+                          boxShadow: data.isUnlocked
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.white
+                                        .withValues(alpha: 0.18),
+                                    blurRadius: 14,
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: Icon(
+                          data.icon,
+                          color: Colors.white.withValues(
+                              alpha: data.isUnlocked ? 1.0 : 0.4),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        data.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white.withValues(
+                              alpha: data.isUnlocked ? 1.0 : 0.5),
+                          height: 1.15,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (!data.isUnlocked)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lock_rounded,
+                                  size: 10,
+                                  color: Colors.white
+                                      .withValues(alpha: 0.45)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'LOCKED',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white
+                                      .withValues(alpha: 0.45),
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Text(
+                          data.desc,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white.withValues(alpha: 0.65),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _StatItem extends StatelessWidget {
-  const _StatItem({
+// ─── Stat Chip ────────────────────────────────────────────────────────────────
+class _StatChip extends StatelessWidget {
+  const _StatChip({
     required this.value,
     required this.label,
-    this.isDark = false,
+    required this.isDark,
   });
   final String value;
   final String label;
@@ -857,16 +1253,26 @@ class _StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           value,
-          style: AppTextStyles.headingMedium.copyWith(color: AppColors.primary),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: AppColors.primary,
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: AppTextStyles.captionMedium.copyWith(
-            color: isDark ? AppColors.darkTextSecondary : null,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.textHint,
           ),
         ),
       ],
@@ -874,196 +1280,47 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-class _PremiumBadgeCard extends StatelessWidget {
-  const _PremiumBadgeCard({
+class _StatDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 30,
+      width: 1,
+      color: AppColors.borderLight,
+    );
+  }
+}
+
+// ─── Header Icon ──────────────────────────────────────────────────────────────
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({
     required this.icon,
-    required this.name,
-    required this.gradient,
-    this.isUnlocked = true,
+    required this.isDark,
+    this.onTap,
   });
   final IconData icon;
-  final String name;
-  final List<Color> gradient;
-  final bool isUnlocked;
+  final bool isDark;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isUnlocked
-        ? gradient.first
-        : const Color.fromARGB(255, 79, 79, 79);
-
-    return Container(
-      width: 140, // Slightly wider for better balance
-      height: 180,
-      margin: const EdgeInsets.only(right: 20, bottom: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: isUnlocked
-            ? [
-                BoxShadow(
-                  color: primaryColor.withValues(alpha: isDark ? 0.25 : 0.1),
-                  blurRadius: 24,
-                  offset: const Offset(0, 5),
-                  spreadRadius: -4,
-                ),
-              ]
-            : [],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isUnlocked
-                    ? [
-                        gradient.first.withValues(alpha: isDark ? 0.85 : 0.95),
-                        gradient.last.withValues(alpha: isDark ? 0.75 : 0.9),
-                      ]
-                    : [
-                        (isDark ? Colors.white : Colors.black).withValues(
-                          alpha: 0.9,
-                        ),
-                        (isDark ? Colors.white : Colors.black).withValues(
-                          alpha: 0.4,
-                        ),
-                      ],
-              ),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.4),
-                width: 1.5,
-              ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCardBackground : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Mesh Glow Highlight
-                if (isUnlocked)
-                  Positioned(
-                    top: -45,
-                    right: -45,
-                    child: Container(
-                      width: 130,
-                      height: 130,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: 0.25),
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Centered Icon Surface
-                      Container(
-                        width: 62,
-                        height: 62,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(
-                            alpha: isUnlocked ? 0.25 : 0.15,
-                          ),
-                          border: Border.all(
-                            color: Colors.white.withValues(
-                              alpha: isUnlocked ? 0.5 : 0.3,
-                            ),
-                            width: 2,
-                          ),
-                          boxShadow: isUnlocked
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    blurRadius: 15,
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Center(
-                          child: Icon(
-                            icon,
-                            color: Colors.white.withValues(
-                              alpha: isUnlocked ? 1.0 : 0.5,
-                            ),
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        name,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white.withValues(
-                            alpha: isUnlocked ? 1.0 : 0.7,
-                          ),
-                          height: 1.1,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      if (!isUnlocked) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: (isDark ? Colors.black : Colors.white)
-                                .withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.lock_rounded,
-                                color: (isDark ? Colors.white : Colors.black)
-                                    .withValues(alpha: 0.5),
-                                size: 12,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'LOCKED',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  color: (isDark ? Colors.white : Colors.black)
-                                      .withValues(alpha: 0.5),
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
+        child: Icon(icon, size: 20, color: AppColors.primary),
       ),
     );
   }

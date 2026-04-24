@@ -41,15 +41,14 @@ class _EditProfilePageState extends State<EditProfilePage>
     _locationCtrl = TextEditingController(text: profile.location);
     _emailCtrl = TextEditingController(text: profile.email);
     _avatarUrl = profile.avatarUrl;
-    
-    // Deep copy interests to avoid modifying the global state directly until saved
-    _allInterests = profile.interests.map((i) => Map<String, dynamic>.from(i)).toList();
+    _allInterests = profile.interests
+        .map((i) => Map<String, dynamic>.from(i))
+        .toList();
 
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _animController.forward();
+      duration: const Duration(milliseconds: 500),
+    )..forward();
   }
 
   @override
@@ -63,40 +62,38 @@ class _EditProfilePageState extends State<EditProfilePage>
     super.dispose();
   }
 
-  void _saveProfile() async {
+  Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isSaving = true);
     HapticFeedback.mediumImpact();
-
-    // Simulate save
     await Future.delayed(const Duration(milliseconds: 800));
-
     if (!mounted) return;
-    
-    final newProfile = ProfileState.notifier.value.copyWith(
-      name: _nameCtrl.text,
-      username: _usernameCtrl.text,
-      bio: _bioCtrl.text,
-      location: _locationCtrl.text,
-      email: _emailCtrl.text,
-      avatarUrl: _avatarUrl,
-      interests: _allInterests,
-    );
-    ProfileState.updateProfile(newProfile);
 
+    ProfileState.updateProfile(
+      ProfileState.notifier.value.copyWith(
+        name: _nameCtrl.text,
+        username: _usernameCtrl.text,
+        bio: _bioCtrl.text,
+        location: _locationCtrl.text,
+        email: _emailCtrl.text,
+        avatarUrl: _avatarUrl,
+        interests: _allInterests,
+      ),
+    );
     setState(() => _isSaving = false);
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.check_circle_rounded,
-                color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Text(AppLocalizations.tr('profile_updated'),
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, color: Colors.white)),
+            Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Text(
+              'Profile updated!',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
           ],
         ),
         backgroundColor: AppColors.success,
@@ -105,28 +102,25 @@ class _EditProfilePageState extends State<EditProfilePage>
         margin: const EdgeInsets.all(20),
       ),
     );
-
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) context.router.maybePop();
   }
 
   void _pickAvatar() {
-    // Simulate avatar picking with random avatar
     HapticFeedback.selectionClick();
     setState(() {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      _avatarUrl = 'https://i.pravatar.cc/300?u=$timestamp';
+      _avatarUrl =
+          'https://i.pravatar.cc/300?u=${DateTime.now().millisecondsSinceEpoch}';
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.photo_camera_rounded,
-                color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Text(AppLocalizations.tr('avatar_updated'),
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, color: Colors.white)),
+            Icon(Icons.photo_camera_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Text('Avatar updated!',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w700)),
           ],
         ),
         backgroundColor: AppColors.primary,
@@ -138,156 +132,73 @@ class _EditProfilePageState extends State<EditProfilePage>
     );
   }
 
-  IconData _getIcon(String name) {
+  static IconData _getIcon(String name) {
     switch (name) {
-      case 'sports_basketball': return Icons.sports_basketball;
-      case 'music_note': return Icons.music_note;
-      case 'computer': return Icons.computer;
-      case 'sports_esports': return Icons.sports_esports;
-      case 'restaurant': return Icons.restaurant;
-      case 'palette': return Icons.palette;
-      case 'terrain': return Icons.terrain;
-      case 'people': return Icons.people;
-      case 'camera_alt': return Icons.camera_alt;
-      case 'flight': return Icons.flight;
-      case 'fitness_center': return Icons.fitness_center;
-      case 'movie': return Icons.movie;
-      default: return Icons.local_activity;
+      case 'sports_basketball':
+        return Icons.sports_basketball;
+      case 'music_note':
+        return Icons.music_note;
+      case 'computer':
+        return Icons.computer;
+      case 'sports_esports':
+        return Icons.sports_esports;
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'palette':
+        return Icons.palette;
+      case 'terrain':
+        return Icons.terrain;
+      case 'people':
+        return Icons.people;
+      case 'camera_alt':
+        return Icons.camera_alt;
+      case 'flight':
+        return Icons.flight;
+      case 'fitness_center':
+        return Icons.fitness_center;
+      case 'movie':
+        return Icons.movie;
+      default:
+        return Icons.local_activity;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBgPrimary : const Color(0xFFF5F7FF);
+    final bgColor =
+        isDark ? AppColors.darkBgPrimary : const Color(0xFFF5F7FF);
     final cardColor = isDark ? AppColors.darkCardBackground : Colors.white;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : const Color(0xFF1B2A57);
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : const Color(0xFF1B2A57);
 
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
         child: FadeTransition(
           opacity: CurvedAnimation(
-              parent: _animController, curve: Curves.easeOut),
+            parent: _animController,
+            curve: Curves.easeOut,
+          ),
           child: Column(
             children: [
-              // Header
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: () => context.router.maybePop(),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Icon(Icons.arrow_back_ios_new_rounded,
-                            size: 18, color: textPrimary),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.tr('edit_profile'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: textPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 40),
-                  ],
-                ),
-              ),
-              // Form
+              // ── Header ──
+              _buildHeader(cardColor, textPrimary, isDark),
+              // ── Form ──
               Expanded(
                 child: Form(
                   key: _formKey,
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                    physics: const BouncingScrollPhysics(),
                     children: [
-                      // Avatar Section
                       _buildAvatarSection(cardColor),
                       const SizedBox(height: 28),
-                      // Personal Info
-                      _buildSectionLabel(AppLocalizations.tr('display_name').toUpperCase()),
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _nameCtrl,
-                        hint: AppLocalizations.tr('your_display_name'),
-                        icon: Icons.person_rounded,
-                        cardColor: cardColor,
-                        textColor: textPrimary,
-                        validator: (v) =>
-                            v == null || v.isEmpty ? AppLocalizations.tr('name_required') : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSectionLabel(AppLocalizations.tr('username').toUpperCase()),
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _usernameCtrl,
-                        hint: AppLocalizations.tr('your_username'),
-                        icon: Icons.alternate_email_rounded,
-                        prefix: '@',
-                        cardColor: cardColor,
-                        textColor: textPrimary,
-                        validator: (v) =>
-                            v == null || v.isEmpty ? AppLocalizations.tr('username_required') : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSectionLabel(AppLocalizations.tr('email')),
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _emailCtrl,
-                        hint: AppLocalizations.tr('your_email'),
-                        icon: Icons.email_rounded,
-                        cardColor: cardColor,
-                        textColor: textPrimary,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSectionLabel(AppLocalizations.tr('bio').toUpperCase()),
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _bioCtrl,
-                        hint: AppLocalizations.tr('tell_people'),
-                        icon: Icons.chat_bubble_rounded,
-                        maxLines: 3,
-                        cardColor: cardColor,
-                        textColor: textPrimary,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSectionLabel(AppLocalizations.tr('location').toUpperCase()),
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        controller: _locationCtrl,
-                        hint: AppLocalizations.tr('your_city'),
-                        icon: Icons.location_on_rounded,
-                        cardColor: cardColor,
-                        textColor: textPrimary,
-                      ),
+                      _buildInfoSection(textPrimary, isDark),
+                      const SizedBox(height: 28),
+                      _buildInterestsSection(textPrimary, isDark),
                       const SizedBox(height: 32),
-                      // Interests Section
-                      _buildSectionLabel(AppLocalizations.tr('select_interests').toUpperCase()),
-                      const SizedBox(height: 16),
-                      _buildInterestsGrid(cardColor, textPrimary, isDark),
-                      const SizedBox(height: 40),
-                      // Save Button
                       _buildSaveButton(),
-                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -295,6 +206,46 @@ class _EditProfilePageState extends State<EditProfilePage>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(Color cardColor, Color textPrimary, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => context.router.maybePop(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  size: 16, color: textPrimary),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            AppLocalizations.tr('edit_profile'),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: textPrimary,
+              letterSpacing: -0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -308,23 +259,35 @@ class _EditProfilePageState extends State<EditProfilePage>
             child: Stack(
               children: [
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 108,
+                  height: 108,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: AppColors.primary, width: 3),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            AppColors.primary.withValues(alpha: 0.25),
+                        color: AppColors.primary.withValues(alpha: 0.35),
                         blurRadius: 20,
-                        spreadRadius: 4,
+                        spreadRadius: 2,
                       ),
                     ],
-                    image: DecorationImage(
-                      image: NetworkImage(_avatarUrl),
-                      fit: BoxFit.cover,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: ClipOval(
+                      child: Image.network(
+                        _avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (e, s, t) => Container(
+                          color: AppColors.bgSecondary,
+                          child: const Icon(Icons.person_rounded,
+                              color: AppColors.textHint, size: 40),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -332,48 +295,105 @@ class _EditProfilePageState extends State<EditProfilePage>
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    width: 38,
-                    height: 38,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
-                      border: Border.all(
-                          color: cardColor, width: 3),
+                      border: Border.all(color: Colors.white, width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary
-                              .withValues(alpha: 0.3),
+                          color: AppColors.primary.withValues(alpha: 0.4),
                           blurRadius: 8,
                         ),
                       ],
                     ),
                     child: const Icon(Icons.camera_alt_rounded,
-                        color: Colors.white, size: 18),
+                        color: Colors.white, size: 16),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Text(AppLocalizations.tr('tap_change_photo'),
-              style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13)),
+          const SizedBox(height: 10),
+          Text(
+            AppLocalizations.tr('tap_change_photo'),
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionLabel(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.5,
-        color: Color(0xFF8693B7),
-      ),
+  Widget _buildInfoSection(Color textPrimary, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle('Personal Info', isDark),
+        const SizedBox(height: 14),
+        _FieldGroup(
+          isDark: isDark,
+          children: [
+            _buildTextField(
+              controller: _nameCtrl,
+              hint: 'Display name',
+              icon: Icons.person_rounded,
+              textPrimary: textPrimary,
+              isDark: isDark,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Name required' : null,
+            ),
+            _divider(isDark),
+            _buildTextField(
+              controller: _usernameCtrl,
+              hint: 'Username',
+              icon: Icons.alternate_email_rounded,
+              prefix: '@',
+              textPrimary: textPrimary,
+              isDark: isDark,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Username required' : null,
+            ),
+            _divider(isDark),
+            _buildTextField(
+              controller: _emailCtrl,
+              hint: 'Email address',
+              icon: Icons.email_rounded,
+              textPrimary: textPrimary,
+              isDark: isDark,
+              keyboard: TextInputType.emailAddress,
+            ),
+            _divider(isDark),
+            _buildTextField(
+              controller: _locationCtrl,
+              hint: 'City / Location',
+              icon: Icons.location_on_rounded,
+              textPrimary: textPrimary,
+              isDark: isDark,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _SectionTitle('Bio', isDark),
+        const SizedBox(height: 10),
+        _FieldGroup(
+          isDark: isDark,
+          children: [
+            _buildTextField(
+              controller: _bioCtrl,
+              hint: 'Tell people about yourself…',
+              icon: Icons.chat_bubble_outline_rounded,
+              textPrimary: textPrimary,
+              isDark: isDark,
+              maxLines: 3,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -381,143 +401,214 @@ class _EditProfilePageState extends State<EditProfilePage>
     required TextEditingController controller,
     required String hint,
     required IconData icon,
-    required Color cardColor,
-    required Color textColor,
+    required Color textPrimary,
+    required bool isDark,
     String? prefix,
     int maxLines = 1,
-    TextInputType? keyboardType,
+    TextInputType? keyboard,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      keyboardType: keyboardType,
+      keyboardType: keyboard,
       validator: validator,
       style: TextStyle(
-          fontWeight: FontWeight.w600, color: textColor, fontSize: 15),
+        fontWeight: FontWeight.w600,
+        color: textPrimary,
+        fontSize: 15,
+      ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(
-            color: AppColors.textHint, fontWeight: FontWeight.w500),
+          color: AppColors.textHint,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
         prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 16, right: 12),
+          padding: const EdgeInsets.fromLTRB(14, 0, 6, 0),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: AppColors.primary, size: 20),
+              Icon(icon, color: AppColors.primary, size: 18),
               if (prefix != null) ...[
                 const SizedBox(width: 8),
-                Text(prefix,
-                    style: const TextStyle(
-                        color: AppColors.textHint,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15)),
+                Text(
+                  prefix,
+                  style: const TextStyle(
+                    color: AppColors.textHint,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
               ],
             ],
           ),
         ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        filled: true,
-        fillColor: cardColor,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(
-            color: Colors.black.withValues(alpha: 0.05),
-            width: 1,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.error, width: 1),
+        prefixIconConstraints: const BoxConstraints(minWidth: 44),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
         ),
       ),
     );
   }
 
-  Widget _buildInterestsGrid(Color cardColor, Color textColor, bool isDark) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: _allInterests.map((interest) {
-        final isSelected = interest['selected'] as bool;
-        final color = AppColors.getCategoryColor(interest['name']);
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            setState(() {
-              interest['selected'] = !isSelected;
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: isSelected
-                  ? LinearGradient(
-                      colors: [
-                        color.withValues(alpha: 0.15),
-                        color.withValues(alpha: 0.08),
-                      ],
-                    )
-                  : null,
-              color: isSelected ? null : (isDark ? AppColors.darkBgTertiary : AppColors.bgTertiary),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected
-                    ? color.withValues(alpha: 0.5)
-                    : Colors.transparent,
-                width: 1.5,
+  Widget _divider(bool isDark) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.07)
+          : AppColors.borderLight,
+    );
+  }
+
+  Widget _buildInterestsSection(Color textPrimary, bool isDark) {
+    final selectedCount =
+        _allInterests.where((i) => i['selected'] == true).length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _SectionTitle('Your Interests', isDark),
+            const Spacer(),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(20),
               ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      )
-                    ]
-                  : [],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _getIcon(interest['icon'] as String),
-                  size: 18,
-                  color: isSelected ? color : AppColors.textHint,
+              child: Text(
+                '$selectedCount selected',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  interest['name'],
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? color : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-                    fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: _allInterests.map((interest) {
+            final isSelected = interest['selected'] as bool;
+            final name = interest['name'] as String;
+            final color = AppColors.getCategoryColor(name);
+            final icon = _getIcon(interest['icon'] as String);
+
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() {
+                  interest['selected'] = !isSelected;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isSelected
+                        ? isDark
+                            ? [
+                                color.withValues(alpha: 0.28),
+                                const Color(0xFF1A2233),
+                              ]
+                            : [
+                                color.withValues(alpha: 0.15),
+                                Colors.white,
+                              ]
+                        : [
+                            isDark
+                                ? AppColors.darkBgTertiary
+                                : AppColors.bgSecondary,
+                            isDark
+                                ? AppColors.darkBgTertiary
+                                : AppColors.bgSecondary,
+                          ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected
+                        ? color.withValues(alpha: 0.5)
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : AppColors.borderLight),
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [],
                 ),
-                if (isSelected) ...[
-                  const SizedBox(width: 6),
-                  Icon(Icons.check_circle_rounded,
-                      size: 16, color: color),
-                ],
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? color.withValues(alpha: 0.16)
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 15,
+                        color: isSelected ? color : AppColors.textHint,
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: isSelected
+                            ? (isDark
+                                ? AppColors.darkTextPrimary
+                                : color.withValues(alpha: 0.9))
+                            : (isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary),
+                        fontSize: 13,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(width: 7),
+                      Icon(Icons.check_circle_rounded,
+                          size: 14, color: color),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -530,32 +621,88 @@ class _EditProfilePageState extends State<EditProfilePage>
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          elevation: 8,
+          elevation: 10,
           shadowColor: AppColors.primary.withValues(alpha: 0.4),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
         ),
         child: _isSaving
             ? const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                    strokeWidth: 3, color: Colors.white),
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check_rounded, size: 22),
+                  const Icon(Icons.check_rounded, size: 20),
                   const SizedBox(width: 10),
                   Text(
                     AppLocalizations.tr('save_changes'),
                     style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                        letterSpacing: 0.5),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text, this.isDark);
+  final String text;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1.4,
+        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8693B7),
+      ),
+    );
+  }
+}
+
+class _FieldGroup extends StatelessWidget {
+  const _FieldGroup({required this.children, required this.isDark});
+  final List<Widget> children;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardBackground : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.borderLight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(children: children),
       ),
     );
   }

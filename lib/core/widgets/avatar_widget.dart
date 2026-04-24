@@ -114,8 +114,8 @@ class VibeAvatar extends StatelessWidget {
                 fit: BoxFit.cover,
                 width: size,
                 height: size,
-                placeholder: (_, __) => _buildPlaceholder(),
-                errorWidget: (_, __, ___) => _buildInitials(),
+                placeholder: (_, _) => _buildPlaceholder(),
+                errorWidget: (_, _, _) => _buildInitials(),
               )
             : _buildInitials(),
       ),

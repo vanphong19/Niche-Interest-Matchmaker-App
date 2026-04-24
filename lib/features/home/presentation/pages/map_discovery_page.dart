@@ -474,7 +474,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   if (_showSuggestions && _searchResults.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Container(
-                      constraints: const BoxConstraints(maxHeight: 250),
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.36,
+                      ),
                       decoration: BoxDecoration(
                         color: (isDark
                             ? AppColors.darkCardBackground

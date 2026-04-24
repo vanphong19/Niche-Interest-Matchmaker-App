@@ -1,5 +1,4 @@
 // lib/features/profile/presentation/pages/profile_page.dart
-import 'dart:ui';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +10,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_button.dart';
+import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/utils/profile_state.dart';
 
 @RoutePage()
@@ -31,6 +31,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
   late Animation<double> _headerFade;
   late Animation<Offset> _statsSlide;
   late Animation<double> _sectionsFade;
+  final bool _hasSharedExperience = true;
 
   @override
   void initState() {
@@ -78,10 +79,10 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
 
     return ValueListenableBuilder<String>(
       valueListenable: AppLocalizations.localeNotifier,
-      builder: (context, _, __) {
+      builder: (context, _, _) {
         return ValueListenableBuilder<ProfileData>(
           valueListenable: ProfileState.notifier,
-          builder: (context, profileData, __) {
+          builder: (context, profileData, _) {
             return Scaffold(
               backgroundColor: bgColor,
               body: SafeArea(
@@ -126,37 +127,56 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                               children: [
                                 Expanded(
                                   child: VibeButton(
-                                    label: AppLocalizations.tr('follow'),
+                                    label: AppLocalizations.tr('message'),
                                     onPressed: () {
                                       HapticFeedback.selectionClick();
-                                      // Mock follow action
-                                      ScaffoldMessenger.of(
+                                      VibeSnackBar.info(
                                         context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Following user...'),
-                                          duration: Duration(seconds: 1),
-                                        ),
+                                        'Opening chat...',
                                       );
                                     },
                                     type: VibeButtonType.primary,
-                                    prefixIcon: Icons.person_add_rounded,
+                                    prefixIcon:
+                                        Icons.chat_bubble_outline_rounded,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: VibeButton(
-                                    label: AppLocalizations.tr('message'),
+                                    label: _hasSharedExperience
+                                        ? 'Rate Experience'
+                                        : 'Need shared event',
                                     onPressed: () {
                                       HapticFeedback.selectionClick();
-                                      // Mock message action
+                                      if (_hasSharedExperience) {
+                                        VibeSnackBar.success(
+                                          context,
+                                          'Thanks! Your rating was sent.',
+                                        );
+                                      } else {
+                                        VibeSnackBar.info(
+                                          context,
+                                          'Rating opens after joining at least one event together.',
+                                        );
+                                      }
                                     },
                                     type: VibeButtonType.outlined,
-                                    prefixIcon:
-                                        Icons.chat_bubble_outline_rounded,
+                                    prefixIcon: Icons.star_rate_rounded,
                                   ),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () => VibeSnackBar.info(
+                                  context,
+                                  'Invite sent to private event.',
+                                ),
+                                icon: const Icon(Icons.group_add_rounded),
+                                label: const Text('Invite to private event'),
+                              ),
                             ),
                             const SizedBox(height: 28),
                             // Interests
@@ -693,29 +713,18 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               AppLocalizations.tr('activity_history'),
               style: AppTextStyles.headingSmall.copyWith(color: textPrimary),
             ),
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                // Navigate to Activity tab (index 2 visible, which is tab index 3 because of create button)
-                final tabsRouter = AutoTabsRouter.of(context, watch: false);
-                tabsRouter.setActiveIndex(2); // Activity tab
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  AppLocalizations.tr('view_all'),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Public highlights',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
                 ),
               ),
             ),

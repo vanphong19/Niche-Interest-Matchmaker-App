@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/cupertino.dart';
@@ -76,6 +77,7 @@ class _CreateEventPageState extends State<CreateEventPage>
   List<Map<String, dynamic>> _placeSuggestions = const [];
   bool _isSearchingPlaces = false;
   int _searchSequence = 0;
+  Timer? _searchDebounce;
   int _selectedCoverPreset = 0;
   late final AnimationController _heroPulse;
 
@@ -130,6 +132,7 @@ class _CreateEventPageState extends State<CreateEventPage>
     _placeIdCtrl.dispose();
     _tagCtrl.dispose();
     _locationSearchCtrl.dispose();
+    _searchDebounce?.cancel();
     _heroPulse.dispose();
 
     super.dispose();
@@ -271,6 +274,13 @@ class _CreateEventPageState extends State<CreateEventPage>
   }
 
   Future<void> _searchPlaces(String query) async {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 260), () async {
+      await _runPlaceSearch(query);
+    });
+  }
+
+  Future<void> _runPlaceSearch(String query) async {
     if (query.trim().length < 2) {
       setState(() {
         _placeSuggestions = const [];
@@ -643,32 +653,45 @@ class _CreateEventPageState extends State<CreateEventPage>
                       return Stack(
                         fit: StackFit.expand,
                         children: [
-                          if (previewUrl != null)
-                            Image.network(
-                              previewUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  Container(color: Colors.black12),
-                            )
-                          else
-                            Container(color: Colors.black12),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 380),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            child: previewUrl == null
+                                ? Container()
+                                : Transform.scale(
+                                    key: ValueKey(previewUrl),
+                                    scale: 1 + (pulse * 0.015),
+                                    child: Image.network(
+                                      previewUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) =>
+                                          Container(color: Colors.black12),
+                                    ),
+                                  ),
+                          ),
                           DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.black.withValues(alpha: 0.06),
-                                  Colors.black.withValues(alpha: 0.45),
+                                  Colors.black.withValues(
+                                    alpha: previewUrl == null ? 0.18 : 0.04,
+                                  ),
+                                  Colors.black.withValues(
+                                    alpha: previewUrl == null ? 0.5 : 0.38,
+                                  ),
                                 ],
                               ),
                             ),
                           ),
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _GalaxyPainter(progress: pulse),
+                          if (previewUrl == null)
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: _GalaxyPainter(progress: pulse),
+                              ),
                             ),
-                          ),
                           Positioned(
                             left: 14,
                             top: 14,
@@ -1206,7 +1229,9 @@ class _CreateEventPageState extends State<CreateEventPage>
               ],
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 270),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.36,
+              ),
               child: Scrollbar(
                 thumbVisibility: _placeSuggestions.length > 5,
                 child: ListView.separated(
@@ -1480,29 +1505,66 @@ class _CreateEventPageState extends State<CreateEventPage>
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.borderLight, width: 1.2),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$value people',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: AppColors.primary,
+              inactiveTrackColor: AppColors.borderLight,
+              thumbColor: AppColors.primary,
+              overlayColor: AppColors.primary.withValues(alpha: 0.18),
+            ),
+            child: Slider(
+              min: min.toDouble(),
+              max: max.toDouble(),
+              divisions: max - min,
+              value: value.toDouble(),
+              label: '$value',
+              onChanged: (next) => onChanged(next.round()),
             ),
           ),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(32, 32),
-            onPressed: value > min ? () => onChanged(value - 1) : null,
-            child: const Icon(Icons.remove_circle_outline_rounded),
-          ),
-          Text(
-            '$value',
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-          ),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(32, 32),
-            onPressed: value < max ? () => onChanged(value + 1) : null,
-            child: const Icon(Icons.add_circle_outline_rounded),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              for (final quick in const [8, 12, 20, 30])
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text('$quick'),
+                    selected: value == quick,
+                    onSelected: (_) => onChanged(quick.clamp(min, max)),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

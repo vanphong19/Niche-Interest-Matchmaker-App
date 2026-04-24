@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_localizations.dart';
+import '../../../../router/app_router.gr.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -66,7 +67,7 @@ class _SettingsPageState extends State<SettingsPage>
 
     return ValueListenableBuilder<String>(
       valueListenable: AppLocalizations.localeNotifier,
-      builder: (context, locale, __) {
+      builder: (context, locale, _) {
         final langDisplay = AppLocalizations.langCodeToName(locale);
 
         return Scaffold(
@@ -267,74 +268,89 @@ class _SettingsPageState extends State<SettingsPage>
     Color textPrimary,
     Color subtitleColor,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 2),
-              image: const DecorationImage(
-                image: NetworkImage('https://i.pravatar.cc/300?u=user_1'),
-                fit: BoxFit.cover,
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: () => context.router.push(const EditProfileRoute()),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.primary, width: 2),
+                image: const DecorationImage(
+                  image: NetworkImage('https://i.pravatar.cc/300?u=user_1'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Marcus Chen',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: textPrimary,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Marcus Chen',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: textPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'marcus@vibepulse.app',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: subtitleColor,
+                  const SizedBox(height: 4),
+                  Text(
+                    'marcus@vibepulse.app',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: subtitleColor,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text(
-              'PRO',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: AppColors.primary,
-                fontSize: 12,
+                ],
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'EDIT',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.primary,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -629,8 +645,8 @@ class _SettingsPageState extends State<SettingsPage>
       trailing: CupertinoSwitch(
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.primary,
-        trackColor: Colors.grey.withValues(alpha: 0.25),
+        activeTrackColor: AppColors.primary,
+        inactiveTrackColor: Colors.grey.withValues(alpha: 0.25),
       ),
     );
   }
