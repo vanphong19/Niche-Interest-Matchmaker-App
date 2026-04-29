@@ -110,8 +110,11 @@ class _HomePageState extends State<HomePage>
               color: AppColors.primarySurface,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.location_on_rounded,
-                color: AppColors.primary, size: 18),
+            child: const Icon(
+              Icons.location_on_rounded,
+              color: AppColors.primary,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 10),
           const Column(
@@ -136,8 +139,11 @@ class _HomePageState extends State<HomePage>
               ),
             ],
           ),
-          const Icon(Icons.keyboard_arrow_down_rounded,
-              color: AppColors.secondary, size: 18),
+          const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AppColors.secondary,
+            size: 18,
+          ),
         ],
       ),
       actions: [
@@ -149,8 +155,10 @@ class _HomePageState extends State<HomePage>
           alignment: Alignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_outlined,
-                  color: AppColors.secondary),
+              icon: const Icon(
+                Icons.notifications_outlined,
+                color: AppColors.secondary,
+              ),
               onPressed: () => HapticFeedback.selectionClick(),
             ),
             Positioned(
@@ -298,7 +306,9 @@ class _HomePageState extends State<HomePage>
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.85),
                           borderRadius: BorderRadius.circular(20),
@@ -326,7 +336,9 @@ class _HomePageState extends State<HomePage>
                   children: [
                     Row(
                       children: [
-                        _GlassPill('${event.categoryEmoji} ${event.categoryName}'),
+                        _GlassPill(
+                          '${event.categoryEmoji} ${event.categoryName}',
+                        ),
                         const SizedBox(width: 8),
                         _GlassPill('📍 1.2 km'),
                       ],
@@ -367,19 +379,23 @@ class _HomePageState extends State<HomePage>
                         GestureDetector(
                           onTap: () {
                             HapticFeedback.mediumImpact();
-                            context.router
-                                .push(EventDetailRoute(eventId: event.id));
+                            context.router.push(
+                              EventDetailRoute(eventId: event.id),
+                            );
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 18, vertical: 10),
+                              horizontal: 18,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.5),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.5,
+                                  ),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -422,7 +438,11 @@ class _HomePageState extends State<HomePage>
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF1565C0), Color(0xFF1E88E5), Color(0xFF1CB5E0)],
+                colors: [
+                  Color(0xFF1565C0),
+                  Color(0xFF1E88E5),
+                  Color(0xFF1CB5E0),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -516,10 +536,16 @@ class _HomePageState extends State<HomePage>
                       _StatLegendRow('Hosting', hosting, Colors.white),
                       const SizedBox(height: 6),
                       _StatLegendRow(
-                          'Joined', joined, Colors.white.withValues(alpha: 0.6)),
+                        'Joined',
+                        joined,
+                        Colors.white.withValues(alpha: 0.6),
+                      ),
                       const SizedBox(height: 6),
                       _StatLegendRow(
-                          'Past', past, Colors.white.withValues(alpha: 0.35)),
+                        'Past',
+                        past,
+                        Colors.white.withValues(alpha: 0.35),
+                      ),
                     ],
                   ),
                 ),
@@ -542,8 +568,11 @@ class _HomePageState extends State<HomePage>
                       color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.arrow_forward_ios_rounded,
-                        color: Colors.white, size: 14),
+                    child: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
                   ),
                 ),
               ],
@@ -567,9 +596,7 @@ class _HomePageState extends State<HomePage>
         ];
         final seen = <String>{};
         final ongoing = mine
-            .where(
-              (e) => e.status == EventStatus.active && seen.add(e.id),
-            )
+            .where((e) => e.status == EventStatus.active && seen.add(e.id))
             .toList();
 
         if (ongoing.isEmpty) return const SizedBox.shrink();
@@ -621,8 +648,7 @@ class _HomePageState extends State<HomePage>
               GestureDetector(
                 onTap: () {
                   HapticFeedback.mediumImpact();
-                  context.router
-                      .push(EventDetailRoute(eventId: event.id));
+                  context.router.push(EventDetailRoute(eventId: event.id));
                 },
                 child: _buildLiveCard(event),
               ),
@@ -685,7 +711,9 @@ class _HomePageState extends State<HomePage>
                 animation: _pulseCtrl,
                 builder: (context, _) => Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.error,
                     borderRadius: BorderRadius.circular(20),
@@ -702,8 +730,11 @@ class _HomePageState extends State<HomePage>
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.fiber_manual_record,
-                          color: Colors.white, size: 8),
+                      Icon(
+                        Icons.fiber_manual_record,
+                        color: Colors.white,
+                        size: 8,
+                      ),
                       SizedBox(width: 5),
                       Text(
                         'LIVE',
@@ -746,10 +777,8 @@ class _HomePageState extends State<HomePage>
                       if (event.participantAvatars.isNotEmpty)
                         SizedBox(
                           height: 28,
-                          width: (event.participantAvatars
-                                          .take(4)
-                                          .length *
-                                      18)
+                          width:
+                              (event.participantAvatars.take(4).length * 18)
                                   .toDouble() +
                               8,
                           child: Stack(
@@ -765,7 +794,9 @@ class _HomePageState extends State<HomePage>
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                            color: Colors.white, width: 1.5),
+                                          color: Colors.white,
+                                          width: 1.5,
+                                        ),
                                       ),
                                       child: CircleAvatar(
                                         radius: 12,
@@ -791,7 +822,9 @@ class _HomePageState extends State<HomePage>
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 10),
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(22),
@@ -805,8 +838,11 @@ class _HomePageState extends State<HomePage>
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.arrow_forward_rounded,
-                                size: 14, color: AppColors.secondary),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 14,
+                              color: AppColors.secondary,
+                            ),
                             SizedBox(width: 6),
                             Text(
                               'Continue',
@@ -869,7 +905,9 @@ class _HomePageState extends State<HomePage>
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primarySurface,
                         borderRadius: BorderRadius.circular(20),
@@ -901,8 +939,7 @@ class _HomePageState extends State<HomePage>
                   return GestureDetector(
                     onTap: () {
                       HapticFeedback.selectionClick();
-                      context.router
-                          .push(EventDetailRoute(eventId: event.id));
+                      context.router.push(EventDetailRoute(eventId: event.id));
                     },
                     child: Container(
                       width: 200,
@@ -922,7 +959,8 @@ class _HomePageState extends State<HomePage>
                         children: [
                           ClipRRect(
                             borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(18)),
+                              left: Radius.circular(18),
+                            ),
                             child: Image.network(
                               event.photoUrls.isNotEmpty
                                   ? event.photoUrls.first
@@ -931,8 +969,9 @@ class _HomePageState extends State<HomePage>
                               height: 100,
                               fit: BoxFit.cover,
                               errorBuilder: (context2, err, trace) => Container(
-                                  width: 80,
-                                  color: AppColors.bgSecondary),
+                                width: 80,
+                                color: AppColors.bgSecondary,
+                              ),
                             ),
                           ),
                           Expanded(
@@ -1007,7 +1046,9 @@ class _HomePageState extends State<HomePage>
                 onTap: () => context.router.push(const CreateEventRoute()),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 5),
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     borderRadius: BorderRadius.circular(20),
@@ -1056,9 +1097,7 @@ class _HomePageState extends State<HomePage>
                       HapticFeedback.selectionClick();
                       setState(() => _selectedCategory = cat.$1);
                       _eventBloc.add(
-                        LoadEvents(
-                          category: cat.$1 == 'All' ? null : cat.$1,
-                        ),
+                        LoadEvents(category: cat.$1 == 'All' ? null : cat.$1),
                       );
                     },
                   ),
@@ -1098,8 +1137,11 @@ class _HomePageState extends State<HomePage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.explore_off_rounded,
-                          size: 48, color: AppColors.textHint),
+                      const Icon(
+                        Icons.explore_off_rounded,
+                        size: 48,
+                        color: AppColors.textHint,
+                      ),
                       const SizedBox(height: 12),
                       const Text(
                         'No vibes found nearby',
@@ -1120,8 +1162,9 @@ class _HomePageState extends State<HomePage>
                 event: events[index],
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  context.router
-                      .push(EventDetailRoute(eventId: events[index].id));
+                  context.router.push(
+                    EventDetailRoute(eventId: events[index].id),
+                  );
                 },
               ),
               childCount: events.length,
@@ -1147,14 +1190,11 @@ class _GlassPill extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
           ),
           child: Text(
             text,
@@ -1224,8 +1264,9 @@ class _CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final catColor =
-        label == 'All' ? AppColors.primary : AppColors.getCategoryColor(label);
+    final catColor = label == 'All'
+        ? AppColors.primary
+        : AppColors.getCategoryColor(label);
 
     return GestureDetector(
       onTap: onTap,
@@ -1281,8 +1322,8 @@ class _CategoryChip extends StatelessWidget {
                 color: isSelected
                     ? Colors.white
                     : (isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.secondaryMedium),
+                          ? AppColors.darkTextPrimary
+                          : AppColors.secondaryMedium),
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 fontSize: 14,
               ),
@@ -1320,8 +1361,9 @@ class _NearbyEventCard extends StatelessWidget {
           children: [
             // Image
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.horizontal(left: Radius.circular(20)),
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(20),
+              ),
               child: Image.network(
                 event.photoUrls.isNotEmpty
                     ? event.photoUrls.first
@@ -1348,7 +1390,8 @@ class _NearbyEventCard extends StatelessWidget {
                           '${event.categoryEmoji} ${event.categoryName}',
                           style: TextStyle(
                             color: AppColors.getCategoryColor(
-                                event.categoryName),
+                              event.categoryName,
+                            ),
                             fontWeight: FontWeight.w800,
                             fontSize: 11,
                           ),
@@ -1382,10 +1425,8 @@ class _NearbyEventCard extends StatelessWidget {
                         if (event.participantAvatars.isNotEmpty)
                           SizedBox(
                             height: 22,
-                            width: (event.participantAvatars
-                                            .take(3)
-                                            .length *
-                                        14)
+                            width:
+                                (event.participantAvatars.take(3).length * 14)
                                     .toDouble() +
                                 6,
                             child: Stack(
@@ -1399,10 +1440,8 @@ class _NearbyEventCard extends StatelessWidget {
                                       left: e.key * 12.0,
                                       child: CircleAvatar(
                                         radius: 10,
-                                        backgroundColor:
-                                            AppColors.bgSecondary,
-                                        backgroundImage:
-                                            NetworkImage(e.value),
+                                        backgroundColor: AppColors.bgSecondary,
+                                        backgroundImage: NetworkImage(e.value),
                                         onBackgroundImageError: (o, s) {},
                                       ),
                                     ),
@@ -1422,7 +1461,9 @@ class _NearbyEventCard extends StatelessWidget {
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primarySurface,
                             borderRadius: BorderRadius.circular(12),
@@ -1447,196 +1488,6 @@ class _NearbyEventCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildCategoriesRow() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-               const Text('Explore', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.secondary)),
-               Text('See All', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 14)),
-            ],
-          ),
-        ),
-         const SizedBox(height: 16),
-         SizedBox(
-           height: 48,
-           child: ListView(
-             scrollDirection: Axis.horizontal,
-             padding: const EdgeInsets.symmetric(horizontal: 24),
-             physics: const BouncingScrollPhysics(),
-             children: [
-                _buildCategoryChip('All', null, isSelected: _selectedCategory == 'All'),
-                _buildCategoryChip('Sports', '🏃', isSelected: _selectedCategory == 'Sports'),
-                _buildCategoryChip('Dining', '🍜', isSelected: _selectedCategory == 'Dining'),
-                _buildCategoryChip('Social', '💬', isSelected: _selectedCategory == 'Social'),
-                _buildCategoryChip('Arts', '🎨', isSelected: _selectedCategory == 'Arts'),
-                _buildCategoryChip('Outdoors', '⛺', isSelected: _selectedCategory == 'Outdoors'),
-                _buildCategoryChip('Gaming', '🎮', isSelected: _selectedCategory == 'Gaming'),
-             ],
-           ),
-         ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryChip(String label, String? emoji, {required bool isSelected}) {
-     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-     final Color catColor = label == 'All' ? AppColors.primary : AppColors.getCategoryColor(label);
-     
-     return GestureDetector(
-       onTap: () {
-         HapticFeedback.selectionClick();
-         setState(() => _selectedCategory = label);
-         _eventBloc.add(LoadEvents(category: label == 'All' ? null : label));
-       },
-       child: AnimatedContainer(
-         duration: const Duration(milliseconds: 300),
-         curve: Curves.easeOutCubic,
-         margin: const EdgeInsets.only(right: 14),
-         padding: const EdgeInsets.symmetric(horizontal: 22),
-         decoration: BoxDecoration(
-            gradient: isSelected
-                ? LinearGradient(
-                    colors: [catColor.withValues(alpha: 0.9), catColor],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : LinearGradient(
-                    colors: [
-                      (isDark ? AppColors.darkCardBackground : Colors.white),
-                      (isDark ? AppColors.darkCardBackground : Colors.white).withValues(alpha: 0.9)
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-               color: isSelected ? catColor.withValues(alpha: 0.5) : (isDark ? AppColors.darkBorderLight : AppColors.borderLight),
-               width: isSelected ? 1.5 : 1,
-            ),
-            boxShadow: isSelected 
-                ? [
-                    BoxShadow(color: catColor.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 6)),
-                    BoxShadow(color: Colors.white.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 0), spreadRadius: 1)
-                  ] 
-                : [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))
-                  ],
-         ),
-         alignment: Alignment.center,
-         child: Row(
-           children: [
-             if (emoji != null) ...[
-                Text(emoji, style: const TextStyle(fontSize: 16)), 
-                const SizedBox(width: 8)
-             ],
-             Text(
-               label,
-               style: TextStyle(
-                  color: isSelected ? Colors.white : (isDark ? AppColors.darkTextPrimary : AppColors.secondaryMedium),
-                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-                  fontSize: 15,
-                  letterSpacing: isSelected ? 0.2 : 0,
-               ),
-             ),
-           ],
-         ),
-       ),
-     );
-  }
-
-  Widget _buildNearbyEventsList() {
-    return BlocBuilder<EventBloc, EventState>(
-      builder: (context, state) {
-        if (state is EventLoaded) {
-           final events = state.events.skip(3).toList();
-           if (events.isEmpty) {
-              return const SliverToBoxAdapter(
-                 child: Padding(
-                   padding: EdgeInsets.all(32.0),
-                   child: Center(child: Text('No more events found in this category.', style: TextStyle(color: AppColors.textSecondary))),
-                 )
-              );
-           }
-           return SliverList(
-             delegate: SliverChildBuilderDelegate(
-               (context, index) {
-                 final event = events[index];
-                 return Padding(
-                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                   child: InkWell(
-                     onTap: () => context.router.push(EventDetailRoute(eventId: event.id)),
-                     borderRadius: BorderRadius.circular(16),
-                     child: Container(
-                       padding: const EdgeInsets.all(12),
-                       decoration: BoxDecoration(
-                         color: Colors.white,
-                         borderRadius: BorderRadius.circular(16),
-                         border: Border.all(color: AppColors.borderLight),
-                       ),
-                       child: Row(
-                         children: [
-                           Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                image: DecorationImage(image: NetworkImage(event.photoUrls.isNotEmpty ? event.photoUrls.first : 'https://picsum.photos/100'), fit: BoxFit.cover),
-                              ),
-                           ),
-                           const SizedBox(width: 16),
-                           Expanded(
-                             child: Column(
-                               crossAxisAlignment: CrossAxisAlignment.start,
-                               children: [
-                                  Row(
-                                    children: [
-                                      Text('${event.categoryEmoji} ${event.categoryName}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 11)),
-                                      const Spacer(),
-                                      const Text('📍 2.5km', style: TextStyle(color: AppColors.textHint, fontWeight: FontWeight.w600, fontSize: 11)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(event.title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.secondary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                       SizedBox(
-                                         width: 60,
-                                         height: 24,
-                                         child: Stack(
-                                           children: event.participantAvatars.take(3).toList().asMap().entries.map((e) => 
-                                              Positioned(
-                                                left: e.key * 14.0,
-                                                child: CircleAvatar(radius: 12, backgroundImage: NetworkImage(e.value)),
-                                              )
-                                           ).toList()
-                                         ),
-                                       ),
-                                       Text('${event.currentParticipants}/${event.maxParticipants} Joined', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-                                    ],
-                                  )
-                               ],
-                             ),
-                           )
-                         ],
-                       ),
-                     ),
-                   ),
-                 );
-               },
-               childCount: events.length,
-             ),
-           );
-        }
-        return const SliverToBoxAdapter(child: SizedBox());
-      },
     );
   }
 }

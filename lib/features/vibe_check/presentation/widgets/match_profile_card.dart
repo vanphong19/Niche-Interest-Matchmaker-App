@@ -52,11 +52,7 @@ class MatchProfileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ImageBlock(
-            profile: profile,
-            onView: onView,
-            onChat: onChat,
-          ),
+          _ImageBlock(profile: profile, onView: onView, onChat: onChat),
           const SizedBox(height: AppSpacing.lg),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -122,11 +118,7 @@ class MatchProfileCard extends StatelessWidget {
 }
 
 class _ImageBlock extends StatelessWidget {
-  const _ImageBlock({
-    required this.profile,
-    this.onView,
-    this.onChat,
-  });
+  const _ImageBlock({required this.profile, this.onView, this.onChat});
 
   final MatchProfileData profile;
   final VoidCallback? onView;
@@ -145,10 +137,7 @@ class _ImageBlock extends StatelessWidget {
             return Stack(
               children: [
                 Positioned.fill(
-                  child: Image.network(
-                    profile.imageUrl,
-                    fit: BoxFit.cover,
-                  ),
+                  child: Image.network(profile.imageUrl, fit: BoxFit.cover),
                 ),
                 Positioned(
                   top: AppSpacing.md,

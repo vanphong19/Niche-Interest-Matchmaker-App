@@ -62,9 +62,7 @@ class _AppCardState extends State<AppCard> {
               borderRadius: BorderRadius.circular(AppSpacing.radiusXLarge),
               boxShadow: AppSpacing.shadowLarge
                   .map(
-                    (shadow) => shadow.copyWith(
-                      spreadRadius: elevation / 12,
-                    ),
+                    (shadow) => shadow.copyWith(spreadRadius: elevation / 12),
                   )
                   .toList(),
             ),

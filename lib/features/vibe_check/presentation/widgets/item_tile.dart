@@ -25,10 +25,12 @@ class ItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = backgroundColor ??
+    final bgColor =
+        backgroundColor ??
         (highlighted ? AppColors.successLight : AppColors.bgTertiary);
     final foregroundColor =
-        textColor ?? (highlighted ? AppColors.secondary : AppColors.textSecondary);
+        textColor ??
+        (highlighted ? AppColors.secondary : AppColors.textSecondary);
     final verticalPadding = compact ? AppSpacing.xs : AppSpacing.sm;
 
     final screenWidth = MediaQuery.sizeOf(context).width;

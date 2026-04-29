@@ -24,7 +24,7 @@ class VibeBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColors.darkBgSecondary : AppColors.bgPrimary;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    // final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
       decoration: BoxDecoration(
@@ -73,7 +73,7 @@ class VibeBottomNav extends StatelessWidget {
                     label: 'Map',
                     isSelected: currentIndex == 1,
                     onTap: () => _handleTap(2),
-                  ),                 
+                  ),
                   const SizedBox(width: 60), // Space for centered CreateButton
                   _NavItem(
                     icon: Icons.notifications_none_rounded,

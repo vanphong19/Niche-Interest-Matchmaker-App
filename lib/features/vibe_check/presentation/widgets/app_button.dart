@@ -35,9 +35,10 @@ class _AppButtonState extends State<AppButton>
       duration: const Duration(milliseconds: 120),
       reverseDuration: const Duration(milliseconds: 120),
     );
-    _scale = Tween<double>(begin: 1, end: 0.96).animate(
-      CurvedAnimation(parent: _pressController, curve: Curves.easeOut),
-    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _pressController, curve: Curves.easeOut));
   }
 
   @override
@@ -67,7 +68,9 @@ class _AppButtonState extends State<AppButton>
               : Icon(widget.icon, size: 20),
           label: Text(widget.label),
           style: ElevatedButton.styleFrom(
-            backgroundColor: widget.filled ? AppColors.primary : AppColors.bgPrimary,
+            backgroundColor: widget.filled
+                ? AppColors.primary
+                : AppColors.bgPrimary,
             foregroundColor: widget.filled
                 ? AppColors.textInverse
                 : AppColors.primary,
