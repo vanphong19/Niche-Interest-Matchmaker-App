@@ -40,6 +40,7 @@ class _BasePageState extends State<BasePage> {
     return AutoTabsRouter(
       routes: const [
         HomeRoute(),
+        VibeMatchRoute(),
         MapDiscoveryRoute(),
         ActivityRoute(),
         ProfileRoute(),

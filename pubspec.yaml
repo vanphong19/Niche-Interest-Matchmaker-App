@@ -88,4 +88,5 @@ dev_dependencies:
   injectable_generator: ^2.12.1
 
 flutter:
+  default-flavor: dev
   uses-material-design: true
