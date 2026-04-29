@@ -1,6 +1,9 @@
+// lib/router/app_router.dart
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:injectable/injectable.dart';
 
+import '../core/constants/app_constants.dart';
 import 'app_router.gr.dart';
 
 @LazySingleton()
@@ -10,17 +13,65 @@ class AppRouter extends RootStackRouter {
   RouteType get defaultRouteType => const RouteType.adaptive();
 
   @override
-  // ignore: override_on_non_overriding_member
   List<AutoRoute> get routes => [
-    AutoRoute(page: HomeRoute.page, initial: true),
-    AutoRoute(page: SignInRoute.page),
-    AutoRoute(page: OtpRoute.page),
-    AutoRoute(page: SettingRoute.page),
-  ];
+        // ─── Auth Flow ────────────────────────────────────────────
+        AutoRoute(page: SplashRoute.page, path: '/', initial: true),
+        AutoRoute(page: LoginRoute.page, path: '/login'),
+        AutoRoute(page: RegisterRoute.page, path: '/register'),
+        AutoRoute(page: ForgotPasswordRoute.page, path: '/forgot-password'),
+
+        // ─── Main App Shell ───────────────────────────────────────
+        AutoRoute(
+          page: BaseRoute.page,
+          path: '/base',
+          children: [
+            AutoRoute(page: HomeRoute.page, path: 'home', initial: true),
+            AutoRoute(page: MapDiscoveryRoute.page, path: 'map'),
+            AutoRoute(page: ActivityRoute.page, path: 'activity'),
+            AutoRoute(page: ProfileRoute.page, path: 'profile'),
+          ],
+        ),
+
+        // ─── Event Routes ─────────────────────────────────────────
+        AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
+        AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
+
+        // ─── Settings ─────────────────────────────────────────────
+        AutoRoute(page: SettingsRoute.page, path: '/settings'),
+
+        // ─── Profile Edit & View ───────────────────────────────────
+        AutoRoute(page: EditProfileRoute.page, path: '/profile/edit'),
+        AutoRoute(page: OtherUserProfileRoute.page, path: '/profile/:id'),
+      ];
+
+  @override
+  List<AutoRouteGuard> get guards => [
+        // AuthGuard can be added here when ready
+      ];
 }
 
 @LazySingleton()
 class AppRouterProvider {
   static final AppRouter _instance = AppRouter();
   static AppRouter get instance => _instance;
+}
+
+/// Auth guard that checks for valid token before allowing navigation.
+class AuthGuard extends AutoRouteGuard {
+  final FlutterSecureStorage _secureStorage;
+
+  AuthGuard({FlutterSecureStorage? secureStorage})
+      : _secureStorage = secureStorage ?? const FlutterSecureStorage();
+
+  @override
+  void onNavigation(NavigationResolver resolver, StackRouter router) async {
+    final token = await _secureStorage.read(key: AppConstants.tokenKey);
+
+    if (token != null && token.isNotEmpty) {
+      resolver.next(true);
+    } else {
+      router.replaceAll([const LoginRoute()]);
+      resolver.next(false);
+    }
+  }
 }

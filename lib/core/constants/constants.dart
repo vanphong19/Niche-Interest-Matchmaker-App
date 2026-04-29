@@ -1,20 +1,14 @@
+// lib/core/constants/constants.dart
 import 'package:flutter/material.dart';
 
-class AppConstants {
-  AppConstants._();
-
-  static const String appName = 'Niche Interest Matchmaker';
-
-  static const Duration connectTimeout = Duration(seconds: 20);
-  static const Duration receiveTimeout = Duration(seconds: 20);
-  static const Duration sendTimeout = Duration(seconds: 20);
-}
+export 'app_constants.dart';
+export 'api_constants.dart';
 
 class AppColors {
   AppColors._();
 
-  static const Color seedColor = Color(0xFF0E7A73);
-  static const Color success = Color(0xFF2E7D32);
-  static const Color warning = Color(0xFFEF6C00);
-  static const Color error = Color(0xFFC62828);
+  static const Color seedColor = Color(0xFF5B5FF8);
+  static const Color success = Color(0xFF34C759);
+  static const Color warning = Color(0xFFFF9500);
+  static const Color error = Color(0xFFFF3B30);
 }
