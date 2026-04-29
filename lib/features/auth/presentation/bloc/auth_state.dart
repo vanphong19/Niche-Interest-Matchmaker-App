@@ -1,16 +1,40 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+// lib/features/auth/presentation/bloc/auth_state.dart
+import 'package:equatable/equatable.dart';
+import '../../domain/entities/user.dart';
 
-import '../../domain/entities/auth_user.dart';
+abstract class AuthState extends Equatable {
+  const AuthState();
 
-part 'auth_state.freezed.dart';
+  @override
+  List<Object?> get props => [];
+}
 
-@freezed
-abstract class AuthState with _$AuthState {
-  const factory AuthState.initial() = _Initial;
+class AuthInitial extends AuthState {}
 
-  const factory AuthState.loading() = _Loading;
+class AuthLoading extends AuthState {}
 
-  const factory AuthState.authenticated(AuthUser user) = _Authenticated;
+class AuthAuthenticated extends AuthState {
+  final User user;
+  const AuthAuthenticated(this.user);
 
-  const factory AuthState.failure(String message) = _Failure;
+  @override
+  List<Object?> get props => [user];
+}
+
+class AuthError extends AuthState {
+  final String message;
+  const AuthError(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class AuthUnauthenticated extends AuthState {}
+
+class AuthForgotPasswordSuccess extends AuthState {
+  final String message;
+  const AuthForgotPasswordSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }

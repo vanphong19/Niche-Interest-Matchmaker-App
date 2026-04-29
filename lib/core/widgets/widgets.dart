@@ -1,0 +1,12 @@
+// lib/core/widgets/widgets.dart
+export 'vibe_button.dart';
+export 'vibe_text_field.dart';
+export 'vibe_app_bar.dart';
+export 'loading_overlay.dart';
+export 'shimmer_loader.dart';
+export 'snackbar_service.dart';
+export 'vibe_chip.dart';
+export 'avatar_widget.dart';
+export 'badge_widget.dart';
+export 'empty_state_widget.dart';
+export 'error_widget.dart';
