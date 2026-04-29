@@ -1,6 +1,5 @@
 // lib/features/event/data/services/event_api_service.dart
 import 'package:dio/dio.dart';
-import '../../../../core/network/api_endpoints.dart';
 import '../../domain/entities/event.dart';
 
 class EventApiService {
@@ -8,6 +7,23 @@ class EventApiService {
 
   final Dio _dio;
   final Map<String, int> _selectionBoost = <String, int>{};
+  final Map<String, List<Map<String, String>>> _pendingJoinRequests =
+      <String, List<Map<String, String>>>{
+        'evt-001': [
+          {
+            'id': 'req-evt-001-1',
+            'name': 'Anna Le',
+            'avatarUrl': 'https://i.pravatar.cc/100?img=23',
+            'message': 'I saw your link and would love to join tonight.',
+          },
+          {
+            'id': 'req-evt-001-2',
+            'name': 'Tuan Pham',
+            'avatarUrl': 'https://i.pravatar.cc/100?img=31',
+            'message': 'Can I join with a friend? We both play padel.',
+          },
+        ],
+      };
 
   final List<Map<String, dynamic>> _mockDb = [
     {
@@ -43,7 +59,7 @@ class EventApiService {
         {'avatarUrl': 'https://i.pravatar.cc/100?img=3'},
       ],
       'status': 'active',
-      'isJoined': false,
+      'isJoined': true,
     },
     {
       'id': 'evt-002',
@@ -75,7 +91,7 @@ class EventApiService {
         {'avatarUrl': 'https://i.pravatar.cc/100?img=5'},
       ],
       'status': 'active',
-      'isJoined': false,
+      'isJoined': true,
     },
     {
       'id': 'evt-003',
@@ -109,7 +125,7 @@ class EventApiService {
         {'avatarUrl': 'https://i.pravatar.cc/100?img=7'},
       ],
       'status': 'active',
-      'isJoined': false,
+      'isJoined': true,
     },
     {
       'id': 'evt-004',
@@ -140,7 +156,7 @@ class EventApiService {
         {'avatarUrl': 'https://i.pravatar.cc/100?img=9'},
       ],
       'status': 'active',
-      'isJoined': false,
+      'isJoined': true,
     },
     {
       'id': 'evt-005',
@@ -353,6 +369,79 @@ class EventApiService {
         .take(2)
         .toList();
     return {'hosting': hosting, 'joined': joined, 'past': past};
+  }
+
+  String buildJoinRequestLink(String eventId) {
+    return 'https://vibepulse.app/join/$eventId';
+  }
+
+  Future<List<Map<String, String>>> getPendingJoinRequests(
+    String eventId,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 220));
+    return List<Map<String, String>>.from(
+      _pendingJoinRequests[eventId] ?? const [],
+    );
+  }
+
+  Future<void> approveJoinRequest(String eventId, String requestId) async {
+    await Future.delayed(const Duration(milliseconds: 240));
+    final list = _pendingJoinRequests[eventId];
+    if (list == null) {
+      return;
+    }
+    final index = list.indexWhere((request) => request['id'] == requestId);
+    if (index == -1) {
+      return;
+    }
+
+    final approved = list.removeAt(index);
+    final eventIndex = _mockDb.indexWhere((event) => event['id'] == eventId);
+    if (eventIndex == -1) {
+      return;
+    }
+
+    final participants =
+        (_mockDb[eventIndex]['participants'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        <Map<String, dynamic>>[];
+    participants.add({'avatarUrl': approved['avatarUrl'] ?? ''});
+    _mockDb[eventIndex]['participants'] = participants;
+    _mockDb[eventIndex]['currentParticipants'] =
+        (_mockDb[eventIndex]['currentParticipants'] as int? ?? 0) + 1;
+  }
+
+  Future<void> rejectJoinRequest(String eventId, String requestId) async {
+    await Future.delayed(const Duration(milliseconds: 180));
+    final list = _pendingJoinRequests[eventId];
+    if (list == null) {
+      return;
+    }
+    list.removeWhere((request) => request['id'] == requestId);
+  }
+
+  Future<List<Map<String, String>>> getEventParticipants(String eventId) async {
+    await Future.delayed(const Duration(milliseconds: 220));
+    final eventIndex = _mockDb.indexWhere((event) => event['id'] == eventId);
+    if (eventIndex == -1) {
+      return const [];
+    }
+
+    final participants =
+        (_mockDb[eventIndex]['participants'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        <Map<String, dynamic>>[];
+
+    return participants.asMap().entries.map((entry) {
+      final row = entry.value;
+      return {
+        'id': 'member-${entry.key + 1}',
+        'name': row['name']?.toString() ?? 'Member ${entry.key + 1}',
+        'avatarUrl':
+            row['avatarUrl']?.toString() ?? 'https://i.pravatar.cc/100?img=20',
+        'role': entry.key == 0 ? 'Core member' : 'Participant',
+      };
+    }).toList();
   }
 
   static const List<Map<String, dynamic>> _vnLandmarks = [

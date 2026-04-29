@@ -43,11 +43,15 @@ class ProfileData {
 class ProfileState {
   ProfileState._();
 
+  static final ValueNotifier<Set<String>> pinnedEventIdsNotifier =
+      ValueNotifier(<String>{'evt-002', 'evt-003', 'evt-004', 'evt-005'});
+
   static final ValueNotifier<ProfileData> notifier = ValueNotifier(
     ProfileData(
       name: 'Marcus Chen',
       username: 'marcuschen',
-      bio: 'Tech enthusiast and weekend hiker. Building community vibes in the concrete jungle. 🌿',
+      bio:
+          'Tech enthusiast and weekend hiker. Building community vibes in the concrete jungle. 🌿',
       location: 'Ho Chi Minh City',
       email: 'marcus@vibepulse.app',
       avatarUrl: 'https://i.pravatar.cc/300?u=user_1',
@@ -70,5 +74,17 @@ class ProfileState {
 
   static void updateProfile(ProfileData newData) {
     notifier.value = newData;
+  }
+
+  static bool isEventPinned(String eventId) {
+    return pinnedEventIdsNotifier.value.contains(eventId);
+  }
+
+  static void togglePinnedEvent(String eventId) {
+    final next = Set<String>.from(pinnedEventIdsNotifier.value);
+    if (!next.add(eventId)) {
+      next.remove(eventId);
+    }
+    pinnedEventIdsNotifier.value = next;
   }
 }

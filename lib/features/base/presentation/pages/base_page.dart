@@ -41,6 +41,7 @@ class _BasePageState extends State<BasePage> {
       routes: const [
         HomeRoute(),
         VibeMatchRoute(),
+        MapDiscoveryRoute(),
         ActivityRoute(),
         ProfileRoute(),
       ],

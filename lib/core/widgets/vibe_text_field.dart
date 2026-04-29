@@ -82,9 +82,10 @@ class _VibeTextFieldState extends State<VibeTextField>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _labelAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
+    _labelAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
 
     _focusNode.addListener(_onFocusChange);
   }
@@ -133,8 +134,8 @@ class _VibeTextFieldState extends State<VibeTextField>
                   color: _hasFocus
                       ? AppColors.primary
                       : _errorText != null
-                          ? AppColors.error
-                          : AppColors.textPrimary,
+                      ? AppColors.error
+                      : AppColors.textPrimary,
                 ),
               );
             },
@@ -156,8 +157,8 @@ class _VibeTextFieldState extends State<VibeTextField>
           textInputAction: widget.textInputAction,
           inputFormatters: widget.inputFormatters,
           style: AppTextStyles.inputText,
-          autovalidateMode: widget.autovalidateMode ??
-              AutovalidateMode.onUserInteraction,
+          autovalidateMode:
+              widget.autovalidateMode ?? AutovalidateMode.onUserInteraction,
           onChanged: (value) {
             widget.onChanged?.call(value);
             if (widget.validator != null) {
@@ -174,8 +175,7 @@ class _VibeTextFieldState extends State<VibeTextField>
               if (mounted) {
                 setState(() {
                   _errorText = error;
-                  _isValid =
-                      error == null && (value?.isNotEmpty ?? false);
+                  _isValid = error == null && (value?.isNotEmpty ?? false);
                 });
               }
             });
@@ -188,9 +188,7 @@ class _VibeTextFieldState extends State<VibeTextField>
                 ? Icon(
                     widget.prefixIcon,
                     size: 20,
-                    color: _hasFocus
-                        ? AppColors.primary
-                        : AppColors.textHint,
+                    color: _hasFocus ? AppColors.primary : AppColors.textHint,
                   )
                 : null,
             suffixIcon: _buildSuffixIcon(),
@@ -241,20 +239,22 @@ class _VibeTextFieldState extends State<VibeTextField>
     }
 
     if (icons.isEmpty) return null;
-    if (icons.length == 1) return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: icons.first,
-    );
+    if (icons.length == 1) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: icons.first,
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.only(right: 12),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: icons
-            .map((icon) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: icon,
-                ))
+            .map(
+              (icon) =>
+                  Padding(padding: const EdgeInsets.only(left: 8), child: icon),
+            )
             .toList(),
       ),
     );

@@ -67,6 +67,13 @@ class VibeBottomNav extends StatelessWidget {
                     isSelected: currentIndex == 1,
                     onTap: () => _handleTap(1),
                   ),
+                  _NavItem(
+                    icon: Icons.map_outlined,
+                    activeIcon: Icons.map_rounded,
+                    label: 'Map',
+                    isSelected: currentIndex == 1,
+                    onTap: () => _handleTap(2),
+                  ),                 
                   const SizedBox(width: 60), // Space for centered CreateButton
                   _NavItem(
                     icon: Icons.notifications_none_rounded,
