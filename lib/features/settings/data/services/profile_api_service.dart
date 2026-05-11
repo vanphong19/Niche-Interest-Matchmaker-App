@@ -20,7 +20,8 @@ class ProfileApiService {
       'name': 'Super Admin',
       'username': 'superadmin',
       'email': 'admin@nichematch.vn',
-      'bio': 'Tech enthusiast and weekend hiker. Building community vibes in the concrete jungle.',
+      'bio':
+          'Tech enthusiast and weekend hiker. Building community vibes in the concrete jungle.',
       'reputation': 982,
     };
   }

@@ -232,7 +232,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                                   color: Colors.white,
                                   width: 2,
                                 ),
-                                
                               ),
                               child: Center(
                                 child: Text(
@@ -274,7 +273,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                               ),
                         width: 1.2,
                       ),
-                      
                     ),
                     alignment: Alignment.center,
                     child: TextField(
@@ -466,7 +464,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                             ? AppColors.darkCardBackground
                             : Colors.white),
                         borderRadius: BorderRadius.circular(20),
-                        
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
@@ -650,10 +647,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
         context.router.push(EventDetailRoute(eventId: event.id));
       },
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: BackdropFilter(

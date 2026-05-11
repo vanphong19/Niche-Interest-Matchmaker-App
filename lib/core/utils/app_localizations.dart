@@ -99,6 +99,37 @@ class AppLocalizations {
       'current_location': 'CURRENT LOCATION',
       'join_vibe': 'JOIN VIBE',
 
+      // Vibe Match
+      'vibe_match_title': 'Vibe Match',
+      'vibe_match_label': 'MATCH',
+      'vibe_match_headline': 'Great Alignment!',
+      'vibe_match_subtitle':
+          'You match well with this group\'s energy and interests.',
+      'vibe_match_why': 'Why you match',
+      'vibe_match_summary_title': 'Group vibe summary',
+      'vibe_match_summary_body':
+          'A laid-back group looking for casual evening kickarounds followed by late-night coffee runs. High energy but very welcoming to newcomers.',
+      'vibe_match_going': 'going',
+      'vibe_match_join_event': 'Join Event',
+      'vibe_match_explore_matches': 'Explore Matches',
+      'vibe_match_reason_football': 'Football Fans',
+      'vibe_match_reason_night': 'Night Owls',
+      'vibe_match_reason_nearby': 'Nearby (2km)',
+      'vibe_match_reason_coffee': 'Coffee Lovers',
+      'vibe_match_joined_title': 'You are in',
+      'vibe_match_joined_headline': 'Spot reserved for tonight',
+      'vibe_match_joined_body':
+          'You joined the event successfully. We\'ll keep you posted on updates from the host.',
+      'your_top_matches': 'Your Top Matches',
+      'top_matches_subtitle':
+          'Based on your recent vibes and shared interests, we think you\'d connect well with these folks.',
+      'reliable': 'Reliable',
+      'new': 'New',
+      'late_risk': 'Late risk',
+      'view_profile': 'View Profile',
+      'shared': 'Shared',
+      'no_matches_yet': 'No matches available yet.',
+
       // Map
       'search_placeholder': 'Search vibe, location or category...',
       'no_vibes_found': 'No public vibes found here.',
@@ -300,11 +331,44 @@ class AppLocalizations {
       // Home
       'tonight_vibes': 'Chương Trình Tối Nay',
       'explore': 'Khám Phá',
+      'match': 'Ghép Nhóm',
+      'miles_short': 'dặm',
       'see_all': 'Xem Tất Cả',
       'nearby_events': 'Kèo Gần Đây',
       'no_events_category': 'Không tìm thấy sự kiện nào trong danh mục này.',
       'current_location': 'VỊ TRÍ HIỆN TẠI',
       'join_vibe': 'THAM GIA',
+
+      // Vibe Match
+      'vibe_match_title': 'Ghép Vibe',
+      'vibe_match_label': 'TƯƠNG HỢP',
+      'vibe_match_headline': 'Độ tương hợp rất tốt!',
+      'vibe_match_subtitle':
+          'Bạn phù hợp với năng lượng và sở thích của nhóm này.',
+      'vibe_match_why': 'Vì sao hợp nhóm',
+      'vibe_match_summary_title': 'Tóm tắt vibe nhóm',
+      'vibe_match_summary_body':
+          'Một nhóm thoải mái thích đá bóng buổi tối rồi đi cà phê đêm. Năng lượng cao nhưng luôn chào đón người mới.',
+      'vibe_match_going': 'đang tham gia',
+      'vibe_match_join_event': 'Tham Gia Sự Kiện',
+      'vibe_match_explore_matches': 'Khám Phá Kết Nối',
+      'vibe_match_reason_football': 'Fan Bóng Đá',
+      'vibe_match_reason_night': 'Cú Đêm',
+      'vibe_match_reason_nearby': 'Ở gần (2km)',
+      'vibe_match_reason_coffee': 'Yêu Cà Phê',
+      'vibe_match_joined_title': 'Bạn đã vào nhóm',
+      'vibe_match_joined_headline': 'Đã giữ chỗ cho tối nay',
+      'vibe_match_joined_body':
+          'Bạn đã tham gia sự kiện thành công. Chúng tôi sẽ cập nhật thông tin mới từ host.',
+      'your_top_matches': 'Top Kết Nối Của Bạn',
+      'top_matches_subtitle':
+          'Dựa trên vibe gần đây và sở thích chung, chúng tôi nghĩ bạn sẽ hợp với những người này.',
+      'reliable': 'Đáng Tin Cậy',
+      'new': 'Mới',
+      'late_risk': 'Nguy Cơ Trễ',
+      'view_profile': 'Xem Hồ Sơ',
+      'shared': 'Tương Đồng',
+      'no_matches_yet': 'Hiện chưa có kết nối phù hợp.',
 
       // Map
       'search_placeholder': 'Tìm vibe, địa điểm hoặc danh mục...',

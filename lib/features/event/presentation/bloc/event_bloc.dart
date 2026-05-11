@@ -75,21 +75,26 @@ class EventBloc extends Bloc<EventEvent, EventState> {
       final events = await _apiService.getEvents(category: event.category);
       // Automatically load my events too to keep stats in sync
       final myEvents = await _apiService.getMyEvents();
-      
-      emit(state.copyWith(
-        events: events,
-        hosting: myEvents['hosting'] ?? [],
-        joined: myEvents['joined'] ?? [],
-        past: myEvents['past'] ?? [],
-        selectedCategory: event.category,
-        isLoading: false,
-      ));
+
+      emit(
+        state.copyWith(
+          events: events,
+          hosting: myEvents['hosting'] ?? [],
+          joined: myEvents['joined'] ?? [],
+          past: myEvents['past'] ?? [],
+          selectedCategory: event.category,
+          isLoading: false,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));
     }
   }
 
-  Future<void> _onSearchEvents(SearchEvents event, Emitter<EventState> emit) async {
+  Future<void> _onSearchEvents(
+    SearchEvents event,
+    Emitter<EventState> emit,
+  ) async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
       final events = await _apiService.getEvents();
@@ -107,16 +112,21 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     }
   }
 
-  Future<void> _onLoadMyEvents(LoadMyEvents event, Emitter<EventState> emit) async {
+  Future<void> _onLoadMyEvents(
+    LoadMyEvents event,
+    Emitter<EventState> emit,
+  ) async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
       final result = await _apiService.getMyEvents();
-      emit(state.copyWith(
-        hosting: result['hosting'] ?? [],
-        joined: result['joined'] ?? [],
-        past: result['past'] ?? [],
-        isLoading: false,
-      ));
+      emit(
+        state.copyWith(
+          hosting: result['hosting'] ?? [],
+          joined: result['joined'] ?? [],
+          past: result['past'] ?? [],
+          isLoading: false,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));
     }

@@ -11,8 +11,8 @@ class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required FlutterSecureStorage secureStorage,
     required Dio dio,
-  })  : _secureStorage = secureStorage,
-        _dio = dio;
+  }) : _secureStorage = secureStorage,
+       _dio = dio;
 
   @override
   void onRequest(
@@ -45,18 +45,15 @@ class AuthInterceptor extends Interceptor {
         );
 
         // Unwrap { success, data: { accessToken, refreshToken } }
-        final payload = response.data is Map &&
-                (response.data as Map).containsKey('data')
+        final payload =
+            response.data is Map && (response.data as Map).containsKey('data')
             ? (response.data as Map)['data'] as Map<String, dynamic>
             : response.data as Map<String, dynamic>;
 
         final newToken = payload['accessToken']?.toString() ?? '';
         final newRefreshToken = payload['refreshToken']?.toString() ?? '';
 
-        await _secureStorage.write(
-          key: AppConstants.tokenKey,
-          value: newToken,
-        );
+        await _secureStorage.write(key: AppConstants.tokenKey, value: newToken);
         await _secureStorage.write(
           key: AppConstants.refreshTokenKey,
           value: newRefreshToken,

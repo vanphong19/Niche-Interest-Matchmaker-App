@@ -47,21 +47,21 @@ class _SplashPageState extends State<SplashPage> {
         _loadingText = "Syncing your profile...";
       });
       await ProfileState.init(); // Hydrate ProfileState
-      
+
       setState(() {
         _loadProgress = 0.4;
         _loadingText = "Curating your vibe feed...";
       });
       final eventBloc = sl<EventBloc>();
       eventBloc.add(LoadEvents()); // This loads both feed AND my events
-      
+
       setState(() {
         _loadProgress = 0.7;
         _loadingText = "Establishing real-time link...";
       });
       // SignalR is already started in main, but we ensure it's init
       await sl<SignalRService>().init();
-      
+
       setState(() {
         _loadProgress = 0.9;
         _loadingText = "Setting the mood...";
@@ -81,7 +81,6 @@ class _SplashPageState extends State<SplashPage> {
 
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) AutoRouter.of(context).replaceAll([const BaseRoute()]);
-
     } catch (e) {
       debugPrint('Pre-loading error: $e');
       if (mounted) AutoRouter.of(context).replaceAll([const BaseRoute()]);
@@ -99,46 +98,52 @@ class _SplashPageState extends State<SplashPage> {
           Positioned(
             top: -100,
             right: -100,
-            child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.25),
-                    AppColors.primary.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ).animate(onPlay: (c) => c.repeat()).move(
-              begin: const Offset(0, 0),
-              end: const Offset(-50, 50),
-              duration: const Duration(seconds: 8),
-              curve: Curves.easeInOut,
-            ),
+            child:
+                Container(
+                      width: 400,
+                      height: 400,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.25),
+                            AppColors.primary.withValues(alpha: 0.0),
+                          ],
+                        ),
+                      ),
+                    )
+                    .animate(onPlay: (c) => c.repeat())
+                    .move(
+                      begin: const Offset(0, 0),
+                      end: const Offset(-50, 50),
+                      duration: const Duration(seconds: 8),
+                      curve: Curves.easeInOut,
+                    ),
           ),
           Positioned(
             bottom: -50,
             left: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF7B7FFA).withValues(alpha: 0.2),
-                    const Color(0xFF7B7FFA).withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ).animate(onPlay: (c) => c.repeat()).move(
-              begin: const Offset(0, 0),
-              end: const Offset(40, -40),
-              duration: const Duration(seconds: 10),
-              curve: Curves.easeInOut,
-            ),
+            child:
+                Container(
+                      width: 300,
+                      height: 300,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFF7B7FFA).withValues(alpha: 0.2),
+                            const Color(0xFF7B7FFA).withValues(alpha: 0.0),
+                          ],
+                        ),
+                      ),
+                    )
+                    .animate(onPlay: (c) => c.repeat())
+                    .move(
+                      begin: const Offset(0, 0),
+                      end: const Offset(40, -40),
+                      duration: const Duration(seconds: 10),
+                      curve: Curves.easeInOut,
+                    ),
           ),
 
           // ─── Main Content ───
@@ -147,63 +152,72 @@ class _SplashPageState extends State<SplashPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(flex: 3),
-                
+
                 // Logo Container with Glassmorphism
                 Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        blurRadius: 40,
-                        spreadRadius: 5,
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(40),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            blurRadius: 40,
+                            spreadRadius: 5,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Center(
-                    child: ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Colors.white, Color(0xFFB4B6FF)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ).createShader(bounds),
-                      child: const Icon(
-                        Icons.favorite_rounded,
-                        size: 64,
-                        color: Colors.white,
+                      child: Center(
+                        child: ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [Colors.white, Color(0xFFB4B6FF)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ).createShader(bounds),
+                          child: const Icon(
+                            Icons.favorite_rounded,
+                            size: 64,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
+                    )
+                    .animate()
+                    .scale(
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.easeOutBack,
+                    )
+                    .fadeIn(duration: const Duration(milliseconds: 800))
+                    .shimmer(
+                      delay: const Duration(seconds: 1),
+                      duration: const Duration(seconds: 2),
                     ),
-                  ),
-                )
-                .animate()
-                .scale(duration: const Duration(milliseconds: 800), curve: Curves.easeOutBack)
-                .fadeIn(duration: const Duration(milliseconds: 800))
-                .shimmer(delay: const Duration(seconds: 1), duration: const Duration(seconds: 2)),
 
                 const SizedBox(height: 40),
-                
+
                 Text(
-                  'VibePulse',
-                  style: AppTextStyles.displayLarge.copyWith(
-                    color: Colors.white,
-                    fontSize: 44,
-                    letterSpacing: -2,
-                    fontWeight: FontWeight.w900,
-                  ),
-                )
-                .animate()
-                .fadeIn(delay: const Duration(milliseconds: 400), duration: const Duration(milliseconds: 600))
-                .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
+                      'VibePulse',
+                      style: AppTextStyles.displayLarge.copyWith(
+                        color: Colors.white,
+                        fontSize: 44,
+                        letterSpacing: -2,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    )
+                    .animate()
+                    .fadeIn(
+                      delay: const Duration(milliseconds: 400),
+                      duration: const Duration(milliseconds: 600),
+                    )
+                    .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
 
                 const SizedBox(height: 12),
-                
+
                 Text(
                   'Elevate your social frequency',
                   style: AppTextStyles.bodyMedium.copyWith(
@@ -211,9 +225,10 @@ class _SplashPageState extends State<SplashPage> {
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.5,
                   ),
-                )
-                .animate()
-                .fadeIn(delay: const Duration(milliseconds: 700), duration: const Duration(milliseconds: 600)),
+                ).animate().fadeIn(
+                  delay: const Duration(milliseconds: 700),
+                  duration: const Duration(milliseconds: 600),
+                ),
 
                 const Spacer(flex: 2),
 
@@ -234,14 +249,22 @@ class _SplashPageState extends State<SplashPage> {
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 400),
                               height: 3,
-                              width: MediaQuery.of(context).size.width * 0.7 * _loadProgress,
+                              width:
+                                  MediaQuery.of(context).size.width *
+                                  0.7 *
+                                  _loadProgress,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [AppColors.primary, Color(0xFF7B7FFA)],
+                                  colors: [
+                                    AppColors.primary,
+                                    Color(0xFF7B7FFA),
+                                  ],
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.4),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.4,
+                                    ),
                                     blurRadius: 10,
                                     spreadRadius: 1,
                                   ),

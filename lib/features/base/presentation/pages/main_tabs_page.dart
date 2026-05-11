@@ -21,7 +21,6 @@ class MainTabsPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(28),
-            
           ),
           child: Row(
             children: [

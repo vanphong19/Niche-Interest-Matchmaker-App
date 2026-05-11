@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/vibe_button.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../../event/domain/entities/event.dart';
@@ -32,6 +31,7 @@ class _ActivityPageState extends State<ActivityPage>
 
   @override
   void dispose() {
+    _eventBloc.close();
     _tabController.dispose();
     super.dispose();
   }
@@ -69,14 +69,13 @@ class _ActivityPageState extends State<ActivityPage>
           builder: (context, state) {
             if (state.isLoading &&
                 state.hosting.isEmpty &&
-                state.joined.isEmpty) {
+                state.joined.isEmpty &&
+                state.past.isEmpty) {
               return const Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               );
             }
-            if (state.error != null && state.hosting.isEmpty) {
-              return Center(child: Text('Error: ${state.error}'));
-            }
+
             return TabBarView(
               controller: _tabController,
               children: [
@@ -131,6 +130,13 @@ class _ActivityPageState extends State<ActivityPage>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,17 +213,28 @@ class _ActivityPageState extends State<ActivityPage>
                           ),
                         ),
                       ],
-                      VibeButton(
+                      ElevatedButton(
                         onPressed: () => context.router.push(
                           EventDetailRoute(eventId: event.id),
                         ),
-                        label: isPast
-                            ? 'Rate Experience'
-                            : (isHost ? 'Manage' : 'Check In'),
-                        type: isPast
-                            ? VibeButtonType.secondary
-                            : VibeButtonType.primary,
-                        height: 36,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isPast
+                              ? AppColors.bgSecondary
+                              : AppColors.primary,
+                          foregroundColor: isPast
+                              ? AppColors.secondary
+                              : Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          isPast
+                              ? 'Rate Experience'
+                              : (isHost ? 'Manage' : 'Check In'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ],
                   ),

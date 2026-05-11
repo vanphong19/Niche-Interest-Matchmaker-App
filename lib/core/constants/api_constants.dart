@@ -6,7 +6,7 @@ class ApiConstants {
   static String get baseUrl {
     // Nếu chạy trên Web hoặc không phải Android Emulator thì dùng localhost
     // Vì bạn đang test trên trình duyệt nên tôi đổi mặc định về localhost:5230
-    return 'http://localhost:5230'; 
+    return 'http://localhost:5230';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────

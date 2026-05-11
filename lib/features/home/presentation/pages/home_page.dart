@@ -13,6 +13,7 @@ import '../../../../router/app_router.gr.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../../event/presentation/bloc/event_bloc.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../../core/widgets/vibe_empty_state.dart';
 
 @RoutePage()
 class HomePage extends StatefulWidget {
@@ -223,7 +224,7 @@ class _HomePageState extends State<HomePage>
         _buildCategoryFilter(),
         const SizedBox(height: 16),
         SizedBox(
-          height: 230,
+          height: 260, // Increased to avoid overflow with empty state
           child: ValueListenableBuilder<ProfileData>(
             valueListenable: ProfileState.notifier,
             builder: (context, profile, child) {
@@ -628,59 +629,25 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildEmptyState() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        width: double.infinity,
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1C2233)
+              : const Color.fromARGB(230, 241, 244, 249),
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.borderLight.withValues(alpha: 0.5),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.05)
+                : AppColors.borderLight,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.explore_rounded,
-                size: 40,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No Vibes Found',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.secondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'Be the first to start a vibe in this category or check back later!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textHint,
-                  fontWeight: FontWeight.w500,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
+        child: const VibeEmptyState(
+          title: 'No Vibes Found',
+          message:
+              'Be the first to start a vibe in this category or check back later!',
+          icon: Icons.explore_rounded,
         ),
       ),
     );

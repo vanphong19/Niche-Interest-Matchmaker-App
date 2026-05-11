@@ -22,7 +22,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       id: authUser.id,
       name: authUser.displayName,
       email: authUser.email,
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email}', // ignore: unnecessary_brace_in_string_interps
+      avatarUrl:
+          'https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email}', // ignore: unnecessary_brace_in_string_interps
       createdAt: DateTime.now(),
       isVerified: false,
     );
@@ -33,11 +34,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       if (event.email.contains('social@')) {
         // mock social parsing
-        final provider = event.email == 'social@google.com' ? 'google' : 'facebook';
-        final authUser = await _authRepository.loginWithSocial(provider, 'social_$provider@nichematch.vn', 'Social User', 'social_id_123');
+        final provider = event.email == 'social@google.com'
+            ? 'google'
+            : 'facebook';
+        final authUser = await _authRepository.loginWithSocial(
+          provider,
+          'social_$provider@nichematch.vn',
+          'Social User',
+          'social_id_123',
+        );
         emit(AuthAuthenticated(_mapToUser(authUser)));
       } else {
-        final authUser = await _authRepository.signInWithEmailAndPassword(event.email, event.password);
+        final authUser = await _authRepository.signInWithEmailAndPassword(
+          event.email,
+          event.password,
+        );
         emit(AuthAuthenticated(_mapToUser(authUser)));
       }
     } catch (e) {
@@ -46,10 +57,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onRegister(
-      RegisterSubmitted event, Emitter<AuthState> emit) async {
+    RegisterSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
-      final authUser = await _authRepository.registerWithEmailAndPassword(event.email, event.password, event.name);
+      final authUser = await _authRepository.registerWithEmailAndPassword(
+        event.email,
+        event.password,
+        event.name,
+      );
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -57,26 +74,32 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onForgotPassword(
-      ForgotPasswordSubmitted event, Emitter<AuthState> emit) async {
+    ForgotPasswordSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       await Future.delayed(const Duration(milliseconds: 800));
-      emit(const AuthForgotPasswordSuccess(
-          'Password reset link sent to your email!'));
+      emit(
+        const AuthForgotPasswordSuccess(
+          'Password reset link sent to your email!',
+        ),
+      );
     } catch (e) {
       emit(AuthError(e.toString()));
     }
   }
 
-  Future<void> _onLogout(
-      LogoutRequested event, Emitter<AuthState> emit) async {
+  Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     await _authRepository.logout();
     emit(AuthUnauthenticated());
   }
 
   Future<void> _onCheckAuth(
-      CheckAuthStatus event, Emitter<AuthState> emit) async {
+    CheckAuthStatus event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       final user = await _authRepository.getCurrentUser();

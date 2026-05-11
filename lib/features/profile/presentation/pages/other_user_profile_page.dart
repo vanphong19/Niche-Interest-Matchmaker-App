@@ -141,10 +141,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
             title: profile.name,
             showBackButton: true,
             actions: [
-              _HeaderIcon(
-                icon: Icons.more_horiz_rounded,
-                isDark: isDark,
-              ),
+              _HeaderIcon(icon: Icons.more_horiz_rounded, isDark: isDark),
               const SizedBox(width: 16),
             ],
           ),
@@ -154,7 +151,9 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    SizedBox(height: MediaQuery.of(context).padding.top + 52 + 16),
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.top + 52 + 16,
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
                       child: Column(
@@ -178,7 +177,8 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                               child: _buildStats(cardColor, isDark, profile),
                             ),
                           ),
-                          if (profile.username != ProfileState.notifier.value.username) ...[
+                          if (profile.username !=
+                              ProfileState.notifier.value.username) ...[
                             const SizedBox(height: 20),
                             // Interaction Buttons
                             Row(
@@ -194,7 +194,8 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                                       );
                                     },
                                     type: VibeButtonType.primary,
-                                    prefixIcon: Icons.chat_bubble_outline_rounded,
+                                    prefixIcon:
+                                        Icons.chat_bubble_outline_rounded,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -249,7 +250,11 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                           // Badges Gallery
                           FadeTransition(
                             opacity: _sectionsFade,
-                            child: _buildBadgesSection(isDark, textPrimary, profile),
+                            child: _buildBadgesSection(
+                              isDark,
+                              textPrimary,
+                              profile,
+                            ),
                           ),
                           const SizedBox(height: 28),
                           // Activity History
@@ -286,7 +291,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.primary, width: 3),
-                
               ),
               child: VibeAvatar(
                 imageUrl: profile.avatarUrl,
@@ -357,7 +361,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               color: Colors.white.withValues(alpha: 0.4),
               width: 1,
             ),
-            
           ),
           child: Stack(
             clipBehavior: Clip.none,
@@ -428,7 +431,9 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.borderLight,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.borderLight,
           width: 1,
         ),
         boxShadow: [
@@ -580,7 +585,11 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     );
   }
 
-  Widget _buildBadgesSection(bool isDark, Color textPrimary, ProfileData profile) {
+  Widget _buildBadgesSection(
+    bool isDark,
+    Color textPrimary,
+    ProfileData profile,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -903,7 +912,6 @@ class _PremiumBadgeCard extends StatelessWidget {
               : [Colors.grey.shade300, Colors.grey.shade400],
         ),
         borderRadius: BorderRadius.circular(24),
-        
       ),
       child: Stack(
         children: [
@@ -934,7 +942,6 @@ class _PremiumBadgeCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.3),
                       width: 1.5,
                     ),
-                    
                   ),
                   child: Icon(icon, color: Colors.white, size: 24),
                 ),
@@ -993,10 +1000,7 @@ class _PremiumBadgeCard extends StatelessWidget {
 }
 
 class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon({
-    required this.icon,
-    required this.isDark,
-  });
+  const _HeaderIcon({required this.icon, required this.isDark});
   final IconData icon;
   final bool isDark;
 
@@ -1016,8 +1020,11 @@ class _HeaderIcon extends StatelessWidget {
               : AppColors.borderLight,
         ),
       ),
-      child: Icon(icon,
-          size: 20, color: isDark ? Colors.white : AppColors.primary),
+      child: Icon(
+        icon,
+        size: 20,
+        color: isDark ? Colors.white : AppColors.primary,
+      ),
     );
   }
 }

@@ -12,6 +12,7 @@ import '../../data/services/event_api_service.dart';
 import '../../domain/entities/event.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../../../core/services/signalr_service.dart';
+import 'event_members_page.dart';
 import '../bloc/event_detail_cubit.dart';
 
 @RoutePage()
@@ -112,7 +113,17 @@ class _EventDetailPageState extends State<EventDetailPage>
   }
 
   Future<void> _openMembersManage(Event event) async {
-    await context.router.push(ManageEventRoute(eventId: event.id));
+    // Try to use ManageEventRoute if available, otherwise fallback to EventMembersPage
+    try {
+      await context.router.push(ManageEventRoute(eventId: event.id));
+    } catch (e) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              EventMembersPage(eventId: event.id, isHost: _isHost(event)),
+        ),
+      );
+    }
     if (mounted) _cubit.loadEvent(widget.eventId);
   }
 
@@ -231,7 +242,7 @@ class _EventDetailPageState extends State<EventDetailPage>
         : 'https://picsum.photos/seed/${event.id}/900/500';
 
     return SliverAppBar(
-      expandedHeight: 280,
+      expandedHeight: 340,
       pinned: true,
       stretch: true,
       backgroundColor: Colors.transparent,
@@ -302,13 +313,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                       color: Colors.white,
                       height: 1.1,
                       letterSpacing: -0.5,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 2),
-                          blurRadius: 8,
-                        ),
-                      ],
+                      shadows: [],
                     ),
                   ),
                 ],
@@ -326,8 +331,9 @@ class _EventDetailPageState extends State<EventDetailPage>
         color: Color(0xFFF5F7FF),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
+      transform: Matrix4.translationValues(0, -28, 0),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 32, 20, 160),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 160),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1000,6 +1006,13 @@ class _CategoryPill extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Text(
                 '${event.categoryEmoji} ${event.categoryName}',
@@ -1424,15 +1437,14 @@ class _MemberTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E2A3A) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isHost
-              ? AppColors.primary.withValues(alpha: 0.3)
-              : (isDark
-                    ? Colors.white.withValues(alpha: 0.06)
-                    : AppColors.borderLight),
-          width: isHost ? 1.5 : 1,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [

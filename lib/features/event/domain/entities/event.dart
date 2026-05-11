@@ -30,12 +30,12 @@ class EventLocation {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'address': address,
-        'latitude': latitude,
-        'longitude': longitude,
-        'placeId': placeId,
-      };
+    'name': name,
+    'address': address,
+    'latitude': latitude,
+    'longitude': longitude,
+    'placeId': placeId,
+  };
 }
 
 class Event {
@@ -100,9 +100,24 @@ class Event {
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       category: _parseCategory(json['category'] as String?),
-      hostId: creator?['id'] as String? ?? creator?['Id'] as String? ?? json['hostId'] as String? ?? json['HostId'] as String? ?? '',
-      hostName: creator?['displayName'] as String? ?? creator?['DisplayName'] as String? ?? json['hostName'] as String? ?? json['HostName'] as String? ?? '',
-      hostAvatar: creator?['avatarUrl'] as String? ?? creator?['AvatarUrl'] as String? ?? json['hostAvatar'] as String? ?? json['HostAvatar'] as String? ?? '',
+      hostId:
+          creator?['id'] as String? ??
+          creator?['Id'] as String? ??
+          json['hostId'] as String? ??
+          json['HostId'] as String? ??
+          '',
+      hostName:
+          creator?['displayName'] as String? ??
+          creator?['DisplayName'] as String? ??
+          json['hostName'] as String? ??
+          json['HostName'] as String? ??
+          '',
+      hostAvatar:
+          creator?['avatarUrl'] as String? ??
+          creator?['AvatarUrl'] as String? ??
+          json['hostAvatar'] as String? ??
+          json['HostAvatar'] as String? ??
+          '',
       location: locationData != null
           ? EventLocation.fromJson(locationData)
           : EventLocation(
@@ -119,7 +134,8 @@ class Event {
           : null,
       maxParticipants: json['maxParticipants'] as int? ?? 20,
       currentParticipants: json['currentParticipants'] as int? ?? 0,
-      participantIds: ((json['participantIds'] ?? json['ParticipantIds']) as List<dynamic>?)
+      participantIds:
+          ((json['participantIds'] ?? json['ParticipantIds']) as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -129,8 +145,8 @@ class Event {
       isPublic: json['isPublic'] as bool? ?? true,
       photoUrls: _extractPhotos(json),
       matchScore: (json['matchScore'] as num?)?.toDouble() ?? 0,
-      vibeTags: json['vibeTags'] as String? ??
-          (json['tags'] as List?)?.join(', '),
+      vibeTags:
+          json['vibeTags'] as String? ?? (json['tags'] as List?)?.join(', '),
       isJoined: json['isJoined'] as bool? ?? false,
       isPending: json['isPending'] as bool? ?? false,
       createdAt: json['createdAt'] != null

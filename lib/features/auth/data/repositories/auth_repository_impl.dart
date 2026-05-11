@@ -18,7 +18,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Map<String, dynamic> _unwrap(dynamic responseData) {
     if (responseData is Map<String, dynamic>) {
       // Check if wrapped: { success: true, data: { ... } }
-      if (responseData.containsKey('data') && responseData['data'] is Map<String, dynamic>) {
+      if (responseData.containsKey('data') &&
+          responseData['data'] is Map<String, dynamic>) {
         return responseData['data'] as Map<String, dynamic>;
       }
       return responseData;
@@ -44,7 +45,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ─── Email / Password Auth ──────────────────────────────────────────
   @override
-  Future<AuthUser> signInWithEmailAndPassword(String email, String password) async {
+  Future<AuthUser> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
     try {
       final response = await _dio.post(
         '/api/auth/login',
@@ -59,9 +63,11 @@ class AuthRepositoryImpl implements AuthRepository {
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.unknown) {
         throw Exception(
-            'Không thể kết nối server. Kiểm tra backend đang chạy tại port 5230.');
+          'Không thể kết nối server. Kiểm tra backend đang chạy tại port 5230.',
+        );
       }
-      final msg = _unwrap(e.response?.data)['message']?.toString() ??
+      final msg =
+          _unwrap(e.response?.data)['message']?.toString() ??
           e.message ??
           'Lỗi không xác định';
       throw Exception('Đăng nhập thất bại: $msg');
@@ -70,17 +76,25 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<AuthUser> registerWithEmailAndPassword(
-      String email, String password, String displayName) async {
+    String email,
+    String password,
+    String displayName,
+  ) async {
     try {
       final response = await _dio.post(
         '/api/auth/register',
-        data: {'email': email, 'password': password, 'displayName': displayName},
+        data: {
+          'email': email,
+          'password': password,
+          'displayName': displayName,
+        },
       );
       final payload = _unwrap(response.data);
       return _parseLoginData(payload);
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
-        final msg = _unwrap(e.response?.data)['message']?.toString() ??
+        final msg =
+            _unwrap(e.response?.data)['message']?.toString() ??
             'Email đã tồn tại';
         throw Exception(msg);
       }
@@ -89,14 +103,19 @@ class AuthRepositoryImpl implements AuthRepository {
         throw Exception('Không thể kết nối server.');
       }
       throw Exception(
-          'Đăng ký thất bại: ${_unwrap(e.response?.data)['message'] ?? e.message}');
+        'Đăng ký thất bại: ${_unwrap(e.response?.data)['message'] ?? e.message}',
+      );
     }
   }
 
   // ─── Social Auth ────────────────────────────────────────────────────
   @override
   Future<AuthUser> loginWithSocial(
-      String provider, String email, String displayName, String providerId) async {
+    String provider,
+    String email,
+    String displayName,
+    String providerId,
+  ) async {
     try {
       final response = await _dio.post(
         '/api/auth/social',
@@ -115,7 +134,8 @@ class AuthRepositoryImpl implements AuthRepository {
         throw Exception('Không thể kết nối server để đăng nhập $provider.');
       }
       throw Exception(
-          'Đăng nhập $provider thất bại: ${_unwrap(e.response?.data)['message'] ?? e.message}');
+        'Đăng nhập $provider thất bại: ${_unwrap(e.response?.data)['message'] ?? e.message}',
+      );
     }
   }
 
@@ -160,5 +180,22 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<String> login(String email, String password) async {
     await signInWithEmailAndPassword(email, password);
     return await getToken() ?? '';
+  }
+
+  @override
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      await _dio.post(
+        '/api/auth/change-password',
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+    } on DioException catch (e) {
+      final msg = _unwrap(e.response?.data)['message']?.toString() ??
+          'Failed to change password';
+      throw Exception(msg);
+    }
   }
 }

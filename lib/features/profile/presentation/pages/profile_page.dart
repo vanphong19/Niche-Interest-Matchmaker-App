@@ -1034,7 +1034,6 @@ class _ReputationBadge extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(30),
-
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.45),
           width: 1.5,

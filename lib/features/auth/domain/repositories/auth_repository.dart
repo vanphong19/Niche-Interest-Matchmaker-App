@@ -15,5 +15,11 @@ abstract class AuthRepository {
   Future<void> saveToken(String token, String refreshToken);
   Future<String> login(String email, String password);
   Future<void> logout();
-  Future<AuthUser> loginWithSocial(String provider, String email, String displayName, String providerId);
+  Future<AuthUser> loginWithSocial(
+    String provider,
+    String email,
+    String displayName,
+    String providerId,
+  );
+  Future<void> changePassword(String currentPassword, String newPassword);
 }

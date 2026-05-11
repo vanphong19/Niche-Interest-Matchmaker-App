@@ -14,43 +14,44 @@ class AppRouter extends RootStackRouter {
 
   @override
   List<AutoRoute> get routes => [
-        // ─── Auth Flow ────────────────────────────────────────────
-        AutoRoute(page: SplashRoute.page, path: '/', initial: true),
-        AutoRoute(page: LoginRoute.page, path: '/login'),
-        AutoRoute(page: RegisterRoute.page, path: '/register'),
-        AutoRoute(page: ForgotPasswordRoute.page, path: '/forgot-password'),
+    // ─── Auth Flow ────────────────────────────────────────────
+    AutoRoute(page: SplashRoute.page, path: '/', initial: true),
+    AutoRoute(page: LoginRoute.page, path: '/login'),
+    AutoRoute(page: RegisterRoute.page, path: '/register'),
+    AutoRoute(page: ForgotPasswordRoute.page, path: '/forgot-password'),
 
-        // ─── Main App Shell ───────────────────────────────────────
-        AutoRoute(
-          page: BaseRoute.page,
-          path: '/base',
-          children: [
-            AutoRoute(page: HomeRoute.page, path: 'home', initial: true),
-            AutoRoute(page: MapDiscoveryRoute.page, path: 'map'),
-            AutoRoute(page: ActivityRoute.page, path: 'activity'),
-            AutoRoute(page: ProfileRoute.page, path: 'profile'),
-          ],
-        ),
+    // ─── Main App Shell ───────────────────────────────────────
+    AutoRoute(
+      page: BaseRoute.page,
+      path: '/base',
+      children: [
+        AutoRoute(page: HomeRoute.page, path: 'home', initial: true),
+        AutoRoute(page: VibeMatchRoute.page, path: 'match'),
+        AutoRoute(page: ActivityRoute.page, path: 'activity'),
+        AutoRoute(page: ProfileRoute.page, path: 'profile'),
+      ],
+    ),
 
-        // ─── Event Routes ─────────────────────────────────────────
-        AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
-        AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
-        AutoRoute(page: ManageEventRoute.page, path: '/event/:id/manage'),
+    // ─── Event Routes ─────────────────────────────────────────
+    AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
+    AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
+    AutoRoute(page: ManageEventRoute.page, path: '/event/:id/manage'),
+    AutoRoute(page: UserMatchListRoute.page, path: '/match/list'),
 
-        // ─── Settings ─────────────────────────────────────────────
-        AutoRoute(page: SettingsRoute.page, path: '/settings'),
+    // ─── Settings ─────────────────────────────────────────────
+    AutoRoute(page: SettingsRoute.page, path: '/settings'),
 
-        // ─── Profile Edit & View ───────────────────────────────────
-        AutoRoute(page: EditProfileRoute.page, path: '/profile/edit'),
-        AutoRoute(page: LocationPickerRoute.page, path: '/profile/location-picker'),
-        AutoRoute(page: OtherUserProfileRoute.page, path: '/profile/:id'),
-        AutoRoute(page: AllActivityHistoryRoute.page, path: '/profile/history'),
-      ];
+    // ─── Profile Edit & View ───────────────────────────────────
+    AutoRoute(page: EditProfileRoute.page, path: '/profile/edit'),
+    AutoRoute(page: LocationPickerRoute.page, path: '/profile/location-picker'),
+    AutoRoute(page: OtherUserProfileRoute.page, path: '/profile/:id'),
+    AutoRoute(page: AllActivityHistoryRoute.page, path: '/profile/history'),
+  ];
 
   @override
   List<AutoRouteGuard> get guards => [
-        // AuthGuard can be added here when ready
-      ];
+    // AuthGuard can be added here when ready
+  ];
 }
 
 @LazySingleton()
@@ -64,7 +65,7 @@ class AuthGuard extends AutoRouteGuard {
   final FlutterSecureStorage _secureStorage;
 
   AuthGuard({FlutterSecureStorage? secureStorage})
-      : _secureStorage = secureStorage ?? const FlutterSecureStorage();
+    : _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   @override
   void onNavigation(NavigationResolver resolver, StackRouter router) async {
