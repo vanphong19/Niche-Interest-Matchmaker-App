@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../../constants/api_constants.dart';
 
-const bool kUseMock = true;
+const bool kUseMock = false;
 const bool kMockError = false;
 
 class MockInterceptor extends Interceptor {

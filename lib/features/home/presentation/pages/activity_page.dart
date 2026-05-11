@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/vibe_button.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../../event/domain/entities/event.dart';
@@ -16,7 +17,8 @@ class ActivityPage extends StatefulWidget {
   State<ActivityPage> createState() => _ActivityPageState();
 }
 
-class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderStateMixin {
+class _ActivityPageState extends State<ActivityPage>
+    with SingleTickerProviderStateMixin {
   late final EventBloc _eventBloc;
   late final TabController _tabController;
 
@@ -30,7 +32,6 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
 
   @override
   void dispose() {
-    _eventBloc.close();
     _tabController.dispose();
     super.dispose();
   }
@@ -44,7 +45,13 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          title: const Text('My Activity', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w900)),
+          title: const Text(
+            'My Activity',
+            style: TextStyle(
+              color: AppColors.secondary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           bottom: TabBar(
             controller: _tabController,
             labelColor: AppColors.primary,
@@ -60,40 +67,59 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
         ),
         body: BlocBuilder<EventBloc, EventState>(
           builder: (context, state) {
-            if (state is EventLoading || state is EventInitial) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+            if (state.isLoading &&
+                state.hosting.isEmpty &&
+                state.joined.isEmpty) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
             }
-            if (state is MyEventsLoaded) {
-               return TabBarView(
-                 controller: _tabController,
-                 children: [
-                   _buildEventList(state.hosting, isHost: true),
-                   _buildEventList(state.joined, isHost: false),
-                   _buildEventList(state.past, isHost: false, isPast: true),
-                 ],
-               );
+            if (state.error != null && state.hosting.isEmpty) {
+              return Center(child: Text('Error: ${state.error}'));
             }
-            return const Center(child: Text('Something went wrong'));
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildEventList(state.hosting, isHost: true),
+                _buildEventList(state.joined, isHost: false),
+                _buildEventList(state.past, isHost: false, isPast: true),
+              ],
+            );
           },
         ),
       ),
     );
   }
 
-  Widget _buildEventList(List<Event> events, {required bool isHost, bool isPast = false}) {
+  Widget _buildEventList(
+    List<Event> events, {
+    required bool isHost,
+    bool isPast = false,
+  }) {
     if (events.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.event_busy_rounded, size: 64, color: AppColors.borderMedium),
+            const Icon(
+              Icons.event_busy_rounded,
+              size: 64,
+              color: AppColors.borderMedium,
+            ),
             const SizedBox(height: 16),
-            Text('No events here yet', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary, fontSize: 16)),
+            Text(
+              'No events here yet',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
+            ),
           ],
         ),
       );
     }
-    
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
       itemCount: events.length,
@@ -105,66 +131,98 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Row(
-                 children: [
-                   Container(
-                     width: 60,
-                     height: 60,
-                     decoration: BoxDecoration(
-                       borderRadius: BorderRadius.circular(12),
-                       image: DecorationImage(image: NetworkImage(event.photoUrls.isNotEmpty ? event.photoUrls.first : 'https://picsum.photos/100'), fit: BoxFit.cover),
-                     ),
-                   ),
-                   const SizedBox(width: 16),
-                   Expanded(
-                     child: Column(
-                       crossAxisAlignment: CrossAxisAlignment.start,
-                       children: [
-                          Text(event.title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.secondary)),
-                          const SizedBox(height: 4),
-                          Text('${event.startDateTime.day}/${event.startDateTime.month} • ${event.location.name}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
-                       ],
-                     ),
-                   )
-                 ],
-               ),
-               const SizedBox(height: 16),
-               const Divider(color: AppColors.borderLight, height: 1),
-               const SizedBox(height: 12),
-               Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                   Text(
-                     isPast ? 'Ended' : 'Starts in 2 days', 
-                     style: TextStyle(fontWeight: FontWeight.w800, color: isPast ? AppColors.textHint : AppColors.info, fontSize: 13),
-                   ),
-                   Row(
-                     children: [
-                       if (isHost && !isPast) ...[
-                         TextButton(
-                           onPressed: () {},
-                           child: const Text('Edit', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
-                         ),
-                       ],
-                       ElevatedButton(
-                         onPressed: () => context.router.push(EventDetailRoute(eventId: event.id)),
-                         style: ElevatedButton.styleFrom(
-                            backgroundColor: isPast ? AppColors.bgSecondary : AppColors.primary,
-                            foregroundColor: isPast ? AppColors.secondary : Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                         ),
-                         child: Text(isPast ? 'Rate Experience' : (isHost ? 'Manage' : 'Check In'), style: const TextStyle(fontWeight: FontWeight.w800)),
-                       ),
-                     ],
-                   )
-                 ],
-               )
+              Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(
+                        image: NetworkImage(
+                          event.photoUrls.isNotEmpty
+                              ? event.photoUrls.first
+                              : 'https://picsum.photos/100',
+                        ),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${event.startDateTime.day}/${event.startDateTime.month} • ${event.location.name}',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: AppColors.borderLight, height: 1),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isPast ? 'Ended' : 'Starts in 2 days',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: isPast ? AppColors.textHint : AppColors.info,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      if (isHost && !isPast) ...[
+                        TextButton(
+                          onPressed: () {},
+                          child: const Text(
+                            'Edit',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                      VibeButton(
+                        onPressed: () => context.router.push(
+                          EventDetailRoute(eventId: event.id),
+                        ),
+                        label: isPast
+                            ? 'Rate Experience'
+                            : (isHost ? 'Manage' : 'Check In'),
+                        type: isPast
+                            ? VibeButtonType.secondary
+                            : VibeButtonType.primary,
+                        height: 36,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ],
           ),
         );

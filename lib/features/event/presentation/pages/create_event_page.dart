@@ -8,15 +8,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:niche_interest_matchmaker_app/core/utils/profile_state.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_localizations.dart';
-import '../../../../core/widgets/ios_primary_button.dart';
+import '../../../../core/widgets/vibe_button.dart';
+import '../../../../core/widgets/vibe_text_field.dart';
+import '../../../../core/widgets/vibe_header.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../data/services/event_api_service.dart';
 import '../../domain/entities/event.dart';
 import '../bloc/create_event_cubit.dart';
+import '../bloc/event_bloc.dart' as import_event_bloc;
 
 @RoutePage()
 class CreateEventPage extends StatefulWidget {
@@ -73,6 +77,7 @@ class _CreateEventPageState extends State<CreateEventPage>
   final MapController _mapController = MapController();
   LatLng _coords = const LatLng(10.7769, 106.7009);
   final TextEditingController _locationSearchCtrl = TextEditingController();
+  final FocusNode _locationSearchNode = FocusNode();
 
   List<Map<String, dynamic>> _placeSuggestions = const [];
   bool _isSearchingPlaces = false;
@@ -107,13 +112,26 @@ class _CreateEventPageState extends State<CreateEventPage>
     _endDate = _startDate;
     _endTime = const TimeOfDay(hour: 21, minute: 0);
 
+    final profile = ProfileState.notifier.value;
     _idCtrl.text = 'evt-${now.millisecondsSinceEpoch}';
-    _hostIdCtrl.text = 'current-user';
-    _hostNameCtrl.text = 'Current User';
-    _hostAvatarCtrl.text = 'https://i.pravatar.cc/100?img=11';
-    _locationNameCtrl.text = 'District 1 Center';
-    _addressCtrl.text = 'Ho Chi Minh City, Vietnam';
-    _locationSearchCtrl.text = 'District 1 Center';
+    _hostIdCtrl.text = profile.email
+        .split('@')
+        .first; // Use username as ID or email
+    _hostNameCtrl.text = profile.name.isNotEmpty
+        ? profile.name
+        : 'Current User';
+    _hostAvatarCtrl.text = profile.avatarUrl.isNotEmpty
+        ? profile.avatarUrl
+        : 'https://i.pravatar.cc/100?img=11';
+    _locationNameCtrl.text = '';
+    _addressCtrl.text = '';
+    _locationSearchCtrl.text = '';
+
+    _locationSearchNode.addListener(() {
+      if (_locationSearchNode.hasFocus && _placeSuggestions.isEmpty) {
+        _runPlaceSearch(_locationSearchCtrl.text);
+      }
+    });
   }
 
   @override
@@ -132,6 +150,7 @@ class _CreateEventPageState extends State<CreateEventPage>
     _placeIdCtrl.dispose();
     _tagCtrl.dispose();
     _locationSearchCtrl.dispose();
+    _locationSearchNode.dispose();
     _searchDebounce?.cancel();
     _heroPulse.dispose();
 
@@ -141,13 +160,6 @@ class _CreateEventPageState extends State<CreateEventPage>
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   String _tr(String key) => AppLocalizations.tr(key);
-
-  TextStyle get _inputTextStyle => TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    height: 1.25,
-    color: _isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-  );
 
   Future<void> _pickDate({required bool isEnd}) async {
     final initialDate = isEnd ? (_endDate ?? _startDate) : _startDate;
@@ -281,13 +293,7 @@ class _CreateEventPageState extends State<CreateEventPage>
   }
 
   Future<void> _runPlaceSearch(String query) async {
-    if (query.trim().length < 2) {
-      setState(() {
-        _placeSuggestions = const [];
-        _isSearchingPlaces = false;
-      });
-      return;
-    }
+    // We allow empty query to show top/recommended places
 
     final requestId = ++_searchSequence;
     setState(() => _isSearchingPlaces = true);
@@ -310,9 +316,14 @@ class _CreateEventPageState extends State<CreateEventPage>
     final point = LatLng(lat, lng);
 
     setState(() {
-      _locationSearchCtrl.text = place['name'] as String? ?? '';
-      _locationNameCtrl.text = place['name'] as String? ?? '';
-      _addressCtrl.text = place['address'] as String? ?? '';
+      final name = place['name'] as String? ?? '';
+      final address = place['address'] as String? ?? '';
+
+      // Show full details in search box for better clarity as requested
+      _locationSearchCtrl.text = address.isNotEmpty ? '$name, $address' : name;
+
+      _locationNameCtrl.text = name;
+      _addressCtrl.text = address;
       _placeIdCtrl.text = place['placeId']?.toString() ?? '';
       _coords = point;
       _placeSuggestions = const [];
@@ -394,6 +405,7 @@ class _CreateEventPageState extends State<CreateEventPage>
         'createdAt': _createdAt.toIso8601String(),
         'locationName': _locationNameCtrl.text.trim(),
         'location': _addressCtrl.text.trim(),
+        'isPublic': _isPublic,
         'placeId': _placeIdCtrl.text.trim().isEmpty
             ? null
             : _placeIdCtrl.text.trim(),
@@ -408,9 +420,7 @@ class _CreateEventPageState extends State<CreateEventPage>
     final border = _isDark
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.06);
-    final textPrimary = _isDark
-        ? AppColors.darkTextPrimary
-        : const Color(0xFF1B2A57);
+
     final sectionHint = _isDark
         ? AppColors.darkTextHint
         : const Color(0xFF8B97B6);
@@ -419,155 +429,111 @@ class _CreateEventPageState extends State<CreateEventPage>
       value: _cubit,
       child: Scaffold(
         backgroundColor: bg,
-        body: SafeArea(
-          child: BlocConsumer<CreateEventCubit, CreateEventState>(
-            listener: (context, state) {
-              if (state.isSuccess) {
-                context.router.replaceAll([const HomeRoute()]);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(_tr('event_create_success')),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-              } else if (state.error != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${_tr('event_create_error')}: ${state.error}',
-                    ),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-              }
-            },
-            builder: (context, state) {
-              return Stack(
-                children: [
-                  ListView(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 112),
-                    children: [
-                      _topBar(textPrimary, card),
-                      const SizedBox(height: 14),
-                      _coverComposer(card, border),
-                      const SizedBox(height: 20),
-                      _sectionHeader(
-                        _tr('event_section_core').toUpperCase(),
-                        sectionHint,
-                      ),
-                      const SizedBox(height: 10),
-                      _cardShell(card, border, _coreSection()),
-                      const SizedBox(height: 18),
-                      _sectionHeader(
-                        _tr('event_section_schedule').toUpperCase(),
-                        sectionHint,
-                      ),
-                      const SizedBox(height: 10),
-                      _cardShell(card, border, _scheduleSection()),
-                      const SizedBox(height: 18),
-                      _sectionHeader(
-                        _tr('event_section_location').toUpperCase(),
-                        sectionHint,
-                      ),
-                      const SizedBox(height: 10),
-                      _cardShell(card, border, _locationSection()),
-                    ],
-                  ),
-                  _bottomButton(state),
-                  if (state.isSubmitting)
-                    Container(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      alignment: Alignment.center,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: border),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.2,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(_tr('event_create_loading')),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _topBar(Color textPrimary, Color card) {
-    return Row(
-      children: [
-        _iconSurface(
-          icon: Icons.arrow_back_ios_new_rounded,
-          onTap: () => context.router.maybePop(),
-          color: textPrimary,
-          card: card,
-        ),
-        Expanded(
-          child: Text(
-            _tr('create_event_title_new'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: textPrimary,
-            ),
-          ),
-        ),
-        _iconSurface(
-          icon: Icons.auto_awesome_rounded,
-          onTap: () {},
-          color: AppColors.primary,
-          card: card,
-        ),
-      ],
-    );
-  }
-
-  Widget _iconSurface({
-    required IconData icon,
-    required VoidCallback onTap,
-    required Color color,
-    required Color card,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: card,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+        extendBodyBehindAppBar: true,
+        appBar: VibeHeader(
+          title: _tr('create_event_title_new'),
+          actions: [
+            VibeHeaderButton(
+              icon: Icons.auto_awesome_rounded,
+              onTap: () {},
+              isDark: _isDark,
+              color: AppColors.primary,
             ),
           ],
         ),
-        child: Icon(icon, size: 18, color: color),
+        body: BlocConsumer<CreateEventCubit, CreateEventState>(
+          listener: (context, state) {
+            if (state.isSuccess) {
+              // Professional state refresh
+              sl<import_event_bloc.EventBloc>().add(
+                import_event_bloc.LoadEvents(),
+              );
+
+              context.router.replaceAll([const HomeRoute()]);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_tr('event_create_success')),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            } else if (state.error != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${_tr('event_create_error')}: ${state.error}'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            return Stack(
+              children: [
+                ListView(
+                  controller: _scrollController,
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    VibeHeader.headerHeight + 20,
+                    20,
+                    84,
+                  ),
+                  children: [
+                    _coverComposer(card, border),
+                    const SizedBox(height: 20),
+                    _sectionHeader(
+                      _tr('event_section_core').toUpperCase(),
+                      sectionHint,
+                    ),
+                    const SizedBox(height: 10),
+                    _cardShell(card, border, _coreSection()),
+                    const SizedBox(height: 18),
+                    _sectionHeader(
+                      _tr('event_section_schedule').toUpperCase(),
+                      sectionHint,
+                    ),
+                    const SizedBox(height: 10),
+                    _cardShell(card, border, _scheduleSection()),
+                    const SizedBox(height: 18),
+                    _sectionHeader(
+                      _tr('event_section_location').toUpperCase(),
+                      sectionHint,
+                    ),
+                    const SizedBox(height: 10),
+                    _cardShell(card, border, _locationSection()),
+                  ],
+                ),
+                _bottomButton(state),
+                if (state.isSubmitting)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    alignment: Alignment.center,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: border),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2.2),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(_tr('event_create_loading')),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -596,13 +562,6 @@ class _CreateEventPageState extends State<CreateEventPage>
               end: Alignment.bottomRight,
               colors: colors,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: _isDark ? 0.24 : 0.14),
-                blurRadius: 30,
-                offset: const Offset(0, 14),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -854,13 +813,6 @@ class _CreateEventPageState extends State<CreateEventPage>
         color: card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: _isDark ? 0.18 : 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: child,
     );
@@ -870,13 +822,11 @@ class _CreateEventPageState extends State<CreateEventPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _fieldLabel(_tr('event_field_description')),
-        const SizedBox(height: 8),
-        TextField(
+        VibeTextField(
           controller: _descriptionCtrl,
-          style: _inputTextStyle,
+          label: _tr('event_field_description'),
+          hint: _tr('event_field_description_hint'),
           maxLines: 3,
-          decoration: _fieldDecoration(_tr('event_field_description_hint')),
         ),
         const SizedBox(height: 14),
         _fieldLabel(_tr('event_field_category')),
@@ -928,26 +878,33 @@ class _CreateEventPageState extends State<CreateEventPage>
           }).toList(),
         ),
         const SizedBox(height: 14),
-        _fieldLabel(_tr('event_field_vibe_tags')),
-        const SizedBox(height: 8),
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: TextField(
+              child: VibeTextField(
+                maxLines: 1,
                 controller: _tagCtrl,
-                style: _inputTextStyle,
+                label: _tr('event_field_vibe_tags'),
+                hint: _tr('event_field_add_tag_hint'),
                 onSubmitted: (value) => _addTag(),
-                decoration: _fieldDecoration(_tr('event_field_add_tag_hint')),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
             ),
             const SizedBox(width: 8),
-            IconButton.filledTonal(
-              onPressed: _addTag,
-              icon: const Icon(Icons.add_rounded),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 9.5),
+              child: IconButton.filledTonal(
+                onPressed: _addTag,
+                icon: const Icon(Icons.add_rounded),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -955,7 +912,6 @@ class _CreateEventPageState extends State<CreateEventPage>
               .map(
                 (tag) => Chip(
                   label: Text(tag),
-                  deleteIcon: const Icon(Icons.close, size: 16),
                   onDeleted: () => setState(() => _vibeTags.remove(tag)),
                 ),
               )
@@ -1152,26 +1108,23 @@ class _CreateEventPageState extends State<CreateEventPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _fieldLabel(_tr('event_field_search_place')),
-        const SizedBox(height: 8),
-        TextField(
+        VibeTextField(
           controller: _locationSearchCtrl,
-          style: _inputTextStyle,
+          label: _tr('event_field_search_place'),
+          hint: _tr('event_field_search_place_hint'),
           onChanged: _searchPlaces,
-          decoration: _fieldDecoration(_tr('event_field_search_place_hint'))
-              .copyWith(
-                prefixIcon: const Icon(Icons.search_rounded, size: 19),
-                suffixIcon: _isSearchingPlaces
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : null,
-              ),
+          prefixIcon: Icons.search_rounded,
+          suffix: _isSearchingPlaces
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : null,
+          focusNode: _locationSearchNode,
         ),
         const SizedBox(height: 10),
         SizedBox(
@@ -1220,13 +1173,6 @@ class _CreateEventPageState extends State<CreateEventPage>
               color: _isDark ? const Color(0xFF151B2A) : Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.borderLight),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -1307,118 +1253,70 @@ class _CreateEventPageState extends State<CreateEventPage>
             ),
           ),
         ],
-        const SizedBox(height: 12),
-        Container(
-          height: 230,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.borderLight, width: 1.2),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Stack(
+        if (_placeSuggestions.isEmpty && _locationNameCtrl.text.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Row(
               children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _coords,
-                    initialZoom: 15.0,
-                    onTap: (tapPosition, point) {
-                      setState(() {
-                        _coords = point;
-                        _addressCtrl.text =
-                            '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
-                        _locationNameCtrl.text = 'Pinned Location';
-                        _locationSearchCtrl.text = 'Pinned Location';
-                        _placeSuggestions = const [];
-                      });
-                      _mapController.move(point, 15.0);
-                    },
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.vibepulse.app',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: _coords,
-                          width: 40,
-                          height: 40,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.primary.withValues(alpha: 0.16),
-                            ),
-                            child: const Icon(
-                              Icons.navigation_rounded,
-                              color: AppColors.primary,
-                              size: 30,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  child: const Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
-                Positioned(
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _isDark
-                          ? const Color(0xFF151B2A).withValues(alpha: 0.94)
-                          : Colors.white.withValues(alpha: 0.94),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.my_location_rounded,
-                          color: AppColors.primary,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _locationNameCtrl.text,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          color: AppColors.secondary,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _locationNameCtrl.text,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                  color: _isDark
-                                      ? AppColors.darkTextPrimary
-                                      : AppColors.textPrimary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                _addressCtrl.text,
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 11,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                      ),
+                      if (_addressCtrl.text.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _addressCtrl.text,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -1431,32 +1329,6 @@ class _CreateEventPageState extends State<CreateEventPage>
         fontWeight: FontWeight.w700,
         letterSpacing: 0.1,
         color: _isDark ? AppColors.darkTextPrimary : AppColors.secondary,
-      ),
-    );
-  }
-
-  InputDecoration _fieldDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(
-        color: AppColors.textHint,
-        fontWeight: FontWeight.w500,
-        fontSize: 14,
-      ),
-      filled: true,
-      fillColor: AppColors.bgSecondary,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.borderLight, width: 1.2),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
       ),
     );
   }
@@ -1557,11 +1429,53 @@ class _CreateEventPageState extends State<CreateEventPage>
             children: [
               for (final quick in const [8, 12, 20, 30])
                 Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    label: Text('$quick'),
-                    selected: value == quick,
-                    onSelected: (_) => onChanged(quick.clamp(min, max)),
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      onChanged(quick.clamp(min, max));
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: value == quick
+                            ? AppColors.primary.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: value == quick
+                              ? AppColors.primary
+                              : AppColors.borderLight,
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (value == quick)
+                            const Icon(
+                              Icons.check_rounded,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                          if (value == quick) const SizedBox(width: 4),
+                          Text(
+                            '$quick',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: value == quick
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -1659,7 +1573,7 @@ class _CreateEventPageState extends State<CreateEventPage>
       left: 20,
       right: 20,
       bottom: 14,
-      child: IosPrimaryButton(
+      child: VibeButton(
         label: state.isSubmitting
             ? _tr('event_create_loading')
             : _tr('event_create_button'),

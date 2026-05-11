@@ -21,13 +21,7 @@ class MainTabsPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF355CF5).withValues(alpha: 0.14),
-                blurRadius: 26,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            
           ),
           child: Row(
             children: [

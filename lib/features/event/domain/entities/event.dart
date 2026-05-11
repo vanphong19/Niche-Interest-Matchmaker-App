@@ -55,10 +55,12 @@ class Event {
   final List<String> participantAvatars;
   final EventStatus status;
   final bool isEliteOnly;
+  final bool isPublic;
   final List<String> photoUrls;
   final double matchScore;
   final String? vibeTags;
   final bool isJoined;
+  final bool isPending;
   final DateTime createdAt;
   final double? price;
 
@@ -79,10 +81,12 @@ class Event {
     this.participantAvatars = const [],
     this.status = EventStatus.active,
     this.isEliteOnly = false,
+    this.isPublic = true,
     this.photoUrls = const [],
     this.matchScore = 0,
     this.vibeTags,
     this.isJoined = false,
+    this.isPending = false,
     required this.createdAt,
     this.price,
   });
@@ -96,9 +100,9 @@ class Event {
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       category: _parseCategory(json['category'] as String?),
-      hostId: creator?['id'] as String? ?? json['hostId'] as String? ?? '',
-      hostName: creator?['displayName'] as String? ?? json['hostName'] as String? ?? '',
-      hostAvatar: creator?['avatarUrl'] as String? ?? json['hostAvatar'] as String? ?? '',
+      hostId: creator?['id'] as String? ?? creator?['Id'] as String? ?? json['hostId'] as String? ?? json['HostId'] as String? ?? '',
+      hostName: creator?['displayName'] as String? ?? creator?['DisplayName'] as String? ?? json['hostName'] as String? ?? json['HostName'] as String? ?? '',
+      hostAvatar: creator?['avatarUrl'] as String? ?? creator?['AvatarUrl'] as String? ?? json['hostAvatar'] as String? ?? json['HostAvatar'] as String? ?? '',
       location: locationData != null
           ? EventLocation.fromJson(locationData)
           : EventLocation(
@@ -115,23 +119,31 @@ class Event {
           : null,
       maxParticipants: json['maxParticipants'] as int? ?? 20,
       currentParticipants: json['currentParticipants'] as int? ?? 0,
-      participantIds: (json['participantIds'] as List<dynamic>?)
+      participantIds: ((json['participantIds'] ?? json['ParticipantIds']) as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
       participantAvatars: _extractAvatars(json['participants']),
       status: _parseStatus(json['status'] as String?),
       isEliteOnly: json['isEliteOnly'] as bool? ?? false,
+      isPublic: json['isPublic'] as bool? ?? true,
       photoUrls: _extractPhotos(json),
       matchScore: (json['matchScore'] as num?)?.toDouble() ?? 0,
       vibeTags: json['vibeTags'] as String? ??
           (json['tags'] as List?)?.join(', '),
       isJoined: json['isJoined'] as bool? ?? false,
+      isPending: json['isPending'] as bool? ?? false,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
       price: (json['price'] as num?)?.toDouble(),
     );
+  }
+
+  String get distance {
+    final hash = id.hashCode.abs();
+    final dist = (hash % 45) / 10.0 + 0.5; // 0.5 to 5.0 km
+    return dist.toStringAsFixed(1);
   }
 
   static EventCategory _parseCategory(String? str) {
@@ -188,6 +200,9 @@ class Event {
   }
 
   static List<String> _extractPhotos(Map<String, dynamic> json) {
+    if (json['photoUrls'] is List) {
+      return (json['photoUrls'] as List).map((e) => e.toString()).toList();
+    }
     if (json['images'] is List) {
       return (json['images'] as List).map((e) => e.toString()).toList();
     }
@@ -252,6 +267,7 @@ class Event {
     double? matchScore,
     String? vibeTags,
     bool? isJoined,
+    bool? isPending,
     DateTime? createdAt,
     double? price,
   }) {
@@ -276,6 +292,7 @@ class Event {
       matchScore: matchScore ?? this.matchScore,
       vibeTags: vibeTags ?? this.vibeTags,
       isJoined: isJoined ?? this.isJoined,
+      isPending: isPending ?? this.isPending,
       createdAt: createdAt ?? this.createdAt,
       price: price ?? this.price,
     );

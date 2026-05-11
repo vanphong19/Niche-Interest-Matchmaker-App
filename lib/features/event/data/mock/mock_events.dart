@@ -13,7 +13,7 @@ class MockEvents {
               'Start your morning with an energizing yoga session on a beautiful rooftop, followed by artisan coffee. All levels welcome!',
           category: EventCategory.sports,
           hostId: 'usr_001',
-          hostName: 'Marcus Chen',
+          hostName: 'Super Admin',
           hostAvatar: 'https://i.pravatar.cc/150?img=3',
           location: const EventLocation(
             name: 'Sky Lounge D1',
@@ -223,7 +223,7 @@ class MockEvents {
               'Late-night padel session followed by healthy smoothies. Perfect for night owls who love to move!',
           category: EventCategory.sports,
           hostId: 'usr_001',
-          hostName: 'Marcus Chen',
+          hostName: 'Super Admin',
           hostAvatar: 'https://i.pravatar.cc/150?img=3',
           location: const EventLocation(
             name: 'Padel Club Sala',

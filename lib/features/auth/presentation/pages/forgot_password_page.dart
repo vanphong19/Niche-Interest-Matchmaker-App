@@ -103,13 +103,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
             decoration: BoxDecoration(
               color: const Color(0xFFE6EEFF),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-              ],
+              
             ),
             child: const Icon(
               Icons.lock_reset_rounded,
@@ -147,13 +141,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF315EEA).withValues(alpha: 0.10),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
+                
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -194,13 +182,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                         decoration: BoxDecoration(
                           gradient: AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(26),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
+                          
                         ),
                         child: Material(
                           color: Colors.transparent,
@@ -276,13 +258,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
             decoration: BoxDecoration(
               color: AppColors.successLight,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.success.withValues(alpha: 0.2),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-              ],
+              
             ),
             child: const Icon(Icons.check_circle_rounded, size: 56, color: AppColors.success),
           ),

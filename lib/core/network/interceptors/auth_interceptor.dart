@@ -40,12 +40,18 @@ class AuthInterceptor extends Interceptor {
         }
 
         final response = await _dio.post(
-          '/auth/refresh',
+          '/api/auth/refresh',
           data: {'refreshToken': refreshToken},
         );
 
-        final newToken = response.data['accessToken'] as String;
-        final newRefreshToken = response.data['refreshToken'] as String;
+        // Unwrap { success, data: { accessToken, refreshToken } }
+        final payload = response.data is Map &&
+                (response.data as Map).containsKey('data')
+            ? (response.data as Map)['data'] as Map<String, dynamic>
+            : response.data as Map<String, dynamic>;
+
+        final newToken = payload['accessToken']?.toString() ?? '';
+        final newRefreshToken = payload['refreshToken']?.toString() ?? '';
 
         await _secureStorage.write(
           key: AppConstants.tokenKey,

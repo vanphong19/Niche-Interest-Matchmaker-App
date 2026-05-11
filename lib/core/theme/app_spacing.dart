@@ -114,15 +114,11 @@ class AppSpacing {
   ];
 
   static const List<BoxShadow> shadowElevated = [
-    BoxShadow(
-      color: Color(0x14000000),
-      blurRadius: 32,
-      offset: Offset(0, 12),
-    ),
+    BoxShadow(color: Color(0x14000000), blurRadius: 32, offset: Offset(0, 12)),
   ];
 
   // ─── Component Heights ────────────────────────────────────────────
-  static const double buttonHeight = 52.0;
+  static const double buttonHeight = 50.0;
   static const double inputHeight = 52.0;
   static const double appBarHeight = 56.0;
   static const double bottomNavHeight = 80.0;

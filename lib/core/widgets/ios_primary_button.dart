@@ -1,8 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-
 class IosPrimaryButton extends StatelessWidget {
   const IosPrimaryButton({
     super.key,
@@ -37,15 +35,7 @@ class IosPrimaryButton extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: [Color(0xFF278DFF), Color(0xFF165DD9)],
                 ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(
-                alpha: disabled ? 0.14 : 0.28,
-              ),
-              blurRadius: disabled ? 10 : 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          
         ),
         child: ElevatedButton(
           onPressed: disabled ? null : onPressed,

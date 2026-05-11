@@ -1,4 +1,4 @@
-// lib/features/profile/presentation/pages/profile_page.dart
+// lib/features/profile/presentation/pages/other_user_profile_page.dart
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +12,9 @@ import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_button.dart';
 import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/utils/profile_state.dart';
+import '../../data/services/user_api_service.dart';
+import '../../../../injection/injection_container.dart';
+import '../../../../core/widgets/vibe_header.dart';
 
 @RoutePage()
 class OtherUserProfilePage extends StatefulWidget {
@@ -27,11 +30,14 @@ class OtherUserProfilePage extends StatefulWidget {
 
 class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     with SingleTickerProviderStateMixin {
+  ProfileData? _otherProfile;
+  bool _isLoading = true;
+  final bool _hasSharedExperience = false;
+
   late AnimationController _animController;
   late Animation<double> _headerFade;
   late Animation<Offset> _statsSlide;
   late Animation<double> _sectionsFade;
-  final bool _hasSharedExperience = true;
 
   @override
   void initState() {
@@ -59,7 +65,26 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
       ),
     );
-    _animController.forward();
+
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final profile = await sl<UserApiService>().getOtherProfile(widget.userId);
+      if (mounted) {
+        setState(() {
+          _otherProfile = profile;
+          _isLoading = false;
+        });
+        _animController.forward();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        VibeSnackBar.error(context, 'Failed to load profile');
+      }
+    }
   }
 
   @override
@@ -80,47 +105,80 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     return ValueListenableBuilder<String>(
       valueListenable: AppLocalizations.localeNotifier,
       builder: (context, _, _) {
-        return ValueListenableBuilder<ProfileData>(
-          valueListenable: ProfileState.notifier,
-          builder: (context, profileData, _) {
-            return Scaffold(
-              backgroundColor: bgColor,
-              body: SafeArea(
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
-                        child: Column(
-                          children: [
-                            // Header
-                            FadeTransition(
+        if (_isLoading) {
+          return Scaffold(
+            backgroundColor: bgColor,
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (_otherProfile == null) {
+          return Scaffold(
+            backgroundColor: bgColor,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('User not found'),
+                  const SizedBox(height: 16),
+                  VibeButton(
+                    label: 'Go Back',
+                    onPressed: () => context.router.maybePop(),
+                    width: 120,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final profile = _otherProfile!;
+
+        return Scaffold(
+          backgroundColor: bgColor,
+          extendBodyBehindAppBar: true,
+          appBar: VibeHeader(
+            title: profile.name,
+            showBackButton: true,
+            actions: [
+              _HeaderIcon(
+                icon: Icons.more_horiz_rounded,
+                isDark: isDark,
+              ),
+              const SizedBox(width: 16),
+            ],
+          ),
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    SizedBox(height: MediaQuery.of(context).padding.top + 52 + 16),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 12),
+                          // Avatar & Info
+                          FadeTransition(
+                            opacity: _headerFade,
+                            child: _buildProfileHeader(
+                              isDark,
+                              textPrimary,
+                              profile,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Stats
+                          SlideTransition(
+                            position: _statsSlide,
+                            child: FadeTransition(
                               opacity: _headerFade,
-                              child: _buildHeader(
-                                isDark,
-                                textPrimary,
-                                cardColor,
-                              ),
+                              child: _buildStats(cardColor, isDark, profile),
                             ),
-                            const SizedBox(height: 24),
-                            // Avatar & Info
-                            FadeTransition(
-                              opacity: _headerFade,
-                              child: _buildProfileHeader(
-                                isDark,
-                                textPrimary,
-                                profileData,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            // Stats
-                            SlideTransition(
-                              position: _statsSlide,
-                              child: FadeTransition(
-                                opacity: _headerFade,
-                                child: _buildStats(cardColor, isDark),
-                              ),
-                            ),
+                          ),
+                          if (profile.username != ProfileState.notifier.value.username) ...[
                             const SizedBox(height: 20),
                             // Interaction Buttons
                             Row(
@@ -136,16 +194,13 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                                       );
                                     },
                                     type: VibeButtonType.primary,
-                                    prefixIcon:
-                                        Icons.chat_bubble_outline_rounded,
+                                    prefixIcon: Icons.chat_bubble_outline_rounded,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: VibeButton(
-                                    label: _hasSharedExperience
-                                        ? 'Rate Experience'
-                                        : 'Need shared event',
+                                    label: AppLocalizations.tr('rate'),
                                     onPressed: () {
                                       HapticFeedback.selectionClick();
                                       if (_hasSharedExperience) {
@@ -169,124 +224,49 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                             const SizedBox(height: 10),
                             SizedBox(
                               width: double.infinity,
-                              child: OutlinedButton.icon(
+                              child: VibeButton(
+                                label: 'Invite to private event',
                                 onPressed: () => VibeSnackBar.info(
                                   context,
                                   'Invite sent to private event.',
                                 ),
-                                icon: const Icon(Icons.group_add_rounded),
-                                label: const Text('Invite to private event'),
+                                type: VibeButtonType.secondary,
+                                prefixIcon: Icons.group_add_rounded,
                               ),
-                            ),
-                            const SizedBox(height: 28),
-                            // Interests
-                            FadeTransition(
-                              opacity: _sectionsFade,
-                              child: _buildInterestsSection(
-                                isDark,
-                                textPrimary,
-                                profileData,
-                              ),
-                            ),
-                            const SizedBox(height: 28),
-                            // Badges Gallery
-                            FadeTransition(
-                              opacity: _sectionsFade,
-                              child: _buildBadgesSection(isDark, textPrimary),
-                            ),
-                            const SizedBox(height: 28),
-                            // Activity History
-                            FadeTransition(
-                              opacity: _sectionsFade,
-                              child: _buildActivitySection(isDark, textPrimary),
                             ),
                           ],
-                        ),
+                          const SizedBox(height: 28),
+                          // Interests
+                          FadeTransition(
+                            opacity: _sectionsFade,
+                            child: _buildInterestsSection(
+                              isDark,
+                              textPrimary,
+                              profile,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          // Badges Gallery
+                          FadeTransition(
+                            opacity: _sectionsFade,
+                            child: _buildBadgesSection(isDark, textPrimary, profile),
+                          ),
+                          const SizedBox(height: 28),
+                          // Activity History
+                          FadeTransition(
+                            opacity: _sectionsFade,
+                            child: _buildActivitySection(isDark, textPrimary),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            );
-          },
+            ],
+          ),
         );
       },
-    );
-  }
-
-  Widget _buildHeader(bool isDark, Color textPrimary, Color cardColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            InkWell(
-              onTap: () => context.router.maybePop(),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 18,
-                  color: textPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Profile',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: textPrimary,
-              ),
-            ),
-          ],
-        ),
-        Row(
-          children: [_headerIcon(Icons.more_horiz_rounded, cardColor, isDark)],
-        ),
-      ],
-    );
-  }
-
-  Widget _headerIcon(
-    IconData icon,
-    Color cardColor,
-    bool isDark, {
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(icon, size: 20, color: AppColors.primary),
-      ),
     );
   }
 
@@ -306,13 +286,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.primary, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    spreadRadius: 4,
-                  ),
-                ],
+                
               ),
               child: VibeAvatar(
                 imageUrl: profile.avatarUrl,
@@ -383,19 +357,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               color: Colors.white.withValues(alpha: 0.4),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFD29842).withValues(alpha: 0.25),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 0),
-                spreadRadius: 1,
-              ),
-            ],
+            
           ),
           child: Stack(
             clipBehavior: Clip.none,
@@ -435,9 +397,9 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    '982',
-                    style: TextStyle(
+                  Text(
+                    '${profile.reputationScore}',
+                    style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                       fontSize: 24,
@@ -459,53 +421,48 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     );
   }
 
-  Widget _buildStats(Color cardColor, bool isDark) {
+  Widget _buildStats(Color cardColor, bool isDark, ProfileData profile) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.borderLight,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _StatItem(
-            value: '12',
-            label: AppLocalizations.tr('created'),
+            value: '${profile.createdCount}',
+            label: 'Hosting',
             isDark: isDark,
+            icon: Icons.auto_awesome_rounded,
           ),
-          _divider(),
           _StatItem(
-            value: '34',
-            label: AppLocalizations.tr('joined'),
+            value: '${profile.joinedCount}',
+            label: 'Joined',
             isDark: isDark,
+            icon: Icons.people_alt_rounded,
           ),
-          _divider(),
           _StatItem(
-            value: '156',
-            label: AppLocalizations.tr('connections'),
+            value: '${profile.friendsCount}',
+            label: 'Friends',
             isDark: isDark,
-          ),
-          _divider(),
-          _StatItem(
-            value: '8',
-            label: AppLocalizations.tr('badges'),
-            isDark: isDark,
+            icon: Icons.favorite_rounded,
           ),
         ],
       ),
     );
-  }
-
-  Widget _divider() {
-    return Container(height: 32, width: 1, color: const Color(0xFFE8ECF4));
   }
 
   Widget _buildInterestsSection(
@@ -623,7 +580,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     );
   }
 
-  Widget _buildBadgesSection(bool isDark, Color textPrimary) {
+  Widget _buildBadgesSection(bool isDark, Color textPrimary, ProfileData profile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -641,7 +598,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '8 ${AppLocalizations.tr('unlocked')}',
+                '${profile.badgesCount} ${AppLocalizations.tr('unlocked')}',
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -875,25 +832,44 @@ class _StatItem extends StatelessWidget {
   const _StatItem({
     required this.value,
     required this.label,
-    this.isDark = false,
+    required this.isDark,
+    required this.icon,
   });
   final String value;
   final String label;
   final bool isDark;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 20),
+        ),
+        const SizedBox(height: 10),
         Text(
           value,
-          style: AppTextStyles.headingMedium.copyWith(color: AppColors.primary),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: isDark ? Colors.white : const Color(0xFF1C2C58),
+            letterSpacing: -0.5,
+          ),
         ),
-        const SizedBox(height: 2),
         Text(
           label,
-          style: AppTextStyles.captionMedium.copyWith(
-            color: isDark ? AppColors.darkTextSecondary : null,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textHint,
+            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -927,15 +903,7 @@ class _PremiumBadgeCard extends StatelessWidget {
               : [Colors.grey.shade300, Colors.grey.shade400],
         ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: (isUnlocked ? gradient.first : Colors.grey).withValues(
-              alpha: 0.35,
-            ),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        
       ),
       child: Stack(
         children: [
@@ -966,12 +934,7 @@ class _PremiumBadgeCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.3),
                       width: 1.5,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        blurRadius: 10,
-                        color: Colors.black.withValues(alpha: 0.1),
-                      ),
-                    ],
+                    
                   ),
                   child: Icon(icon, color: Colors.white, size: 24),
                 ),
@@ -1025,6 +988,36 @@ class _PremiumBadgeCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({
+    required this.icon,
+    required this.isDark,
+  });
+  final IconData icon;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : AppColors.bgSecondary,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : AppColors.borderLight,
+        ),
+      ),
+      child: Icon(icon,
+          size: 20, color: isDark ? Colors.white : AppColors.primary),
     );
   }
 }

@@ -75,6 +75,7 @@ dependencies:
 
   # Icons
   font_awesome_flutter: ^11.0.0
+  signalr_netcore: ^1.4.4
 
 dev_dependencies:
   flutter_test:

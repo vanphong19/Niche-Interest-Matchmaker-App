@@ -94,14 +94,14 @@ class User {
 
   static User get mock => User(
         id: 'usr_001',
-        name: 'Marcus Chen',
-        email: 'marcus@vibepulse.app',
+        name: 'Super Admin',
+        email: 'admin@nichematch.vn',
         avatarUrl: 'https://i.pravatar.cc/150?img=3',
         reputationScore: 982,
         badges: ['top_host', 'punctual_king', 'social_butterfly'],
         createdAt: DateTime(2024, 1, 15),
         isVerified: true,
-        bio: 'Tech enthusiast and weekend hiker. Building community vibes in the concrete jungle. 🌿',
+        bio: 'System Administrator and community builder. Ensuring the best experience for every vibe. 🌿',
         location: 'Ho Chi Minh City',
       );
 }

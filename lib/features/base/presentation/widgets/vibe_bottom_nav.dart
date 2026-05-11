@@ -28,13 +28,7 @@ class VibeBottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        
         border: Border(
           top: BorderSide(
             color: isDark ? AppColors.darkBorderLight : AppColors.borderLight,
@@ -256,13 +250,7 @@ class _CreateButtonState extends State<_CreateButton>
                 height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
-                      blurRadius: 20,
-                      spreadRadius: 4,
-                    ),
-                  ],
+                  
                 ),
               ),
               // Primary Star Button
@@ -276,13 +264,7 @@ class _CreateButtonState extends State<_CreateButton>
                     end: Alignment.bottomCenter,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  
                 ),
                 child: const Icon(
                   Icons.star_rounded,

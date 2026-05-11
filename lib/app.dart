@@ -7,6 +7,7 @@ import 'core/utils/app_localizations.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'injection/injection_container.dart';
+import 'core/widgets/no_scroll_glow_behavior.dart';
 import 'router/app_router.dart';
 import 'router/app_router.gr.dart';
 
@@ -49,6 +50,7 @@ class _VibeAppState extends State<VibeApp> {
                   darkTheme: AppTheme.darkTheme,
                   themeMode: themeMode,
                   locale: Locale(localeStr),
+                  scrollBehavior: NoScrollGlowBehavior(),
                   routerConfig: _appRouter.config(),
                 );
               },

@@ -35,13 +35,16 @@ class AppRouter extends RootStackRouter {
         // ─── Event Routes ─────────────────────────────────────────
         AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
         AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
+        AutoRoute(page: ManageEventRoute.page, path: '/event/:id/manage'),
 
         // ─── Settings ─────────────────────────────────────────────
         AutoRoute(page: SettingsRoute.page, path: '/settings'),
 
         // ─── Profile Edit & View ───────────────────────────────────
         AutoRoute(page: EditProfileRoute.page, path: '/profile/edit'),
+        AutoRoute(page: LocationPickerRoute.page, path: '/profile/location-picker'),
         AutoRoute(page: OtherUserProfileRoute.page, path: '/profile/:id'),
+        AutoRoute(page: AllActivityHistoryRoute.page, path: '/profile/history'),
       ];
 
   @override

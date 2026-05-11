@@ -17,10 +17,10 @@ class ProfileApiService {
     // return Map<String, dynamic>.from(response.data as Map);
 
     return {
-      'name': 'Marcus Chen',
-      'city': 'New York, NY',
-      'bio':
-          'Tech enthusiast and weekend hiker. Building community vibes in the concrete jungle.',
+      'name': 'Super Admin',
+      'username': 'superadmin',
+      'email': 'admin@nichematch.vn',
+      'bio': 'Tech enthusiast and weekend hiker. Building community vibes in the concrete jungle.',
       'reputation': 982,
     };
   }
