@@ -139,7 +139,7 @@ class CreateEventCubit extends Cubit<CreateEventState> {
         'title': state.title,
         'category': state.category,
         'participants': state.participants,
-        'date': state.date,
+        'date': state.date?.toIso8601String(),
         'time': '${state.time?.hour}:${state.time?.minute}',
         'locationName': state.locationName,
         'location': state.address,

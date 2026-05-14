@@ -61,7 +61,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
 
   @override
   void dispose() {
-    _eventBloc.close();
     _searchCtrl.dispose();
     _searchFocus.dispose();
     _cardPageController.dispose();
@@ -72,7 +71,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
     if (query.length > 1) {
       // Search across title, category, vibe tags, and location
       final state = _eventBloc.state;
-      if (state is EventLoaded) {
+      if (state.events.isNotEmpty) {
         final q = query.toLowerCase();
         final filtered = state.events.where((e) {
           return e.title.toLowerCase().contains(q) ||
@@ -122,7 +121,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
             BlocBuilder<EventBloc, EventState>(
               builder: (context, state) {
                 List<Event> events = [];
-                if (state is EventLoaded) {
+                if (state.events.isNotEmpty) {
                   events = state.events
                       .where((e) => e.status == EventStatus.active)
                       .toList();
@@ -233,14 +232,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                                   color: Colors.white,
                                   width: 2,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                    blurRadius: 10,
-                                  ),
-                                ],
                               ),
                               child: Center(
                                 child: Text(
@@ -282,15 +273,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                               ),
                         width: 1.2,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: isDark ? 0.2 : 0.05,
-                          ),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     alignment: Alignment.center,
                     child: TextField(
@@ -482,13 +464,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                             ? AppColors.darkCardBackground
                             : Colors.white),
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
@@ -602,7 +577,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                 height: 165,
                 child: BlocBuilder<EventBloc, EventState>(
                   builder: (context, state) {
-                    if (state is EventLoaded && state.events.isNotEmpty) {
+                    if (state.events.isNotEmpty) {
                       return PageView.builder(
                         controller: _cardPageController,
                         physics: const BouncingScrollPhysics(),
@@ -627,7 +602,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                         },
                       );
                     }
-                    if (state is EventLoaded && state.events.isEmpty) {
+                    if (state.events.isEmpty && !state.isLoading) {
                       return Center(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -672,16 +647,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
         context.router.push(EventDetailRoute(eventId: event.id));
       },
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: BackdropFilter(

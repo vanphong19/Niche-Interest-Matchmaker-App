@@ -52,7 +52,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
         }
         if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       },
@@ -103,13 +106,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
             decoration: BoxDecoration(
               color: const Color(0xFFE6EEFF),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-              ],
             ),
             child: const Icon(
               Icons.lock_reset_rounded,
@@ -147,13 +143,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF315EEA).withValues(alpha: 0.10),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,8 +150,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                   const Text(
                     'EMAIL ADDRESS',
                     style: TextStyle(
-                      fontSize: 11, letterSpacing: 1,
-                      fontWeight: FontWeight.w800, color: Color(0xFF95A2C2),
+                      fontSize: 11,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF95A2C2),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -176,7 +167,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                     },
                     decoration: InputDecoration(
                       hintText: 'alex.rivera@vibepulse.com',
-                      prefixIcon: const Icon(Icons.email_rounded, color: Color(0xFF8C97B8), size: 20),
+                      prefixIcon: const Icon(
+                        Icons.email_rounded,
+                        color: Color(0xFF8C97B8),
+                        size: 20,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFFF0F3FF),
                       border: OutlineInputBorder(
@@ -194,13 +189,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                         decoration: BoxDecoration(
                           gradient: AppColors.primaryGradient,
                           borderRadius: BorderRadius.circular(26),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
                         ),
                         child: Material(
                           color: Colors.transparent,
@@ -211,24 +199,40 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                                 : () {
                                     if (_formKey.currentState!.validate()) {
                                       context.read<AuthBloc>().add(
-                                            ForgotPasswordSubmitted(
-                                              _emailController.text.trim(),
-                                            ),
-                                          );
+                                        ForgotPasswordSubmitted(
+                                          _emailController.text.trim(),
+                                        ),
+                                      );
                                     }
                                   },
                             child: Center(
                               child: loading
                                   ? const SizedBox(
-                                      width: 22, height: 22,
-                                      child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.2,
+                                        color: Colors.white,
+                                      ),
                                     )
                                   : const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Text('Reset Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                                        Text(
+                                          'Reset Password',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                         SizedBox(width: 8),
-                                        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                                        Icon(
+                                          Icons.arrow_forward_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
                                       ],
                                     ),
                             ),
@@ -240,8 +244,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                   const SizedBox(height: 12),
                   TextButton.icon(
                     onPressed: () => context.router.maybePop(),
-                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary, size: 18),
-                    label: const Text('Back to login', style: TextStyle(fontWeight: FontWeight.w800)),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Back to login',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ],
               ),
@@ -250,7 +261,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
           const SizedBox(height: 28),
           const Text(
             'VIBEPULSE IDENTITY SYSTEM © 2026',
-            style: TextStyle(fontSize: 10, letterSpacing: 1.1, fontWeight: FontWeight.w700, color: Color(0xFFA1ABCA)),
+            style: TextStyle(
+              fontSize: 10,
+              letterSpacing: 1.1,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFA1ABCA),
+            ),
           ),
         ],
       ),
@@ -265,10 +281,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
           duration: const Duration(milliseconds: 600),
           curve: Curves.elasticOut,
           builder: (context, value, child) {
-            return Transform.scale(
-              scale: value,
-              child: child,
-            );
+            return Transform.scale(scale: value, child: child);
           },
           child: Container(
             width: 100,
@@ -276,27 +289,33 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
             decoration: BoxDecoration(
               color: AppColors.successLight,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.success.withValues(alpha: 0.2),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-              ],
             ),
-            child: const Icon(Icons.check_circle_rounded, size: 56, color: AppColors.success),
+            child: const Icon(
+              Icons.check_circle_rounded,
+              size: 56,
+              color: AppColors.success,
+            ),
           ),
         ),
         const SizedBox(height: 28),
         const Text(
           'Check your email!',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1B2A57)),
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF1B2A57),
+          ),
         ),
         const SizedBox(height: 12),
         Text(
           'We\'ve sent a password reset link to\n${_emailController.text}',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFF6D7AA2), fontSize: 15, fontWeight: FontWeight.w600, height: 1.5),
+          style: const TextStyle(
+            color: Color(0xFF6D7AA2),
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 32),
         SizedBox(
@@ -305,10 +324,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
             onPressed: () => context.router.maybePop(),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppColors.primary, width: 1.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: const Text('Back to Login', style: TextStyle(fontWeight: FontWeight.w800)),
+            child: const Text(
+              'Back to Login',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ),
       ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
@@ -5,9 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/profile_state.dart';
 import '../../../../injection/injection_container.dart';
 import '../../data/services/event_api_service.dart';
 import '../../domain/entities/event.dart';
+import '../../../../router/app_router.gr.dart';
+import '../../../../core/services/signalr_service.dart';
 import 'event_members_page.dart';
 import '../bloc/event_detail_cubit.dart';
 
@@ -25,6 +29,7 @@ class _EventDetailPageState extends State<EventDetailPage>
     with SingleTickerProviderStateMixin {
   late final EventDetailCubit _cubit;
   late final AnimationController _fabAnim;
+  StreamSubscription? _statusSubscription;
 
   String _safeImage(
     String? url, {
@@ -44,17 +49,28 @@ class _EventDetailPageState extends State<EventDetailPage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     )..forward();
+
+    _statusSubscription = sl<SignalRService>().eventStatusStream.listen((data) {
+      final eventId = (data['eventId'] ?? data['EventId'])?.toString();
+      if (eventId == widget.eventId) {
+        _cubit.loadEvent(widget.eventId);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _statusSubscription?.cancel();
     _cubit.close();
     _fabAnim.dispose();
     super.dispose();
   }
 
-  bool _isHost(Event event) =>
-      event.hostName == 'Marcus Chen' || event.hostName == 'Current User';
+  bool _isHost(Event event) {
+    final profile = ProfileState.notifier.value;
+    if (event.hostId.isEmpty || profile.id.isEmpty) return false;
+    return event.hostId.toLowerCase() == profile.id.toLowerCase();
+  }
 
   Future<void> _copyJoinLink(Event event) async {
     final link = sl<EventApiService>().buildJoinRequestLink(event.id);
@@ -97,13 +113,51 @@ class _EventDetailPageState extends State<EventDetailPage>
   }
 
   Future<void> _openMembersManage(Event event) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) =>
-            EventMembersPage(eventId: event.id, isHost: _isHost(event)),
+    // Try to use ManageEventRoute if available, otherwise fallback to EventMembersPage
+    try {
+      await context.router.push(ManageEventRoute(eventId: event.id));
+    } catch (e) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              EventMembersPage(eventId: event.id, isHost: _isHost(event)),
+        ),
+      );
+    }
+    if (mounted) _cubit.loadEvent(widget.eventId);
+  }
+
+  Future<void> _deleteEvent(Event event) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Vibe?'),
+        content: const Text(
+          'This action cannot be undone. All participants will be notified.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
       ),
     );
-    if (mounted) _cubit.loadEvent(widget.eventId);
+
+    if (confirmed == true) {
+      HapticFeedback.heavyImpact();
+      await sl<EventApiService>().deleteEvent(event.id);
+      if (mounted) {
+        context.router.popUntilRoot();
+      }
+    }
   }
 
   @override
@@ -112,30 +166,48 @@ class _EventDetailPageState extends State<EventDetailPage>
       value: _cubit,
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FF),
-        body: BlocBuilder<EventDetailCubit, EventDetailState>(
-          builder: (context, state) {
-            if (state is EventDetailLoading || state is EventDetailInitial) {
-              return const _LoadingShimmer();
-            } else if (state is EventDetailError) {
-              return _buildError(state.message);
-            } else if (state is EventDetailLoaded) {
-              final event = state.event;
-              return Stack(
-                children: [
-                  CustomScrollView(
-                    physics: const BouncingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
-                    ),
-                    slivers: [
-                      _buildSliverAppBar(event),
-                      SliverToBoxAdapter(child: _buildContent(event)),
+        body: ValueListenableBuilder<ProfileData>(
+          valueListenable: ProfileState.notifier,
+          builder: (context, profile, child) {
+            return BlocBuilder<EventDetailCubit, EventDetailState>(
+              builder: (context, state) {
+                if (state is EventDetailLoading ||
+                    state is EventDetailInitial) {
+                  return const _LoadingShimmer();
+                } else if (state is EventDetailError) {
+                  return _buildError(state.message);
+                } else if (state is EventDetailLoaded) {
+                  final event = state.event;
+                  final userId = profile.id.toLowerCase();
+                  final isParticipant = event.participantIds.any(
+                    (id) => id.toLowerCase() == userId,
+                  );
+                  final isHost = _isHost(event);
+
+                  if (!event.isPublic && !isParticipant && !isHost) {
+                    return _buildError(
+                      'This is a private event. You must be invited to view it.',
+                    );
+                  }
+
+                  return Stack(
+                    children: [
+                      CustomScrollView(
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
+                        slivers: [
+                          _buildSliverAppBar(event),
+                          SliverToBoxAdapter(child: _buildContent(event)),
+                        ],
+                      ),
+                      _buildBottomBar(event, state.isJoining),
                     ],
-                  ),
-                  _buildBottomBar(event, state.isJoining),
-                ],
-              );
-            }
-            return const SizedBox();
+                  );
+                }
+                return const SizedBox();
+              },
+            );
           },
         ),
       ),
@@ -148,11 +220,16 @@ class _EventDetailPageState extends State<EventDetailPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 56, color: AppColors.error),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 56,
+              color: AppColors.error,
+            ),
             const SizedBox(height: 12),
-            Text(message,
-                style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              message,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
           ],
         ),
       ),
@@ -196,8 +273,11 @@ class _EventDetailPageState extends State<EventDetailPage>
               fit: BoxFit.cover,
               errorBuilder: (context2, err, trace) => Container(
                 color: AppColors.bgSecondary,
-                child: const Icon(Icons.image_not_supported,
-                    color: AppColors.textHint, size: 40),
+                child: const Icon(
+                  Icons.image_not_supported,
+                  color: AppColors.textHint,
+                  size: 40,
+                ),
               ),
             ),
             // Gradient overlay
@@ -233,13 +313,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                       color: Colors.white,
                       height: 1.1,
                       letterSpacing: -0.5,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 2),
-                          blurRadius: 8,
-                        ),
-                      ],
+                      shadows: [],
                     ),
                   ),
                 ],
@@ -295,13 +369,6 @@ class _EventDetailPageState extends State<EventDetailPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Row(
         children: [
@@ -361,25 +428,28 @@ class _EventDetailPageState extends State<EventDetailPage>
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => HapticFeedback.selectionClick(),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Follow',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
+          if (!_isHost(event))
+            GestureDetector(
+              onTap: () => HapticFeedback.selectionClick(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Follow',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -395,13 +465,6 @@ class _EventDetailPageState extends State<EventDetailPage>
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Row(
         children: [
@@ -412,8 +475,11 @@ class _EventDetailPageState extends State<EventDetailPage>
               color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -433,7 +499,9 @@ class _EventDetailPageState extends State<EventDetailPage>
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(999),
@@ -455,8 +523,9 @@ class _EventDetailPageState extends State<EventDetailPage>
                   child: LinearProgressIndicator(
                     value: (event.matchScore / 100).clamp(0.0, 1.0),
                     backgroundColor: Colors.white.withValues(alpha: 0.25),
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
                     minHeight: 7,
                   ),
                 ),
@@ -487,9 +556,7 @@ class _EventDetailPageState extends State<EventDetailPage>
           child: _InfoCard(
             icon: Icons.location_on_rounded,
             label: 'Location',
-            value: event.location.name.isNotEmpty
-                ? event.location.name
-                : 'TBD',
+            value: event.location.name.isNotEmpty ? event.location.name : 'TBD',
             sub: event.location.address,
             color: AppColors.error,
             onTap: () => HapticFeedback.selectionClick(),
@@ -512,13 +579,6 @@ class _EventDetailPageState extends State<EventDetailPage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Column(
           children: [
@@ -531,8 +591,11 @@ class _EventDetailPageState extends State<EventDetailPage>
                     color: AppColors.primarySurface,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.group_rounded,
-                      color: AppColors.primary, size: 22),
+                  child: const Icon(
+                    Icons.group_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -552,8 +615,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text:
-                                  '${event.currentParticipants} joined',
+                              text: '${event.currentParticipants} joined',
                               style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w800,
@@ -575,8 +637,10 @@ class _EventDetailPageState extends State<EventDetailPage>
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isFull
                         ? AppColors.error.withValues(alpha: 0.1)
@@ -589,8 +653,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                       Text(
                         isFull ? 'Full' : 'View',
                         style: TextStyle(
-                          color:
-                              isFull ? AppColors.error : AppColors.primary,
+                          color: isFull ? AppColors.error : AppColors.primary,
                           fontWeight: FontWeight.w800,
                           fontSize: 12,
                         ),
@@ -626,10 +689,8 @@ class _EventDetailPageState extends State<EventDetailPage>
                 children: [
                   SizedBox(
                     height: 36,
-                    width: (event.participantAvatars
-                                    .take(6)
-                                    .length *
-                                26)
+                    width:
+                        (event.participantAvatars.take(6).length * 26)
                             .toDouble() +
                         12,
                     child: Stack(
@@ -639,35 +700,32 @@ class _EventDetailPageState extends State<EventDetailPage>
                           .asMap()
                           .entries
                           .map((e) {
-                        return Positioned(
-                          left: e.key * 22.0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: Colors.white, width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 4,
+                            return Positioned(
+                              left: e.key * 22.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
                                 ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: AppColors.bgSecondary,
-                              backgroundImage: NetworkImage(
-                                _safeImage(
-                                  e.value,
-                                  fallback:
-                                      'https://i.pravatar.cc/100?img=${e.key + 10}',
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: AppColors.bgSecondary,
+                                  backgroundImage: NetworkImage(
+                                    _safeImage(
+                                      e.value,
+                                      fallback:
+                                          'https://i.pravatar.cc/100?img=${e.key + 10}',
+                                    ),
+                                  ),
+                                  onBackgroundImageError: (o, s) {},
                                 ),
                               ),
-                              onBackgroundImageError: (o, s) {},
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          })
+                          .toList(),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -684,8 +742,11 @@ class _EventDetailPageState extends State<EventDetailPage>
                   // Tap hint
                   const Row(
                     children: [
-                      Icon(Icons.touch_app_rounded,
-                          size: 14, color: AppColors.textHint),
+                      Icon(
+                        Icons.touch_app_rounded,
+                        size: 14,
+                        color: AppColors.textHint,
+                      ),
                       SizedBox(width: 4),
                       Text(
                         'Tap to see all',
@@ -724,13 +785,6 @@ class _EventDetailPageState extends State<EventDetailPage>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Text(
             event.description.isNotEmpty
@@ -758,8 +812,11 @@ class _EventDetailPageState extends State<EventDetailPage>
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.manage_accounts_rounded,
-                      color: AppColors.primary, size: 20),
+                  Icon(
+                    Icons.manage_accounts_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'Manage Members & Requests',
@@ -779,6 +836,7 @@ class _EventDetailPageState extends State<EventDetailPage>
   }
 
   Widget _buildBottomBar(Event event, bool isJoining) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Positioned(
       bottom: 0,
       left: 0,
@@ -787,89 +845,108 @@ class _EventDetailPageState extends State<EventDetailPage>
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.85),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.85)
+                  : Colors.white.withValues(alpha: 0.95),
               border: Border(
                 top: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.05),
                   width: 1,
                 ),
               ),
             ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Price',
-                      style: TextStyle(
-                        color: AppColors.textHint,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      event.price == null || event.price == 0
-                          ? 'Free'
-                          : '\$${event.price!.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.secondary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: AnimatedBuilder(
-                    animation: _fabAnim,
-                    builder: (context, child) => Transform.scale(
-                      scale: 0.9 + 0.1 * _fabAnim.value,
-                      child: child,
-                    ),
-                    child: ElevatedButton(
-                      onPressed:
-                          isJoining ? null : () => _cubit.toggleJoinLeave(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: event.isJoined
-                            ? const Color(0xFFFFF0F0)
-                            : AppColors.primary,
-                        foregroundColor:
-                            event.isJoined ? AppColors.error : Colors.white,
-                        elevation: event.isJoined ? 0 : 10,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Price',
+                        style: TextStyle(
+                          color: AppColors.textHint,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          letterSpacing: 0.5,
                         ),
-                        shadowColor: AppColors.primary.withValues(alpha: 0.4),
                       ),
-                      child: isJoining
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
+                      Text(
+                        event.price == null || event.price == 0
+                            ? 'Free'
+                            : '\$${event.price!.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: AnimatedBuilder(
+                      animation: _fabAnim,
+                      builder: (context, child) => Transform.scale(
+                        scale: 0.9 + 0.1 * _fabAnim.value,
+                        child: child,
+                      ),
+                      child: ElevatedButton(
+                        onPressed: isJoining || event.isPending
+                            ? null
+                            : (_isHost(event)
+                                  ? () => _deleteEvent(event)
+                                  : () => _cubit.toggleJoinLeave()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isHost(event) || event.isJoined
+                              ? const Color(0xFFFFF0F0)
+                              : (event.isPending
+                                    ? AppColors.bgSecondary
+                                    : AppColors.primary),
+                          foregroundColor: _isHost(event) || event.isJoined
+                              ? AppColors.error
+                              : (event.isPending
+                                    ? AppColors.textHint
+                                    : Colors.white),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        child: isJoining
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _isHost(event)
+                                    ? '✗  Delete Vibe'
+                                    : (event.isJoined
+                                          ? '✗  Leave Vibe'
+                                          : (event.isPending
+                                                ? '⏳  Pending Approval'
+                                                : '🚀  Join Vibe')),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                  letterSpacing: 0.3,
+                                ),
                               ),
-                            )
-                          : Text(
-                              event.isJoined ? '✗  Leave Vibe' : '🚀  Join Vibe',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -898,9 +975,7 @@ class _GlassButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.5),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
             ),
             child: Icon(icon, color: AppColors.secondary, size: 18),
           ),
@@ -926,14 +1001,18 @@ class _CategoryPill extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Text(
                 '${event.categoryEmoji} ${event.categoryName}',
@@ -952,20 +1031,23 @@ class _CategoryPill extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0x40FFD700),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0x80FFD700),
-                  ),
+                  border: Border.all(color: const Color(0x80FFD700)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.verified_rounded,
-                        size: 12, color: Color(0xFFFFD700)),
+                    Icon(
+                      Icons.verified_rounded,
+                      size: 12,
+                      color: Color(0xFFFFD700),
+                    ),
                     SizedBox(width: 4),
                     Text(
                       'Elite Only',
@@ -1011,13 +1093,6 @@ class _InfoCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1088,8 +1163,9 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _membersFuture =
-        sl<EventApiService>().getEventParticipants(widget.event.id);
+    _membersFuture = sl<EventApiService>().getEventParticipants(
+      widget.event.id,
+    );
     _searchCtrl.addListener(() {
       setState(() => _query = _searchCtrl.text.toLowerCase());
     });
@@ -1115,15 +1191,7 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
         return Container(
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1C2233) : Colors.white,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 30,
-                offset: const Offset(0, -8),
-              ),
-            ],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
@@ -1143,8 +1211,7 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
               ),
               // Header
               Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: Row(
                   children: [
                     Expanded(
@@ -1165,8 +1232,7 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text:
-                                      '${widget.event.currentParticipants}',
+                                  text: '${widget.event.currentParticipants}',
                                   style: const TextStyle(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w900,
@@ -1217,12 +1283,13 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
                   child: LinearProgressIndicator(
                     value: widget.event.maxParticipants > 0
                         ? (widget.event.currentParticipants /
-                                widget.event.maxParticipants)
-                            .clamp(0.0, 1.0)
+                                  widget.event.maxParticipants)
+                              .clamp(0.0, 1.0)
                         : 0,
                     backgroundColor: AppColors.borderLight,
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.primary),
+                      AppColors.primary,
+                    ),
                     minHeight: 6,
                   ),
                 ),
@@ -1279,25 +1346,34 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
                         ),
                       );
                     }
-                    final allMembers = snapshot.data!;
+                    final allMembers =
+                        List<Map<String, String>>.from(snapshot.data!)
+                          ..sort((a, b) {
+                            if (a['role'] == 'Host') return -1;
+                            if (b['role'] == 'Host') return 1;
+                            return (a['name'] ?? '').compareTo(b['name'] ?? '');
+                          });
+
                     final members = _query.isEmpty
                         ? allMembers
                         : allMembers
-                            .where((m) =>
-                                (m['name'] ?? '')
-                                    .toLowerCase()
-                                    .contains(_query))
-                            .toList();
+                              .where(
+                                (m) => (m['name'] ?? '').toLowerCase().contains(
+                                  _query,
+                                ),
+                              )
+                              .toList();
 
                     if (members.isEmpty) {
                       return Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.person_search_rounded,
-                                size: 48,
-                                color: AppColors.textHint
-                                    .withValues(alpha: 0.5)),
+                            Icon(
+                              Icons.person_search_rounded,
+                              size: 48,
+                              color: AppColors.textHint.withValues(alpha: 0.5),
+                            ),
                             const SizedBox(height: 10),
                             const Text(
                               'No members found',
@@ -1311,16 +1387,21 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
                       );
                     }
 
+                    final currentUserId = ProfileState.notifier.value.id;
+
                     return ListView.builder(
                       controller: scrollCtrl,
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                       itemCount: members.length,
                       itemBuilder: (context, index) {
                         final member = members[index];
-                        final isFirst = index == 0;
+                        final isHost = member['role'] == 'Host';
+                        final isMe = member['id'] == currentUserId;
+
                         return _MemberTile(
                           member: member,
-                          isHost: isFirst,
+                          isHost: isHost,
+                          isMe: isMe,
                           isDark: isDark,
                         );
                       },
@@ -1341,10 +1422,12 @@ class _MemberTile extends StatelessWidget {
   const _MemberTile({
     required this.member,
     required this.isHost,
+    required this.isMe,
     required this.isDark,
   });
   final Map<String, String> member;
   final bool isHost;
+  final bool isMe;
   final bool isDark;
 
   @override
@@ -1354,20 +1437,12 @@ class _MemberTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E2A3A) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isHost
-              ? AppColors.primary.withValues(alpha: 0.3)
-              : (isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : AppColors.borderLight),
-          width: isHost ? 1.5 : 1,
-        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: AppColors.primary.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -1379,8 +1454,7 @@ class _MemberTile extends StatelessWidget {
                 radius: 24,
                 backgroundColor: AppColors.bgSecondary,
                 backgroundImage: NetworkImage(
-                  member['avatarUrl'] ??
-                      'https://i.pravatar.cc/100?img=20',
+                  member['avatarUrl'] ?? 'https://i.pravatar.cc/100?img=20',
                 ),
                 onBackgroundImageError: (o, s) {},
               ),
@@ -1395,14 +1469,15 @@ class _MemberTile extends StatelessWidget {
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDark
-                            ? const Color(0xFF1C2233)
-                            : Colors.white,
+                        color: isDark ? const Color(0xFF1C2233) : Colors.white,
                         width: 2,
                       ),
                     ),
-                    child: const Icon(Icons.star_rounded,
-                        color: Colors.white, size: 10),
+                    child: const Icon(
+                      Icons.star_rounded,
+                      color: Colors.white,
+                      size: 10,
+                    ),
                   ),
                 ),
             ],
@@ -1428,20 +1503,20 @@ class _MemberTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isHost
-                        ? AppColors.primary
-                        : AppColors.textHint,
+                    color: isHost ? AppColors.primary : AppColors.textHint,
                   ),
                 ),
               ],
             ),
           ),
-          if (!isHost)
+          if (!isMe)
             GestureDetector(
               onTap: () => HapticFeedback.selectionClick(),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(20),

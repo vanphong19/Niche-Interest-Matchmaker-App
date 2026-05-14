@@ -33,6 +33,7 @@ class AppLocalizations {
       'loading': 'Loading...',
 
       // Profile
+      'profile': 'Profile',
       'edit_profile': 'Edit Profile',
       'interests': 'Interests',
       'badges_gallery': 'Badges Gallery',
@@ -92,10 +93,8 @@ class AppLocalizations {
       // Home
       'tonight_vibes': "Tonight's Vibes",
       'explore': 'Explore',
-      'match': 'Match',
-      'miles_short': 'mi',
       'see_all': 'See All',
-      'nearby_events': 'Kèo Gần Đây',
+      'nearby_events': 'Nearby Events',
       'no_events_category': 'No more events found in this category.',
       'current_location': 'CURRENT LOCATION',
       'join_vibe': 'JOIN VIBE',
@@ -272,6 +271,7 @@ class AppLocalizations {
       'loading': 'Đang tải...',
 
       // Profile
+      'profile': 'Hồ Sơ',
       'edit_profile': 'Chỉnh Sửa Hồ Sơ',
       'interests': 'Sở Thích',
       'badges_gallery': 'Bộ Sưu Tập Huy Hiệu',

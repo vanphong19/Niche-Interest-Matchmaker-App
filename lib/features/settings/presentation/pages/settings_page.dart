@@ -4,14 +4,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:niche_interest_matchmaker_app/core/utils/profile_state.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_localizations.dart';
+import '../../../../core/utils/settings_service.dart';
 import '../../../../router/app_router.gr.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../../core/widgets/vibe_button.dart';
+import '../../../../core/widgets/vibe_header.dart';
 
 @RoutePage()
 class SettingsPage extends StatefulWidget {
@@ -33,6 +37,11 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   void initState() {
     super.initState();
+    _locationEnabled = SettingsService.locationEnabled;
+    _pushNotifs = SettingsService.pushNotifs;
+    _emailNotifs = SettingsService.emailNotifs;
+    _notificationsEnabled = SettingsService.notificationsEnabled;
+
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -72,178 +81,148 @@ class _SettingsPageState extends State<SettingsPage>
 
         return Scaffold(
           backgroundColor: bgColor,
-          body: SafeArea(
-            child: FadeTransition(
-              opacity: CurvedAnimation(
-                parent: _animController,
-                curve: Curves.easeOut,
-              ),
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header
-                          Row(
-                            children: [
-                              InkWell(
-                                onTap: () => context.router.maybePop(),
-                                borderRadius: BorderRadius.circular(14),
-                                child: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: cardColor,
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.04,
-                                        ),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    size: 18,
-                                    color: textPrimary,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  AppLocalizations.tr('settings'),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: textPrimary,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 40),
-                            ],
-                          ),
-                          const SizedBox(height: 28),
-                          // Profile Card
-                          _buildProfileCard(
-                            cardColor,
-                            textPrimary,
-                            subtitleColor,
-                          ),
-                          const SizedBox(height: 28),
-                          // Preferences Section
-                          _sectionTitle(
-                            AppLocalizations.tr('preferences'),
-                            sectionColor,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildPreferencesCard(
-                            cardColor,
-                            textSecondary,
-                            subtitleColor,
-                            dividerColor,
-                            langDisplay,
-                            isDark,
-                          ),
-                          const SizedBox(height: 28),
-                          // Notifications Section
-                          _sectionTitle(
-                            AppLocalizations.tr('notifications'),
-                            sectionColor,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildNotificationsCard(
-                            cardColor,
-                            textSecondary,
-                            subtitleColor,
-                            dividerColor,
-                          ),
-                          const SizedBox(height: 28),
-                          // Account & Safety
-                          _sectionTitle(
-                            AppLocalizations.tr('account_safety'),
-                            sectionColor,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildAccountCard(
-                            cardColor,
-                            textSecondary,
-                            subtitleColor,
-                            dividerColor,
-                          ),
-                          const SizedBox(height: 28),
-                          // Danger Zone
-                          _sectionTitle(
-                            AppLocalizations.tr('danger_zone'),
-                            sectionColor,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildDangerZone(
-                            cardColor,
-                            textSecondary,
-                            subtitleColor,
-                            dividerColor,
-                          ),
-                          const SizedBox(height: 28),
-                          // App Info
-                          Center(
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    gradient: AppColors.primaryGradient,
-                                    borderRadius: BorderRadius.circular(13),
-                                  ),
-                                  child: const Icon(
-                                    Icons.favorite_rounded,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'VibePulse',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    color: AppColors.primary,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  AppLocalizations.tr('version'),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: subtitleColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  AppLocalizations.tr('made_with'),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: sectionColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+          extendBodyBehindAppBar: true,
+          appBar: VibeHeader(
+            title: AppLocalizations.tr('settings'),
+            subtitle: 'Account preferences and system configuration',
+            showBackButton: true,
+          ),
+          body: FadeTransition(
+            opacity: CurvedAnimation(
+              parent: _animController,
+              curve: Curves.easeOut,
+            ),
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).padding.top + 56 + 16,
                       ),
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 12),
+                            // Profile Card
+                            _buildProfileCard(
+                              cardColor,
+                              textPrimary,
+                              subtitleColor,
+                            ),
+                            const SizedBox(height: 28),
+                            // Preferences Section
+                            _sectionTitle(
+                              AppLocalizations.tr('preferences'),
+                              sectionColor,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildPreferencesCard(
+                              cardColor,
+                              textSecondary,
+                              subtitleColor,
+                              dividerColor,
+                              langDisplay,
+                              isDark,
+                            ),
+                            const SizedBox(height: 28),
+                            // Notifications Section
+                            _sectionTitle(
+                              AppLocalizations.tr('notifications'),
+                              sectionColor,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildNotificationsCard(
+                              cardColor,
+                              textSecondary,
+                              subtitleColor,
+                              dividerColor,
+                            ),
+                            const SizedBox(height: 28),
+                            // Account & Safety
+                            _sectionTitle(
+                              AppLocalizations.tr('account_safety'),
+                              sectionColor,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildAccountCard(
+                              cardColor,
+                              textSecondary,
+                              subtitleColor,
+                              dividerColor,
+                            ),
+                            const SizedBox(height: 28),
+                            // Danger Zone
+                            _sectionTitle(
+                              AppLocalizations.tr('danger_zone'),
+                              sectionColor,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildDangerZone(
+                              cardColor,
+                              textSecondary,
+                              subtitleColor,
+                              dividerColor,
+                            ),
+                            const SizedBox(height: 28),
+                            // App Info
+                            Center(
+                              child: Column(
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      gradient: AppColors.primaryGradient,
+                                      borderRadius: BorderRadius.circular(13),
+                                    ),
+                                    child: const Icon(
+                                      Icons.favorite_rounded,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'VibePulse',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.primary,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    AppLocalizations.tr('version'),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: subtitleColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    AppLocalizations.tr('made_with'),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: sectionColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -268,90 +247,93 @@ class _SettingsPageState extends State<SettingsPage>
     Color textPrimary,
     Color subtitleColor,
   ) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => context.router.push(const EditProfileRoute()),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: cardColor,
+    return ValueListenableBuilder<ProfileData>(
+      valueListenable: ProfileState.notifier,
+      builder: (context, profile, _) {
+        return InkWell(
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+          onTap: () => context.router.push(const EditProfileRoute()),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(24),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 2),
-                image: const DecorationImage(
-                  image: NetworkImage('https://i.pravatar.cc/300?u=user_1'),
-                  fit: BoxFit.cover,
+            child: Row(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primary, width: 2),
+                    image: DecorationImage(
+                      image: NetworkImage(
+                        profile.avatarUrl.isNotEmpty
+                            ? profile.avatarUrl
+                            : 'https://i.pravatar.cc/300?u=${profile.email}',
+                      ),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Marcus Chen',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: textPrimary,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profile.name.isNotEmpty ? profile.name : 'User',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        profile.email,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: subtitleColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Refined Edit Button: Subtle and modern
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      context.router.push(const EditProfileRoute());
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.edit_note_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'marcus@vibepulse.app',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: subtitleColor,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'EDIT',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      fontSize: 12,
-                    ),
-                  ),
-                  SizedBox(width: 6),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.primary,
-                    size: 16,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -368,13 +350,6 @@ class _SettingsPageState extends State<SettingsPage>
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -385,6 +360,7 @@ class _SettingsPageState extends State<SettingsPage>
             isDark,
             (v) {
               HapticFeedback.mediumImpact();
+              SettingsService.setDarkMode(v);
               AppTheme.themeModeNotifier.value = v
                   ? ThemeMode.dark
                   : ThemeMode.light;
@@ -398,7 +374,10 @@ class _SettingsPageState extends State<SettingsPage>
             AppLocalizations.tr('location_services'),
             AppLocalizations.tr('allow_location'),
             _locationEnabled,
-            (v) => setState(() => _locationEnabled = v),
+            (v) {
+              setState(() => _locationEnabled = v);
+              SettingsService.setLocationEnabled(v);
+            },
             textSecondary,
             subtitleColor,
           ),
@@ -411,18 +390,6 @@ class _SettingsPageState extends State<SettingsPage>
             subtitleColor,
             onTap: () => _showLanguagePicker(cardColor, textSecondary),
           ),
-          // _tileDiv(dividerColor),
-          // _tapTile(
-          //   Icons.palette_rounded,
-          //   AppLocalizations.tr('appearance'),
-          //   AppLocalizations.tr('system_default'),
-          //   textSecondary,
-          //   subtitleColor,
-          //   onTap: () => _showBasicDialog(
-          //     AppLocalizations.tr('appearance'),
-          //     'Appearance settings are currently synced with Dark Mode toggle.',
-          //   ),
-          // ),
         ],
       ),
     );
@@ -438,13 +405,6 @@ class _SettingsPageState extends State<SettingsPage>
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -453,7 +413,10 @@ class _SettingsPageState extends State<SettingsPage>
             AppLocalizations.tr('push_notifications'),
             AppLocalizations.tr('get_updates'),
             _pushNotifs,
-            (v) => setState(() => _pushNotifs = v),
+            (v) {
+              setState(() => _pushNotifs = v);
+              SettingsService.setPushNotifs(v);
+            },
             textSecondary,
             subtitleColor,
           ),
@@ -463,7 +426,10 @@ class _SettingsPageState extends State<SettingsPage>
             AppLocalizations.tr('email_notifications'),
             AppLocalizations.tr('weekly_digest'),
             _emailNotifs,
-            (v) => setState(() => _emailNotifs = v),
+            (v) {
+              setState(() => _emailNotifs = v);
+              SettingsService.setEmailNotifs(v);
+            },
             textSecondary,
             subtitleColor,
           ),
@@ -473,7 +439,10 @@ class _SettingsPageState extends State<SettingsPage>
             AppLocalizations.tr('event_reminders'),
             AppLocalizations.tr('remind_events'),
             _notificationsEnabled,
-            (v) => setState(() => _notificationsEnabled = v),
+            (v) {
+              setState(() => _notificationsEnabled = v);
+              SettingsService.setNotificationsEnabled(v);
+            },
             textSecondary,
             subtitleColor,
           ),
@@ -493,13 +462,6 @@ class _SettingsPageState extends State<SettingsPage>
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -579,13 +541,6 @@ class _SettingsPageState extends State<SettingsPage>
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFFEE2E8), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -761,6 +716,7 @@ class _SettingsPageState extends State<SettingsPage>
             return CupertinoActionSheetAction(
               onPressed: () {
                 HapticFeedback.selectionClick();
+                SettingsService.setLanguageCode(lang['code']!);
                 AppLocalizations.setLocale(lang['code']!);
                 setState(() {});
                 Navigator.pop(context);
@@ -840,25 +796,17 @@ class _SettingsPageState extends State<SettingsPage>
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
-          ElevatedButton(
+          VibeButton(
+            label: AppLocalizations.tr('sign_out'),
             onPressed: () {
               Navigator.pop(context);
+              ProfileState.reset();
               context.read<AuthBloc>().add(LogoutRequested());
               context.router.popUntilRoot();
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE0527D),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              AppLocalizations.tr('sign_out'),
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
+            height: 40,
+            width: 120,
+            fontSize: 14,
           ),
         ],
       ),
@@ -873,21 +821,12 @@ class _SettingsPageState extends State<SettingsPage>
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         content: Text(content),
         actions: [
-          ElevatedButton(
+          VibeButton(
+            label: AppLocalizations.tr('ok'),
             onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              AppLocalizations.tr('ok'),
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
+            height: 40,
+            width: 100,
+            fontSize: 14,
           ),
         ],
       ),
@@ -915,21 +854,12 @@ class _SettingsPageState extends State<SettingsPage>
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
-          ElevatedButton(
+          VibeButton(
+            label: AppLocalizations.tr('delete'),
             onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE0527D),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              AppLocalizations.tr('delete'),
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
+            height: 40,
+            width: 120,
+            fontSize: 14,
           ),
         ],
       ),

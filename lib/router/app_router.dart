@@ -27,7 +27,6 @@ class AppRouter extends RootStackRouter {
       children: [
         AutoRoute(page: HomeRoute.page, path: 'home', initial: true),
         AutoRoute(page: VibeMatchRoute.page, path: 'match'),
-        AutoRoute(page: MapDiscoveryRoute.page, path: 'map'),
         AutoRoute(page: ActivityRoute.page, path: 'activity'),
         AutoRoute(page: ProfileRoute.page, path: 'profile'),
       ],
@@ -36,6 +35,7 @@ class AppRouter extends RootStackRouter {
     // ─── Event Routes ─────────────────────────────────────────
     AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
     AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
+    AutoRoute(page: ManageEventRoute.page, path: '/event/:id/manage'),
     AutoRoute(page: UserMatchListRoute.page, path: '/match/list'),
 
     // ─── Settings ─────────────────────────────────────────────
@@ -43,7 +43,9 @@ class AppRouter extends RootStackRouter {
 
     // ─── Profile Edit & View ───────────────────────────────────
     AutoRoute(page: EditProfileRoute.page, path: '/profile/edit'),
+    AutoRoute(page: LocationPickerRoute.page, path: '/profile/location-picker'),
     AutoRoute(page: OtherUserProfileRoute.page, path: '/profile/:id'),
+    AutoRoute(page: AllActivityHistoryRoute.page, path: '/profile/history'),
   ];
 
   @override

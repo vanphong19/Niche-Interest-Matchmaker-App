@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../../constants/api_constants.dart';
 
-const bool kUseMock = true;
+const bool kUseMock = false;
 const bool kMockError = false;
 
 class MockInterceptor extends Interceptor {
@@ -41,11 +41,7 @@ class MockInterceptor extends Interceptor {
     final mockData = _getMockResponse(options.path, options.method);
     if (mockData != null) {
       return handler.resolve(
-        Response(
-          requestOptions: options,
-          statusCode: 200,
-          data: mockData,
-        ),
+        Response(requestOptions: options, statusCode: 200, data: mockData),
       );
     }
 
@@ -63,15 +59,19 @@ class MockInterceptor extends Interceptor {
       // ─── Auth ───────────────────────────────────────────────────
       case ApiConstants.login:
         return {
-          'accessToken': 'mock_jwt_token_${DateTime.now().millisecondsSinceEpoch}',
-          'refreshToken': 'mock_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
+          'accessToken':
+              'mock_jwt_token_${DateTime.now().millisecondsSinceEpoch}',
+          'refreshToken':
+              'mock_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
           'user': _mockUser(),
         };
 
       case ApiConstants.register:
         return {
-          'accessToken': 'mock_jwt_token_new_${DateTime.now().millisecondsSinceEpoch}',
-          'refreshToken': 'mock_refresh_token_new_${DateTime.now().millisecondsSinceEpoch}',
+          'accessToken':
+              'mock_jwt_token_new_${DateTime.now().millisecondsSinceEpoch}',
+          'refreshToken':
+              'mock_refresh_token_new_${DateTime.now().millisecondsSinceEpoch}',
           'user': _mockUser(id: 'new_user_1'),
         };
 
@@ -82,15 +82,14 @@ class MockInterceptor extends Interceptor {
         };
 
       case ApiConstants.verifyOtp:
-        return {
-          'verified': true,
-          'message': 'OTP verified successfully.',
-        };
+        return {'verified': true, 'message': 'OTP verified successfully.'};
 
       case ApiConstants.refreshToken:
         return {
-          'accessToken': 'mock_new_access_token_${DateTime.now().millisecondsSinceEpoch}',
-          'refreshToken': 'mock_new_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
+          'accessToken':
+              'mock_new_access_token_${DateTime.now().millisecondsSinceEpoch}',
+          'refreshToken':
+              'mock_new_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
         };
 
       // ─── Profile ────────────────────────────────────────────────
@@ -137,30 +136,45 @@ class MockInterceptor extends Interceptor {
         };
 
       case ApiConstants.myEvents:
-        return {
-          'events': List.generate(3, (i) => _mockEvent(i)),
-          'total': 3,
-        };
+        return {'events': List.generate(3, (i) => _mockEvent(i)), 'total': 3};
 
       case ApiConstants.eventCategories:
         return {
           'categories': [
             {'id': '1', 'name': 'Sports', 'icon': 'sports', 'color': '#FF6B6B'},
-            {'id': '2', 'name': 'Dining', 'icon': 'restaurant', 'color': '#FF9F43'},
+            {
+              'id': '2',
+              'name': 'Dining',
+              'icon': 'restaurant',
+              'color': '#FF9F43',
+            },
             {'id': '3', 'name': 'Social', 'icon': 'groups', 'color': '#5B5FF8'},
             {'id': '4', 'name': 'Arts', 'icon': 'palette', 'color': '#A29BFE'},
-            {'id': '5', 'name': 'Outdoors', 'icon': 'nature', 'color': '#00B894'},
-            {'id': '6', 'name': 'Gaming', 'icon': 'sports_esports', 'color': '#FDCB6E'},
-            {'id': '7', 'name': 'Music', 'icon': 'music_note', 'color': '#E84393'},
+            {
+              'id': '5',
+              'name': 'Outdoors',
+              'icon': 'nature',
+              'color': '#00B894',
+            },
+            {
+              'id': '6',
+              'name': 'Gaming',
+              'icon': 'sports_esports',
+              'color': '#FDCB6E',
+            },
+            {
+              'id': '7',
+              'name': 'Music',
+              'icon': 'music_note',
+              'color': '#E84393',
+            },
             {'id': '8', 'name': 'Tech', 'icon': 'computer', 'color': '#0984E3'},
           ],
         };
 
       // ─── Map ────────────────────────────────────────────────────
       case ApiConstants.mapMarkers:
-        return {
-          'markers': List.generate(15, (i) => _mockMapMarker(i)),
-        };
+        return {'markers': List.generate(15, (i) => _mockMapMarker(i))};
 
       // ─── Notifications ──────────────────────────────────────────
       case ApiConstants.notifications:
@@ -172,9 +186,7 @@ class MockInterceptor extends Interceptor {
       // ─── Badges ─────────────────────────────────────────────────
       case ApiConstants.badges:
       case ApiConstants.myBadges:
-        return {
-          'badges': List.generate(6, (i) => _mockBadge(i)),
-        };
+        return {'badges': List.generate(6, (i) => _mockBadge(i))};
 
       default:
         // Handle path with IDs, e.g. /events/123
@@ -198,7 +210,8 @@ class MockInterceptor extends Interceptor {
       'email': 'user@vibepulse.app',
       'displayName': 'Alex Nguyen',
       'username': 'alexnguyen',
-      'bio': 'Passionate about connecting people through amazing experiences! 🎯',
+      'bio':
+          'Passionate about connecting people through amazing experiences! 🎯',
       'avatarUrl': 'https://i.pravatar.cc/300?u=$id',
       'coverUrl': 'https://picsum.photos/800/300',
       'phoneNumber': '+84901234567',
@@ -224,8 +237,21 @@ class MockInterceptor extends Interceptor {
     };
   }
 
-  Map<String, dynamic> _mockEvent(int index, {bool nearby = false, bool trending = false}) {
-    final categories = ['Sports', 'Dining', 'Social', 'Arts', 'Outdoors', 'Gaming', 'Music', 'Tech'];
+  Map<String, dynamic> _mockEvent(
+    int index, {
+    bool nearby = false,
+    bool trending = false,
+  }) {
+    final categories = [
+      'Sports',
+      'Dining',
+      'Social',
+      'Arts',
+      'Outdoors',
+      'Gaming',
+      'Music',
+      'Tech',
+    ];
     final category = categories[index % categories.length];
     final titles = [
       'Weekend Football Match ⚽',
@@ -299,7 +325,13 @@ class MockInterceptor extends Interceptor {
   }
 
   Map<String, dynamic> _mockNotification(int index) {
-    final types = ['event_invite', 'event_update', 'new_follower', 'badge_earned', 'event_reminder'];
+    final types = [
+      'event_invite',
+      'event_update',
+      'new_follower',
+      'badge_earned',
+      'event_reminder',
+    ];
     return {
       'id': 'notif_$index',
       'type': types[index % types.length],
@@ -318,7 +350,11 @@ class MockInterceptor extends Interceptor {
       {'name': 'Early Adopter', 'icon': '🚀', 'desc': 'Joined during beta'},
       {'name': 'Social Butterfly', 'icon': '🦋', 'desc': 'Joined 10+ events'},
       {'name': 'Event Creator', 'icon': '⭐', 'desc': 'Created 5+ events'},
-      {'name': 'Explorer', 'icon': '🗺️', 'desc': 'Attended events in 5 locations'},
+      {
+        'name': 'Explorer',
+        'icon': '🗺️',
+        'desc': 'Attended events in 5 locations',
+      },
       {'name': 'Connector', 'icon': '🤝', 'desc': 'Connected with 50+ people'},
       {'name': 'Night Owl', 'icon': '🦉', 'desc': 'Attended 5 night events'},
     ];
