@@ -147,7 +147,7 @@ class _HomePageState extends State<HomePage>
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             color: (isDark ? const Color(0xFF0E121A) : Colors.white).withValues(
-              alpha: 0.82,
+              alpha: 0.52,
             ),
           ),
         ),

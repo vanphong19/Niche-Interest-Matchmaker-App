@@ -144,9 +144,9 @@ class _ProfilePageState extends State<ProfilePage>
                       children: [
                         SizedBox(
                           height:
-                              MediaQuery.of(context).padding.top +
+                              MediaQuery.viewPaddingOf(context).top +
                               VibeHeader.headerHeight +
-                              16,
+                              20,
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -154,7 +154,6 @@ class _ProfilePageState extends State<ProfilePage>
                             crossAxisAlignment: CrossAxisAlignment
                                 .center, // Center profile info
                             children: [
-                              const SizedBox(height: 12),
                               Center(
                                 child: FadeTransition(
                                   opacity: _headerFade,

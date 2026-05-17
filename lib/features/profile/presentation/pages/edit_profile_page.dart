@@ -293,6 +293,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF0E121A) : const Color(0xFFF5F7FF);
+    final topPadding =
+        MediaQuery.viewPaddingOf(context).top + VibeHeader.headerHeight + 20;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -301,37 +303,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
         title: AppLocalizations.tr('edit_profile'),
         subtitle: 'Personalize your public presence',
       ),
-      body: Column(
-        children: [
-          SizedBox(height: 85),
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 0,
-                ),
-                children: [
-                  _buildAvatarSection(),
-                  const SizedBox(height: 15),
-                  _buildTextFieldsSection(isDark),
-                  const SizedBox(height: 25),
-                  _buildInterestsSection(isDark),
-                  const SizedBox(height: 20),
-                  VibeButton(
-                    label: AppLocalizations.tr('save_changes'),
-                    onPressed: _saveProfile,
-                    isLoading: _isSaving,
-                    prefixIcon: Icons.check_circle_rounded,
-                    iconSize: 20,
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(20, topPadding, 20, 20),
+          children: [
+            _buildAvatarSection(),
+            const SizedBox(height: 15),
+            _buildTextFieldsSection(isDark),
+            const SizedBox(height: 25),
+            _buildInterestsSection(isDark),
+            const SizedBox(height: 20),
+            VibeButton(
+              label: AppLocalizations.tr('save_changes'),
+              onPressed: _saveProfile,
+              isLoading: _isSaving,
+              prefixIcon: Icons.check_circle_rounded,
+              iconSize: 20,
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }

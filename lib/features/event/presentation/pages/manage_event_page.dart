@@ -236,7 +236,15 @@ class _ManageEventPageState extends State<ManageEventPage>
         return RefreshIndicator(
           onRefresh: _refresh,
           child: ListView.builder(
-            padding: EdgeInsets.fromLTRB(20, 145, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.viewPaddingOf(context).top +
+                  VibeHeader.headerHeight +
+                  60 +
+                  20,
+              20,
+              20,
+            ),
             itemCount: members.length,
             itemBuilder: (context, index) {
               final member = members[index];
@@ -266,7 +274,15 @@ class _ManageEventPageState extends State<ManageEventPage>
         return RefreshIndicator(
           onRefresh: _refresh,
           child: ListView.builder(
-            padding: EdgeInsets.fromLTRB(20, 145, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.viewPaddingOf(context).top +
+                  VibeHeader.headerHeight +
+                  60 +
+                  20,
+              20,
+              20,
+            ),
             itemCount: requests.length,
             itemBuilder: (context, index) {
               final request = requests[index];

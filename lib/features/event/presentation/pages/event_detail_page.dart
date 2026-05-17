@@ -463,7 +463,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                     Image.network(
                       imageUrls[0],
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (context, error, stackTrace) => Container(
                         color: AppColors.bgSecondary,
                         child: const Icon(
                           Icons.image_not_supported,
@@ -481,7 +481,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                         return Image.network(
                           imageUrls[i],
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (context, error, stackTrace) => Container(
                             color: AppColors.bgSecondary,
                             child: const Icon(
                               Icons.image_not_supported,

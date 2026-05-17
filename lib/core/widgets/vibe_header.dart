@@ -28,8 +28,8 @@ class VibeHeader extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
-        ? const Color(0xFF0E121A).withValues(alpha: 0.5)
-        : Colors.white.withValues(alpha: 0.5);
+        ? const Color(0xFF0E121A).withValues(alpha: 0.52)
+        : Colors.white.withValues(alpha: 0.52);
     final statusBrightness = isDark ? Brightness.light : Brightness.dark;
     final textPrimary = isDark
         ? AppColors.darkTextPrimary
@@ -45,7 +45,7 @@ class VibeHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             color: bgColor,
             child: SafeArea(

@@ -237,15 +237,14 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                   children: [
                     SizedBox(
                       height:
-                          MediaQuery.of(context).padding.top +
+                          MediaQuery.viewPaddingOf(context).top +
                           VibeHeader.headerHeight +
-                          16,
+                          20,
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
                       child: Column(
                         children: [
-                          const SizedBox(height: 12),
                           // Avatar & Info
                           FadeTransition(
                             opacity: _headerFade,
@@ -1393,7 +1392,7 @@ class _OtherProfileSkeleton extends StatelessWidget {
       body: Padding(
         padding: EdgeInsets.fromLTRB(
           20,
-          MediaQuery.of(context).padding.top + VibeHeader.headerHeight + 28,
+          MediaQuery.viewPaddingOf(context).top + VibeHeader.headerHeight + 20,
           20,
           0,
         ),

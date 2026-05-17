@@ -55,7 +55,7 @@ class HelpCenterPage extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
           20,
-          MediaQuery.of(context).padding.top + VibeHeader.headerHeight + 28,
+          MediaQuery.viewPaddingOf(context).top + VibeHeader.headerHeight + 20,
           20,
           40,
         ),

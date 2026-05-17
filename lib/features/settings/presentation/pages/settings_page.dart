@@ -103,14 +103,13 @@ class _SettingsPageState extends State<SettingsPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        height: MediaQuery.of(context).padding.top + 56 + 16,
+                        height: MediaQuery.viewPaddingOf(context).top + VibeHeader.headerHeight + 20,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 12),
                             // Profile Card
                             _buildProfileCard(
                               cardColor,
