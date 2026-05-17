@@ -50,7 +50,8 @@ class _SplashPageState extends State<SplashPage> {
             SocialLoginSubmitted(
               provider: 'google',
               email: supabaseSession.user.email ?? '',
-              displayName: metadata['full_name']?.toString() ??
+              displayName:
+                  metadata['full_name']?.toString() ??
                   metadata['name']?.toString() ??
                   '',
               providerId: supabaseSession.user.id,

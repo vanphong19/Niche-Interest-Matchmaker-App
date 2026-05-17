@@ -255,9 +255,7 @@ class _AllActivityHistoryPageState extends State<AllActivityHistoryPage>
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
-                          constraints: const BoxConstraints(
-                            maxHeight: 45,
-                          ),
+                          constraints: const BoxConstraints(maxHeight: 45),
                           hintText:
                               '${AppLocalizations.tr('search_placeholder')}...',
                           hintStyle: TextStyle(

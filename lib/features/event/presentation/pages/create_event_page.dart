@@ -359,7 +359,9 @@ class _CreateEventPageState extends State<CreateEventPage>
     if (finalPhotoUrls.isEmpty) {
       final titleHash = _titleCtrl.text.trim().hashCode.abs();
       final coverIndex = (titleHash % 20) + 1;
-      finalPhotoUrls.add('https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-$coverIndex.webp');
+      finalPhotoUrls.add(
+        'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-$coverIndex.webp',
+      );
     }
 
     _cubit.updateVibe(_titleCtrl.text.trim(), _selectedCategory.name, [
@@ -685,7 +687,9 @@ class _CreateEventPageState extends State<CreateEventPage>
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      previewUrl == null ? 'Upload Cover' : 'Change Cover',
+                                      previewUrl == null
+                                          ? 'Upload Cover'
+                                          : 'Change Cover',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 10,

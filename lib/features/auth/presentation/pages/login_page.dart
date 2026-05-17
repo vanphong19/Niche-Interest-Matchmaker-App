@@ -81,132 +81,135 @@ class _LoginPageState extends State<LoginPage>
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: Stack(
-          children: [
-            // Background decoration
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
+            children: [
+              // Background decoration
+              Positioned(
+                top: -100,
+                right: -100,
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
-                  ),
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            _buildLogo(),
-                            const SizedBox(height: 40),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  const Text(
-                                    'Welcome back',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    'Sign in to continue your social journey',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: AppColors.textHint,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 32),
-                                  VibeTextField(
-                                    label: 'Email',
-                                    controller: _emailController,
-                                    hint: 'Enter your email',
-                                    prefixIcon: Icons.email_outlined,
-                                    keyboardType: TextInputType.emailAddress,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return 'Email is required';
-                                      }
-                                      if (!v.contains('@')) {
-                                        return 'Enter a valid email';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 20),
-                                  VibeTextField(
-                                    label: 'Password',
-                                    controller: _passwordController,
-                                    hint: 'Enter your password',
-                                    prefixIcon: Icons.lock_outline_rounded,
-                                    isPassword: true,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return 'Password is required';
-                                      }
-                                      if (v.length < 6) {
-                                        return 'Min 6 characters';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: TextButton(
-                                      onPressed: () => context.router.push(
-                                        const ForgotPasswordRoute(),
+              SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 20,
+                    ),
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              _buildLogo(),
+                              const SizedBox(height: 40),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 400,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    const Text(
+                                      'Welcome back',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppColors.primary,
                                       ),
-                                      child: const Text(
-                                        'Forgot Password?',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.primary,
-                                          fontSize: 13,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Sign in to continue your social journey',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: AppColors.textHint,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 32),
+                                    VibeTextField(
+                                      label: 'Email',
+                                      controller: _emailController,
+                                      hint: 'Enter your email',
+                                      prefixIcon: Icons.email_outlined,
+                                      keyboardType: TextInputType.emailAddress,
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Email is required';
+                                        }
+                                        if (!v.contains('@')) {
+                                          return 'Enter a valid email';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 20),
+                                    VibeTextField(
+                                      label: 'Password',
+                                      controller: _passwordController,
+                                      hint: 'Enter your password',
+                                      prefixIcon: Icons.lock_outline_rounded,
+                                      isPassword: true,
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Password is required';
+                                        }
+                                        if (v.length < 6) {
+                                          return 'Min 6 characters';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton(
+                                        onPressed: () => context.router.push(
+                                          const ForgotPasswordRoute(),
+                                        ),
+                                        child: const Text(
+                                          'Forgot Password?',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primary,
+                                            fontSize: 13,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  _buildLoginButton(),
-                                  const SizedBox(height: 32),
-                                  _buildDivider('OR CONTINUE WITH'),
-                                  const SizedBox(height: 24),
-                                  _buildSocialButtons(),
-                                  const SizedBox(height: 40),
-                                  _buildRegisterPrompt(),
-                                ],
+                                    const SizedBox(height: 24),
+                                    _buildLoginButton(),
+                                    const SizedBox(height: 32),
+                                    _buildDivider('OR CONTINUE WITH'),
+                                    const SizedBox(height: 24),
+                                    _buildSocialButtons(),
+                                    const SizedBox(height: 40),
+                                    _buildRegisterPrompt(),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -344,8 +347,10 @@ class _LoginPageState extends State<LoginPage>
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: isDark ? AppColors.darkBgSecondary : Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 28,
+          vertical: 24,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

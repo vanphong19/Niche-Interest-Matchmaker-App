@@ -582,7 +582,7 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
               ),
             ],
           ),
-            const SizedBox(height: 20),
+          const SizedBox(height: 20),
           TextField(
             controller: _searchCtrl,
             onChanged: (_) => _search(),
@@ -593,9 +593,7 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
-              constraints: const BoxConstraints(
-                maxHeight: 45,
-              ),
+              constraints: const BoxConstraints(maxHeight: 45),
               hintText: 'Search by name or email...',
               hintStyle: TextStyle(
                 color: isDark ? AppColors.darkTextHint : AppColors.textHint,
@@ -640,11 +638,16 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
                   ? Colors.white.withValues(alpha: 0.06)
                   : Colors.white,
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 15,
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide(
-                  color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFE2E8F0),
                   width: 1.2,
                 ),
               ),
@@ -658,7 +661,9 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide(
-                  color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFE2E8F0),
                   width: 1.2,
                 ),
               ),

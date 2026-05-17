@@ -121,13 +121,12 @@ class EventApiService {
         : <String, dynamic>{};
 
     final itemsList = data['items'] as List? ?? [];
-    final items = itemsList.map((e) => Event.fromJson(e as Map<String, dynamic>)).toList();
+    final items = itemsList
+        .map((e) => Event.fromJson(e as Map<String, dynamic>))
+        .toList();
     final totalCount = data['totalCount'] as int? ?? 0;
 
-    return {
-      'items': items,
-      'totalCount': totalCount,
-    };
+    return {'items': items, 'totalCount': totalCount};
   }
 
   String buildJoinRequestLink(String eventId) {

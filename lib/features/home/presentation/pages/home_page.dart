@@ -1350,81 +1350,81 @@ class _HomeEmptyState extends StatelessWidget {
             ),
         ],
       ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 92,
-              height: 92,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CustomPaint(
-                    size: const Size.square(92),
-                    painter: _EmptyOrbitPainter(
-                      progress: progress,
-                      isDark: isDark,
-                    ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 92,
+            height: 92,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size.square(92),
+                  painter: _EmptyOrbitPainter(
+                    progress: progress,
+                    isDark: isDark,
                   ),
-                  Transform.scale(
-                    scale: pulse,
-                    child: Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.accentGradient,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.25),
-                            blurRadius: 20,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: Transform.rotate(
-                        angle: progress * math.pi * 0.16,
-                        child: const Icon(
-                          Icons.explore_rounded,
-                          color: Colors.white,
-                          size: 30,
+                ),
+                Transform.scale(
+                  scale: pulse,
+                  child: Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.accentGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 20,
+                          spreadRadius: 1,
                         ),
+                      ],
+                    ),
+                    child: Transform.rotate(
+                      angle: progress * math.pi * 0.16,
+                      child: const Icon(
+                        Icons.explore_rounded,
+                        color: Colors.white,
+                        size: 30,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              'No Vibes Found',
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.secondary,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0,
-              ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'No Vibes Found',
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.secondary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Nothing is live here yet. Try another category or check back soon.',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                height: 1.35,
-              ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Nothing is live here yet. Try another category or check back soon.',
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 }

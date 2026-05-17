@@ -24,11 +24,7 @@ class _VibeAppState extends State<VibeApp> {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [
-        BlocProvider<AuthBloc>(
-          create: (_) => sl<AuthBloc>(),
-        ),
-      ],
+      providers: [BlocProvider<AuthBloc>(create: (_) => sl<AuthBloc>())],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {

@@ -223,7 +223,9 @@ class _ProfilePageState extends State<ProfilePage>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isDark ? AppColors.darkBorderLight : AppColors.borderLight,
+                  color: isDark
+                      ? AppColors.darkBorderLight
+                      : AppColors.borderLight,
                   width: 1.5,
                 ),
                 color: isDark ? AppColors.darkBgTertiary : Colors.white,

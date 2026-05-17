@@ -408,13 +408,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
             GestureDetector(
               onTap: _removeAvatar,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF2F2),
-                  border: Border.all(
-                    color: const Color(0xFFFCA5A5),
-                    width: 1,
-                  ),
+                  border: Border.all(color: const Color(0xFFFCA5A5), width: 1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(

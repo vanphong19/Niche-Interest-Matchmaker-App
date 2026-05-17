@@ -135,8 +135,7 @@ class _VibeTextFieldState extends State<VibeTextField> {
         fontWeight: FontWeight.w500,
         color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
       ),
-      autovalidateMode:
-          widget.autovalidateMode ?? AutovalidateMode.disabled,
+      autovalidateMode: widget.autovalidateMode ?? AutovalidateMode.disabled,
       onChanged: (value) {
         widget.onChanged?.call(value);
         if (_errorText != null) {

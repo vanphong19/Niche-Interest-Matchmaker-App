@@ -118,7 +118,8 @@ class _ActivityPageState extends State<ActivityPage>
           padding: EdgeInsets.symmetric(horizontal: 20),
           child: VibeEmptyState(
             title: 'No events here yet',
-            message: 'Events will appear here as soon as your activity changes.',
+            message:
+                'Events will appear here as soon as your activity changes.',
             icon: Icons.event_busy_rounded,
           ),
         ),

@@ -280,9 +280,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                       fontWeight: FontWeight.w500,
                     ),
                     decoration: InputDecoration(
-                      constraints: const BoxConstraints(
-                        maxHeight: 45,
-                      ),
+                      constraints: const BoxConstraints(maxHeight: 45),
                       hintText: 'Search for a place...',
                       hintStyle: TextStyle(
                         color: isDark

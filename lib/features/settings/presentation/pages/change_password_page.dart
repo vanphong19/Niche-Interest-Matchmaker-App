@@ -175,8 +175,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
-
-
   Widget _requirementItem(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),

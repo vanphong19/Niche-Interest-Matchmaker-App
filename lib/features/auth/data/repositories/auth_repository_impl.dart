@@ -113,12 +113,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> sendSignUpOtp(String email) async {
     try {
-      await _dio.post(
-        '/api/auth/send-otp',
-        data: {'email': email},
-      );
+      await _dio.post('/api/auth/send-otp', data: {'email': email});
     } on DioException catch (e) {
-      final msg = _unwrap(e.response?.data)['message']?.toString() ??
+      final msg =
+          _unwrap(e.response?.data)['message']?.toString() ??
           'Không thể gửi mã xác thực. Email có thể đã tồn tại.';
       throw Exception(msg);
     }
@@ -211,17 +209,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> changePassword(String currentPassword, String newPassword) async {
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     try {
       await _dio.post(
         '/api/auth/change-password',
-        data: {
-          'currentPassword': currentPassword,
-          'newPassword': newPassword,
-        },
+        data: {'currentPassword': currentPassword, 'newPassword': newPassword},
       );
     } on DioException catch (e) {
-      final msg = _unwrap(e.response?.data)['message']?.toString() ??
+      final msg =
+          _unwrap(e.response?.data)['message']?.toString() ??
           'Failed to change password';
       throw Exception(msg);
     }

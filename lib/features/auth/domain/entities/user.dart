@@ -92,5 +92,4 @@ class User {
       phone: phone ?? this.phone,
     );
   }
-
 }

@@ -96,7 +96,10 @@ class _RegisterPageState extends State<RegisterPage>
           if (!_isOtpDialogShowing) {
             _showOtpDialog(context, state.email);
           } else {
-            VibeSnackBar.success(context, 'Đã gửi lại mã xác thực OTP thành công!');
+            VibeSnackBar.success(
+              context,
+              'Đã gửi lại mã xác thực OTP thành công!',
+            );
           }
         }
         if (state is AuthError) {
@@ -107,118 +110,118 @@ class _RegisterPageState extends State<RegisterPage>
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: Stack(
-          children: [
-            Positioned(
-              bottom: -100,
-              left: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
+            children: [
+              Positioned(
+                bottom: -100,
+                left: -100,
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
-                  ),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Form(
-                      key: _formKey,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        child: Column(
-                          children: [
-                            _buildHeader(),
-                            const SizedBox(height: 40),
-                            VibeTextField(
-                              label: 'Full Name',
-                              controller: _nameController,
-                              hint: 'Alex Rivera',
-                              prefixIcon: Icons.person_outline_rounded,
-                              validator: (v) => v == null || v.isEmpty
-                                  ? 'Name is required'
-                                  : null,
-                            ),
-                            const SizedBox(height: 20),
-                            VibeTextField(
-                              label: 'Email Address',
-                              controller: _emailController,
-                              hint: 'alex@vibepulse.com',
-                              prefixIcon: Icons.email_outlined,
-                              keyboardType: TextInputType.emailAddress,
-                              validator: (v) {
-                                if (v == null || v.isEmpty) {
-                                  return 'Email is required';
-                                }
-                                if (!v.contains('@')) return 'Invalid email';
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                            VibeTextField(
-                              label: 'Password',
-                              controller: _passwordController,
-                              hint: '••••••••',
-                              prefixIcon: Icons.lock_outline_rounded,
-                              isPassword: true,
-                              validator: (v) {
-                                if (v == null || v.isEmpty) {
-                                  return 'Password is required';
-                                }
-                                if (v.length < 6) return 'Min 6 characters';
-                                return null;
-                              },
-                            ),
-                            if (_passwordController.text.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              _buildPasswordStrength(),
+              SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 20,
+                    ),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Form(
+                        key: _formKey,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: Column(
+                            children: [
+                              _buildHeader(),
+                              const SizedBox(height: 40),
+                              VibeTextField(
+                                label: 'Full Name',
+                                controller: _nameController,
+                                hint: 'Alex Rivera',
+                                prefixIcon: Icons.person_outline_rounded,
+                                validator: (v) => v == null || v.isEmpty
+                                    ? 'Name is required'
+                                    : null,
+                              ),
+                              const SizedBox(height: 20),
+                              VibeTextField(
+                                label: 'Email Address',
+                                controller: _emailController,
+                                hint: 'alex@vibepulse.com',
+                                prefixIcon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Email is required';
+                                  }
+                                  if (!v.contains('@')) return 'Invalid email';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                              VibeTextField(
+                                label: 'Password',
+                                controller: _passwordController,
+                                hint: '••••••••',
+                                prefixIcon: Icons.lock_outline_rounded,
+                                isPassword: true,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Password is required';
+                                  }
+                                  if (v.length < 6) return 'Min 6 characters';
+                                  return null;
+                                },
+                              ),
+                              if (_passwordController.text.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                _buildPasswordStrength(),
+                              ],
+                              const SizedBox(height: 20),
+                              VibeTextField(
+                                label: 'Confirm Password',
+                                controller: _confirmController,
+                                hint: '••••••••',
+                                prefixIcon: Icons.verified_user_outlined,
+                                isPassword: true,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Please confirm password';
+                                  }
+                                  if (v != _passwordController.text) {
+                                    return 'Passwords don\'t match';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 24),
+                              _buildTermsCheckbox(),
+                              const SizedBox(height: 32),
+                              _buildRegisterButton(),
+                              const SizedBox(height: 32),
+                              _buildDivider('OR REGISTER WITH'),
+                              const SizedBox(height: 24),
+                              _buildSocialButtons(),
+                              const SizedBox(height: 40),
+                              _buildLoginPrompt(),
                             ],
-                            const SizedBox(height: 20),
-                            VibeTextField(
-                              label: 'Confirm Password',
-                              controller: _confirmController,
-                              hint: '••••••••',
-                              prefixIcon: Icons.verified_user_outlined,
-                              isPassword: true,
-                              validator: (v) {
-                                if (v == null || v.isEmpty) {
-                                  return 'Please confirm password';
-                                }
-                                if (v != _passwordController.text) {
-                                  return 'Passwords don\'t match';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            _buildTermsCheckbox(),
-                            const SizedBox(height: 32),
-                            _buildRegisterButton(),
-                            const SizedBox(height: 32),
-                            _buildDivider('OR REGISTER WITH'),
-                            const SizedBox(height: 24),
-                            _buildSocialButtons(),
-                            const SizedBox(height: 40),
-                            _buildLoginPrompt(),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -332,9 +335,7 @@ class _RegisterPageState extends State<RegisterPage>
             }
             if (_formKey.currentState!.validate()) {
               context.read<AuthBloc>().add(
-                SendOtpRequested(
-                  _emailController.text.trim(),
-                ),
+                SendOtpRequested(_emailController.text.trim()),
               );
             }
           },
@@ -477,8 +478,10 @@ class _RegisterPageState extends State<RegisterPage>
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: isDark ? AppColors.darkBgSecondary : Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 28,
+          vertical: 24,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -692,7 +695,9 @@ class _OtpVerificationDialogState extends State<_OtpVerificationDialog> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.textPrimary,
                 letterSpacing: -0.5,
               ),
             ),
@@ -703,7 +708,9 @@ class _OtpVerificationDialogState extends State<_OtpVerificationDialog> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -726,7 +733,9 @@ class _OtpVerificationDialogState extends State<_OtpVerificationDialog> {
                   letterSpacing: 10,
                 ),
                 filled: true,
-                fillColor: isDark ? AppColors.darkBgTertiary : AppColors.bgSecondary,
+                fillColor: isDark
+                    ? AppColors.darkBgTertiary
+                    : AppColors.bgSecondary,
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: const BorderSide(
@@ -756,9 +765,7 @@ class _OtpVerificationDialogState extends State<_OtpVerificationDialog> {
                   ),
                 ),
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Vui lòng nhập mã OTP';
                 if (v.length < 6) return 'Mã OTP phải gồm 6 chữ số';
@@ -797,7 +804,9 @@ class _OtpVerificationDialogState extends State<_OtpVerificationDialog> {
                     'Hủy',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -807,7 +816,9 @@ class _OtpVerificationDialogState extends State<_OtpVerificationDialog> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                     ),
                   )
                 else

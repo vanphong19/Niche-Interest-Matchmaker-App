@@ -29,7 +29,9 @@ class ParticipantsStack extends StatelessWidget {
         final showExtra = computedExtra > 0;
         final stackWidth = showExtra
             ? (visible.length * overlap) + avatarSize
-            : (((visible.length - 1) >= 0 ? (visible.length - 1) : 0) * overlap) + avatarSize;
+            : (((visible.length - 1) >= 0 ? (visible.length - 1) : 0) *
+                      overlap) +
+                  avatarSize;
 
         return SizedBox(
           width: stackWidth,

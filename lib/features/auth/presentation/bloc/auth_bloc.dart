@@ -144,7 +144,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.code,
         event.newPassword,
       );
-      emit(const AuthResetPasswordSuccess('Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.'));
+      emit(
+        const AuthResetPasswordSuccess(
+          'Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.',
+        ),
+      );
     } catch (e) {
       emit(AuthError(e.toString()));
     }

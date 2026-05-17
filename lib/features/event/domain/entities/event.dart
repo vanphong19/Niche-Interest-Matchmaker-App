@@ -21,7 +21,11 @@ class EventLocation {
 
   factory EventLocation.fromJson(Map<String, dynamic> json) {
     return EventLocation(
-      name: json['name'] as String? ?? json['locationName'] as String? ?? json['placeName'] as String? ?? '',
+      name:
+          json['name'] as String? ??
+          json['locationName'] as String? ??
+          json['placeName'] as String? ??
+          '',
       address: json['address'] as String? ?? json['location'] as String? ?? '',
       latitude: (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0,
       longitude: (json['longitude'] ?? json['lng'] as num?)?.toDouble() ?? 0,
@@ -100,7 +104,8 @@ class Event {
     return Event(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
-      description: json['description'] as String? ??
+      description:
+          json['description'] as String? ??
           json['Description'] as String? ??
           json['desc'] as String? ??
           json['about'] as String? ??
@@ -127,10 +132,19 @@ class Event {
       location: locationData != null
           ? EventLocation.fromJson(locationData)
           : EventLocation(
-              name: json['locationName'] as String? ?? json['LocationName'] as String? ?? '',
-              address: json['location'] as String? ?? json['Location'] as String? ?? json['address'] as String? ?? '',
-              latitude: (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0,
-              longitude: (json['longitude'] ?? json['lng'] as num?)?.toDouble() ?? 0,
+              name:
+                  json['locationName'] as String? ??
+                  json['LocationName'] as String? ??
+                  '',
+              address:
+                  json['location'] as String? ??
+                  json['Location'] as String? ??
+                  json['address'] as String? ??
+                  '',
+              latitude:
+                  (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0,
+              longitude:
+                  (json['longitude'] ?? json['lng'] as num?)?.toDouble() ?? 0,
             ),
       startDateTime: json['dateTime'] != null
           ? DateTime.parse(json['dateTime'] as String)
@@ -156,8 +170,9 @@ class Event {
       isPublic: json['isPublic'] as bool? ?? true,
       photoUrls: _extractPhotos(json),
       matchScore: (json['matchScore'] as num?)?.toDouble() ?? 0,
-      vibeTags:
-          _parseVibeTags(json['vibeTags'] ?? json['VibeTags'] ?? json['tags']),
+      vibeTags: _parseVibeTags(
+        json['vibeTags'] ?? json['VibeTags'] ?? json['tags'],
+      ),
       isJoined: json['isJoined'] as bool? ?? false,
       isPending: json['isPending'] as bool? ?? false,
       isHostFriend:

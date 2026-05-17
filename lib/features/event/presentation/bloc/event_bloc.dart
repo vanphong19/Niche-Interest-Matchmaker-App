@@ -113,7 +113,9 @@ class EventBloc extends Bloc<EventEvent, EventState> {
       final myEvents = await _apiService.getMyEvents();
       if (version != _loadVersion || emit.isDone) return;
 
-      final currentEvents = event.isRefresh ? <Event>[] : List<Event>.from(state.events);
+      final currentEvents = event.isRefresh
+          ? <Event>[]
+          : List<Event>.from(state.events);
       currentEvents.addAll(events);
 
       emit(
