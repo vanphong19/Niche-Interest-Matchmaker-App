@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/entities/event.dart';
 
 class EventApiService {
@@ -18,11 +19,18 @@ class EventApiService {
     String? category,
     double? lat,
     double? lng,
+    int? limit,
+    int? offset,
   }) async {
     final response = await _dio.get(
       '/api/app/matches',
-      queryParameters: {'category': category, 'lat': lat, 'lng': lng}
-        ..removeWhere((_, v) => v == null),
+      queryParameters: {
+        'category': category,
+        'lat': lat,
+        'lng': lng,
+        'limit': limit,
+        'offset': offset,
+      }..removeWhere((_, v) => v == null),
     );
     final unwrapped = _unwrap(response.data);
     final data = unwrapped is List ? unwrapped : [];
@@ -77,16 +85,48 @@ class EventApiService {
         : <String, dynamic>{};
 
     return {
-      'hosting': (data['hosting'] as List? ?? [])
-          .map((e) => Event.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      'joined': (data['joined'] as List? ?? [])
-          .map((e) => Event.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      'hosting':
+          ((data['hosted'] ?? data['Hosted'] ?? data['hosting']) as List? ?? [])
+              .map((e) => Event.fromJson(e as Map<String, dynamic>))
+              .toList(),
+      'joined':
+          ((data['joining'] ?? data['Joining'] ?? data['joined']) as List? ??
+                  [])
+              .map((e) => Event.fromJson(e as Map<String, dynamic>))
+              .toList(),
       'past': (data['past'] as List? ?? [])
           .map((e) => Event.fromJson(e as Map<String, dynamic>))
           .toList(),
     };
+  }
+
+  Future<Map<String, dynamic>> getMyEventsPaginated({
+    required String tab,
+    String? search,
+    required int limit,
+    required int offset,
+  }) async {
+    final response = await _dio.get(
+      '/api/app/matches/my-events',
+      queryParameters: {
+        'tab': tab,
+        if (search != null && search.isNotEmpty) 'search': search,
+        'limit': limit,
+        'offset': offset,
+      },
+    );
+    final unwrapped = _unwrap(response.data);
+    final data = unwrapped is Map<String, dynamic>
+        ? unwrapped
+        : <String, dynamic>{};
+
+    final itemsList = data['items'] as List? ?? [];
+    final items = itemsList
+        .map((e) => Event.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final totalCount = data['totalCount'] as int? ?? 0;
+
+    return {'items': items, 'totalCount': totalCount};
   }
 
   String buildJoinRequestLink(String eventId) {
@@ -94,7 +134,7 @@ class EventApiService {
       final uri = Uri.base;
       // If running on Web, use the current web origin
       if (uri.scheme.startsWith('http')) {
-        return '${uri.origin}/event/$eventId';
+        return '${uri.origin}/#/event/$eventId';
       }
     } catch (_) {}
 
@@ -122,11 +162,17 @@ class EventApiService {
     await _dio.post('/api/app/matches/$eventId/invite/$userId');
   }
 
-  Future<List<Map<String, String>>> searchUsers(String query) async {
+  Future<List<Map<String, String>>> searchUsers(
+    String query, {
+    String? eventId,
+  }) async {
     try {
       final response = await _dio.get(
         '/api/app/profile/search',
-        queryParameters: {'query': query},
+        queryParameters: {
+          'query': query,
+          if (eventId != null && eventId.isNotEmpty) 'eventId': eventId,
+        },
       );
       final unwrapped = _unwrap(response.data);
       final data = unwrapped is List ? unwrapped : [];
@@ -137,11 +183,21 @@ class EventApiService {
               'name': (e['name'] ?? e['Name'] ?? '').toString(),
               'avatarUrl': (e['avatarUrl'] ?? e['AvatarUrl'] ?? '').toString(),
               'email': (e['email'] ?? e['Email'] ?? '').toString(),
+              'friendshipStatus':
+                  (e['friendshipStatus'] ?? e['FriendshipStatus'] ?? 'None')
+                      .toString(),
+              'inviteStatus':
+                  (e['inviteStatus'] ??
+                          e['InviteStatus'] ??
+                          e['eventStatus'] ??
+                          e['EventStatus'] ??
+                          'None')
+                      .toString(),
             },
           )
           .toList();
     } catch (e) {
-      print('Search Users Error: $e');
+      debugPrint('Search Users Error: $e');
       return [];
     }
   }
@@ -158,6 +214,9 @@ class EventApiService {
               'name': (e['name'] ?? e['displayName'] ?? '').toString(),
               'avatarUrl': (e['avatarUrl'] ?? '').toString(),
               'role': (e['role'] ?? 'Participant').toString(),
+              'friendshipStatus':
+                  (e['friendshipStatus'] ?? e['FriendshipStatus'] ?? 'None')
+                      .toString(),
             },
           )
           .toList();
@@ -202,5 +261,101 @@ class EventApiService {
 
   Future<void> recordPlaceSelection(Map<String, dynamic> place) async {
     // Analytics or recent places cache could go here.
+  }
+
+  Future<Map<String, dynamic>?> reverseGeocodePlace({
+    required double lat,
+    required double lng,
+  }) async {
+    try {
+      final response = await _dio.get(
+        'https://nominatim.openstreetmap.org/reverse',
+        queryParameters: {
+          'format': 'jsonv2',
+          'lat': lat,
+          'lon': lng,
+          'zoom': 18,
+          'addressdetails': 1,
+        },
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'VibePulse/1.0 location picker',
+          },
+        ),
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) return null;
+
+      final address = data['address'] is Map<String, dynamic>
+          ? data['address'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final name =
+          data['name']?.toString() ??
+          address['amenity']?.toString() ??
+          address['shop']?.toString() ??
+          address['tourism']?.toString() ??
+          address['building']?.toString() ??
+          address['road']?.toString() ??
+          address['suburb']?.toString() ??
+          'Pinned location';
+      final displayName = data['display_name']?.toString() ?? '';
+
+      return {
+        'name': name,
+        'address': displayName.isNotEmpty ? displayName : name,
+        'placeId': data['place_id']?.toString(),
+        'lat': lat,
+        'lng': lng,
+      };
+    } catch (e) {
+      debugPrint('Reverse Geocode Error: $e');
+      return null;
+    }
+  }
+
+  Future<String?> uploadImage(String filePath) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath),
+      });
+
+      final response = await _dio.post(
+        '/api/app/matches/upload-image',
+        data: formData,
+      );
+
+      final unwrapped = _unwrap(response.data);
+      if (unwrapped is Map<String, dynamic>) {
+        return unwrapped['url']?.toString() ?? unwrapped['Url']?.toString();
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Upload Image Error: $e');
+      return null;
+    }
+  }
+
+  Future<String?> uploadImageBytes(Uint8List bytes, String fileName) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: fileName),
+      });
+
+      final response = await _dio.post(
+        '/api/app/matches/upload-image',
+        data: formData,
+      );
+
+      final unwrapped = _unwrap(response.data);
+      if (unwrapped is Map<String, dynamic>) {
+        return unwrapped['url']?.toString() ?? unwrapped['Url']?.toString();
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Upload Image Bytes Error: $e');
+      return null;
+    }
   }
 }

@@ -1,4 +1,4 @@
-// lib/features/auth/domain/entities/user.dart
+﻿// lib/features/auth/domain/entities/user.dart
 
 class User {
   final String id;
@@ -32,8 +32,7 @@ class User {
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? json['displayName'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      avatarUrl:
-          json['avatarUrl'] as String? ?? 'https://i.pravatar.cc/150?img=3',
+      avatarUrl: json['avatarUrl'] as String? ?? '',
       reputationScore: json['reputationScore'] as int? ?? 0,
       badges:
           (json['badges'] as List<dynamic>?)
@@ -93,18 +92,4 @@ class User {
       phone: phone ?? this.phone,
     );
   }
-
-  static User get mock => User(
-    id: 'usr_001',
-    name: 'Super Admin',
-    email: 'admin@nichematch.vn',
-    avatarUrl: 'https://i.pravatar.cc/150?img=3',
-    reputationScore: 982,
-    badges: ['top_host', 'punctual_king', 'social_butterfly'],
-    createdAt: DateTime(2024, 1, 15),
-    isVerified: true,
-    bio:
-        'System Administrator and community builder. Ensuring the best experience for every vibe. 🌿',
-    location: 'Ho Chi Minh City',
-  );
 }

@@ -12,13 +12,15 @@ class ProfileData {
   final String email;
   final String avatarUrl;
   final List<Map<String, dynamic>> interests;
-  final int createdCount;
-  final int joinedCount;
+  final int hostedCount;
+  final int attendingCount;
+  final int pastCount;
   final int friendsCount;
   final int badgesCount;
   final int reputationScore;
   final List<Map<String, dynamic>> badges;
   final List<String> pinnedMatchIds;
+  final String friendshipStatus;
 
   const ProfileData({
     required this.id,
@@ -29,13 +31,15 @@ class ProfileData {
     required this.email,
     required this.avatarUrl,
     required this.interests,
-    this.createdCount = 0,
-    this.joinedCount = 0,
+    this.hostedCount = 0,
+    this.attendingCount = 0,
+    this.pastCount = 0,
     this.friendsCount = 0,
     this.badgesCount = 0,
     this.reputationScore = 0,
     this.badges = const [],
     this.pinnedMatchIds = const [],
+    this.friendshipStatus = 'None',
   });
 
   ProfileData copyWith({
@@ -47,13 +51,15 @@ class ProfileData {
     String? email,
     String? avatarUrl,
     List<Map<String, dynamic>>? interests,
-    int? createdCount,
-    int? joinedCount,
+    int? hostedCount,
+    int? attendingCount,
+    int? pastCount,
     int? friendsCount,
     int? badgesCount,
     int? reputationScore,
     List<Map<String, dynamic>>? badges,
     List<String>? pinnedMatchIds,
+    String? friendshipStatus,
   }) {
     return ProfileData(
       id: id ?? this.id,
@@ -64,13 +70,15 @@ class ProfileData {
       email: email ?? this.email,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       interests: interests ?? this.interests,
-      createdCount: createdCount ?? this.createdCount,
-      joinedCount: joinedCount ?? this.joinedCount,
+      hostedCount: hostedCount ?? this.hostedCount,
+      attendingCount: attendingCount ?? this.attendingCount,
+      pastCount: pastCount ?? this.pastCount,
       friendsCount: friendsCount ?? this.friendsCount,
       badgesCount: badgesCount ?? this.badgesCount,
       reputationScore: reputationScore ?? this.reputationScore,
       badges: badges ?? this.badges,
       pinnedMatchIds: pinnedMatchIds ?? this.pinnedMatchIds,
+      friendshipStatus: friendshipStatus ?? this.friendshipStatus,
     );
   }
 }
@@ -103,7 +111,7 @@ class ProfileState {
     bio: 'VibePulse Enthusiast',
     location: 'Unknown',
     email: '',
-    avatarUrl: 'https://i.pravatar.cc/300',
+    avatarUrl: '',
     interests: [],
   );
 

@@ -11,10 +11,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc(this._authRepository) : super(AuthInitial()) {
     on<LoginSubmitted>(_onLogin);
+    on<SocialLoginSubmitted>(_onSocialLogin);
     on<RegisterSubmitted>(_onRegister);
     on<ForgotPasswordSubmitted>(_onForgotPassword);
     on<LogoutRequested>(_onLogout);
     on<CheckAuthStatus>(_onCheckAuth);
+    on<SendOtpRequested>(_onSendOtp);
+    on<ResetPasswordSubmitted>(_onResetPassword);
   }
 
   User _mapToUser(AuthUser authUser) {
@@ -22,8 +25,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       id: authUser.id,
       name: authUser.displayName,
       email: authUser.email,
-      avatarUrl:
-          'https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email}', // ignore: unnecessary_brace_in_string_interps
+      avatarUrl: '',
       createdAt: DateTime.now(),
       isVerified: false,
     );
@@ -32,25 +34,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogin(LoginSubmitted event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
-      if (event.email.contains('social@')) {
-        // mock social parsing
-        final provider = event.email == 'social@google.com'
-            ? 'google'
-            : 'facebook';
-        final authUser = await _authRepository.loginWithSocial(
-          provider,
-          'social_$provider@nichematch.vn',
-          'Social User',
-          'social_id_123',
-        );
-        emit(AuthAuthenticated(_mapToUser(authUser)));
-      } else {
-        final authUser = await _authRepository.signInWithEmailAndPassword(
-          event.email,
-          event.password,
-        );
-        emit(AuthAuthenticated(_mapToUser(authUser)));
-      }
+      final authUser = await _authRepository.signInWithEmailAndPassword(
+        event.email,
+        event.password,
+      );
+      emit(AuthAuthenticated(_mapToUser(authUser)));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onSocialLogin(
+    SocialLoginSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      final authUser = await _authRepository.loginWithSocial(
+        event.provider,
+        event.email,
+        event.displayName,
+        event.providerId,
+      );
+      emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
     }
@@ -66,6 +72,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.email,
         event.password,
         event.name,
+        event.verificationCode,
       );
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
@@ -79,7 +86,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      await Future.delayed(const Duration(milliseconds: 800));
+      await _authRepository.forgotPassword(event.email);
       emit(
         const AuthForgotPasswordSuccess(
           'Password reset link sent to your email!',
@@ -110,6 +117,40 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     } catch (_) {
       emit(AuthUnauthenticated());
+    }
+  }
+
+  Future<void> _onSendOtp(
+    SendOtpRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      await _authRepository.sendSignUpOtp(event.email);
+      emit(AuthOtpSentSuccess(event.email));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onResetPassword(
+    ResetPasswordSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      await _authRepository.resetPassword(
+        event.email,
+        event.code,
+        event.newPassword,
+      );
+      emit(
+        const AuthResetPasswordSuccess(
+          'Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.',
+        ),
+      );
+    } catch (e) {
+      emit(AuthError(e.toString()));
     }
   }
 }

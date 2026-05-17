@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/responsive_layout.dart';
+import '../../../../core/widgets/vibe_empty_state.dart';
 import 'match_details_screen.dart';
 import '../widgets/header_section.dart';
 import '../widgets/match_profile_card.dart';
@@ -18,52 +19,7 @@ class UserMatchListScreen extends StatefulWidget {
 }
 
 class _UserMatchListScreenState extends State<UserMatchListScreen> {
-  static const List<MatchProfileData> _matches = [
-    MatchProfileData(
-      name: 'Alex',
-      age: 24,
-      distanceMiles: 2,
-      matchPercent: 98,
-      bio:
-          'Always down for a spontaneous coffee run or a long hike. Looking for deep convos.',
-      imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e',
-      interests: ['Photography', 'Hiking'],
-      hasSharedTag: true,
-      flag: MatchProfileFlag.reliable,
-    ),
-    MatchProfileData(
-      name: 'Jordan',
-      age: 27,
-      distanceMiles: 5,
-      matchPercent: 85,
-      bio:
-          'Just moved here! Exploring the local food scene and looking for gym buddies.',
-      imageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2',
-      interests: ['Foodie', 'Fitness'],
-      flag: MatchProfileFlag.newcomer,
-    ),
-    MatchProfileData(
-      name: 'Sam',
-      age: 22,
-      distanceMiles: 1,
-      matchPercent: 60,
-      bio:
-          'Night owl. You can usually find me at an indie gig or thrifting downtown.',
-      imageUrl: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79',
-      interests: ['Live Music', 'Art'],
-      flag: MatchProfileFlag.lateRisk,
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      for (final match in _matches) {
-        precacheImage(NetworkImage(match.imageUrl), context);
-      }
-    });
-  }
+  static const List<MatchProfileData> _matches = [];
 
   void _openMatchDetails(BuildContext context) {
     Navigator.of(
@@ -123,21 +79,12 @@ class _AdaptiveMatchList extends StatelessWidget {
     final crossAxisCount = info.width >= 1100 ? 3 : (info.width >= 760 ? 2 : 1);
 
     if (matches.isEmpty) {
-      return Center(
-        child: FractionallySizedBox(
-          widthFactor: info.isLarge ? 0.55 : 0.88,
-          child: Padding(
-            padding: EdgeInsets.all(sectionGap),
-            child: Text(
-              AppLocalizations.tr('no_matches_yet'),
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+      return FractionallySizedBox(
+        widthFactor: info.isLarge ? 0.55 : 0.96,
+        child: VibeEmptyState(
+          title: AppLocalizations.tr('no_matches_yet'),
+          message: AppLocalizations.tr('vibe_match_subtitle'),
+          icon: Icons.people_outline_rounded,
         ),
       );
     }

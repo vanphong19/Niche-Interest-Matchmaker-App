@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/widgets/vibe_button.dart';
+import '../../../../core/widgets/vibe_text_field.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 
@@ -21,9 +23,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _newPasswordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
   bool _isLoading = false;
-  bool _obscureOld = true;
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
 
   @override
   void dispose() {
@@ -71,18 +70,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   void _showSnackBar(String message, {bool isError = true}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
-        ),
-        backgroundColor: isError ? AppColors.error : AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.all(20),
-      ),
-    );
+    if (isError) {
+      VibeSnackBar.error(context, message);
+    } else {
+      VibeSnackBar.success(context, message);
+    }
   }
 
   @override
@@ -121,25 +113,28 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 ),
                 child: Column(
                   children: [
-                    _buildField(
+                    VibeTextField(
                       controller: _oldPasswordCtrl,
                       label: 'Current Password',
-                      obscureText: _obscureOld,
-                      onToggle: () => setState(() => _obscureOld = !_obscureOld),
+                      isPassword: true,
+                      prefixIcon: Icons.lock_outline_rounded,
+                      hint: 'Enter current password',
                     ),
                     const SizedBox(height: 20),
-                    _buildField(
+                    VibeTextField(
                       controller: _newPasswordCtrl,
                       label: 'New Password',
-                      obscureText: _obscureNew,
-                      onToggle: () => setState(() => _obscureNew = !_obscureNew),
+                      isPassword: true,
+                      prefixIcon: Icons.lock_outline_rounded,
+                      hint: 'Enter new password',
                     ),
                     const SizedBox(height: 20),
-                    _buildField(
+                    VibeTextField(
                       controller: _confirmPasswordCtrl,
                       label: 'Confirm New Password',
-                      obscureText: _obscureConfirm,
-                      onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                      isPassword: true,
+                      prefixIcon: Icons.verified_user_outlined,
+                      hint: 'Confirm new password',
                     ),
                     const SizedBox(height: 32),
                     VibeButton(
@@ -160,8 +155,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       'Password Requirements',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.secondary,
+                        fontSize: 16,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.secondary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -178,67 +175,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required bool obscureText,
-    required VoidCallback onToggle,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textHint,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.secondary,
-          ),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8F9FE),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                size: 20,
-                color: AppColors.textHint,
-              ),
-              onPressed: onToggle,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _requirementItem(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_outline_rounded, size: 14, color: AppColors.primary),
+          const Icon(
+            Icons.check_circle_outline_rounded,
+            size: 18,
+            color: AppColors.primary,
+          ),
           const SizedBox(width: 8),
           Text(
             text,
             style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
               color: AppColors.textSecondary,
             ),
           ),

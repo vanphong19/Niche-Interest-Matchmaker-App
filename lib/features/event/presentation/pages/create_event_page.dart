@@ -3,18 +3,21 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:niche_interest_matchmaker_app/core/utils/profile_state.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/widgets/vibe_button.dart';
+import '../../../../core/widgets/vibe_loading.dart';
 import '../../../../core/widgets/vibe_text_field.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../data/services/event_api_service.dart';
@@ -36,43 +39,24 @@ class _CreateEventPageState extends State<CreateEventPage>
   late final EventApiService _apiService;
   final ScrollController _scrollController = ScrollController();
 
-  final TextEditingController _idCtrl = TextEditingController();
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _descriptionCtrl = TextEditingController();
-  final TextEditingController _hostIdCtrl = TextEditingController();
-  final TextEditingController _hostNameCtrl = TextEditingController();
-  final TextEditingController _hostAvatarCtrl = TextEditingController();
   final TextEditingController _locationNameCtrl = TextEditingController();
   final TextEditingController _addressCtrl = TextEditingController();
-  final TextEditingController _placeIdCtrl = TextEditingController();
   final TextEditingController _tagCtrl = TextEditingController();
 
-  late DateTime _createdAt;
   late DateTime _startDate;
   late TimeOfDay _startTime;
   DateTime? _endDate;
   TimeOfDay? _endTime;
 
   EventCategory _selectedCategory = EventCategory.sports;
-  final EventStatus _status = EventStatus.draft;
-
   int _maxParticipants = 12;
   bool _isEliteOnly = false;
   bool _isPublic = true;
-  final bool _isJoined = false;
-
-  final double _matchScore = 75;
 
   final List<String> _vibeTags = [];
   final List<String> _photoUrls = [];
-  final List<String> _participantIds = [];
-  static const List<String> _galleryPresets = [
-    'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80',
-  ];
 
   final MapController _mapController = MapController();
   LatLng _coords = const LatLng(10.7769, 106.7009);
@@ -106,23 +90,11 @@ class _CreateEventPageState extends State<CreateEventPage>
     )..repeat(reverse: true);
 
     final now = DateTime.now();
-    _createdAt = now;
     _startDate = now.add(const Duration(days: 1));
     _startTime = const TimeOfDay(hour: 19, minute: 0);
     _endDate = _startDate;
     _endTime = const TimeOfDay(hour: 21, minute: 0);
 
-    final profile = ProfileState.notifier.value;
-    _idCtrl.text = 'evt-${now.millisecondsSinceEpoch}';
-    _hostIdCtrl.text = profile.email
-        .split('@')
-        .first; // Use username as ID or email
-    _hostNameCtrl.text = profile.name.isNotEmpty
-        ? profile.name
-        : 'Current User';
-    _hostAvatarCtrl.text = profile.avatarUrl.isNotEmpty
-        ? profile.avatarUrl
-        : 'https://i.pravatar.cc/100?img=11';
     _locationNameCtrl.text = '';
     _addressCtrl.text = '';
     _locationSearchCtrl.text = '';
@@ -139,15 +111,10 @@ class _CreateEventPageState extends State<CreateEventPage>
     _cubit.close();
     _scrollController.dispose();
 
-    _idCtrl.dispose();
     _titleCtrl.dispose();
     _descriptionCtrl.dispose();
-    _hostIdCtrl.dispose();
-    _hostNameCtrl.dispose();
-    _hostAvatarCtrl.dispose();
     _locationNameCtrl.dispose();
     _addressCtrl.dispose();
-    _placeIdCtrl.dispose();
     _tagCtrl.dispose();
     _locationSearchCtrl.dispose();
     _locationSearchNode.dispose();
@@ -220,7 +187,7 @@ class _CreateEventPageState extends State<CreateEventPage>
         return _tr('event_category_social');
       case EventCategory.arts:
         return _tr('event_category_arts');
-      case EventCategory.outdoors:
+      case EventCategory.outdoor:
         return _tr('event_category_outdoors');
       case EventCategory.gaming:
         return _tr('event_category_gaming');
@@ -237,7 +204,7 @@ class _CreateEventPageState extends State<CreateEventPage>
         return '💬';
       case EventCategory.arts:
         return '🎨';
-      case EventCategory.outdoors:
+      case EventCategory.outdoor:
         return '⛺';
       case EventCategory.gaming:
         return '🎮';
@@ -254,7 +221,7 @@ class _CreateEventPageState extends State<CreateEventPage>
         return AppColors.categorySocial;
       case EventCategory.arts:
         return AppColors.categoryArts;
-      case EventCategory.outdoors:
+      case EventCategory.outdoor:
         return AppColors.categoryOutdoors;
       case EventCategory.gaming:
         return AppColors.categoryGaming;
@@ -270,19 +237,50 @@ class _CreateEventPageState extends State<CreateEventPage>
     });
   }
 
-  void _addPresetPhoto() {
-    if (_photoUrls.length >= 5) {
-      return;
-    }
-    final next = _galleryPresets.firstWhere(
-      (url) => !_photoUrls.contains(url),
-      orElse: () => _galleryPresets[_photoUrls.length % _galleryPresets.length],
-    );
-    setState(() {
-      if (!_photoUrls.contains(next)) {
-        _photoUrls.add(next);
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+      if (!mounted) return;
+
+      if (_photoUrls.length >= 5) {
+        VibeSnackBar.warning(context, 'Maximum 5 photos allowed.');
+        return;
       }
-    });
+
+      VibeSnackBar.info(context, 'Uploading image...');
+
+      final url = kIsWeb
+          ? await _apiService.uploadImageBytes(
+              await image.readAsBytes(),
+              image.name.isNotEmpty ? image.name : 'event-cover.jpg',
+            )
+          : await _apiService.uploadImage(image.path);
+      if (!mounted) return;
+
+      if (url != null) {
+        setState(() {
+          _photoUrls.add(url);
+        });
+        VibeSnackBar.success(context, 'Image uploaded successfully!');
+      } else {
+        VibeSnackBar.error(
+          context,
+          'Failed to upload image. Please try again.',
+        );
+      }
+    } catch (e) {
+      debugPrint('Pick and Upload Error: $e');
+      if (!mounted) return;
+      VibeSnackBar.error(context, 'An error occurred during upload.');
+    }
   }
 
   Future<void> _searchPlaces(String query) async {
@@ -324,7 +322,6 @@ class _CreateEventPageState extends State<CreateEventPage>
 
       _locationNameCtrl.text = name;
       _addressCtrl.text = address;
-      _placeIdCtrl.text = place['placeId']?.toString() ?? '';
       _coords = point;
       _placeSuggestions = const [];
     });
@@ -337,17 +334,13 @@ class _CreateEventPageState extends State<CreateEventPage>
   Future<void> _submitEvent() async {
     if (_titleCtrl.text.trim().isEmpty ||
         _descriptionCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_tr('event_validation_title_description'))),
-      );
+      VibeSnackBar.warning(context, _tr('event_validation_title_description'));
       return;
     }
 
     if (_locationNameCtrl.text.trim().isEmpty ||
         _addressCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_tr('event_validation_location'))));
+      VibeSnackBar.warning(context, _tr('event_validation_location'));
       return;
     }
 
@@ -355,19 +348,26 @@ class _CreateEventPageState extends State<CreateEventPage>
     DateTime? endDateTime;
     if (_endDate != null && _endTime != null) {
       endDateTime = _mergeDateTime(_endDate!, _endTime!);
-      if (endDateTime.isBefore(startDateTime)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_tr('event_validation_end_time'))),
-        );
+      if (!endDateTime.isAfter(startDateTime)) {
+        VibeSnackBar.warning(context, _tr('event_validation_end_time'));
         return;
       }
     }
 
-    _cubit.updateVibe(
-      _titleCtrl.text.trim(),
-      _selectedCategory.name,
-      _vibeTags,
-    );
+    // Default Cover Selection if no cover uploaded
+    final finalPhotoUrls = List<String>.from(_photoUrls);
+    if (finalPhotoUrls.isEmpty) {
+      final titleHash = _titleCtrl.text.trim().hashCode.abs();
+      final coverIndex = (titleHash % 20) + 1;
+      finalPhotoUrls.add(
+        'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-$coverIndex.webp',
+      );
+    }
+
+    _cubit.updateVibe(_titleCtrl.text.trim(), _selectedCategory.name, [
+      ..._vibeTags,
+      'preset:$_selectedCoverPreset',
+    ]);
     _cubit.updateSchedule(
       _startDate,
       _startTime,
@@ -383,32 +383,17 @@ class _CreateEventPageState extends State<CreateEventPage>
 
     await _cubit.submitEvent(
       extraData: {
-        'id': _idCtrl.text.trim(),
         'description': _descriptionCtrl.text.trim(),
         'category': _selectedCategory.name,
-        'hostId': _hostIdCtrl.text.trim(),
-        'hostName': _hostNameCtrl.text.trim(),
-        'hostAvatar': _hostAvatarCtrl.text.trim(),
         'startDateTime': startDateTime.toIso8601String(),
         'endDateTime': endDateTime?.toIso8601String(),
         'maxParticipants': _maxParticipants,
-        'currentParticipants': 1,
         'latitude': _coords.latitude,
         'longitude': _coords.longitude,
-        'participantIds': _participantIds,
-        'status': _status.name,
-        'isEliteOnly': _isEliteOnly,
-        'photoUrls': _photoUrls,
-        'matchScore': _matchScore,
-        'vibeTags': _vibeTags.join(', '),
-        'isJoined': _isJoined,
-        'createdAt': _createdAt.toIso8601String(),
+        'photoUrls': finalPhotoUrls,
         'locationName': _locationNameCtrl.text.trim(),
         'location': _addressCtrl.text.trim(),
         'isPublic': _isPublic,
-        'placeId': _placeIdCtrl.text.trim().isEmpty
-            ? null
-            : _placeIdCtrl.text.trim(),
       },
     );
   }
@@ -450,87 +435,83 @@ class _CreateEventPageState extends State<CreateEventPage>
               );
 
               context.router.replaceAll([const HomeRoute()]);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(_tr('event_create_success')),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+              VibeSnackBar.success(context, _tr('event_create_success'));
             } else if (state.error != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${_tr('event_create_error')}: ${state.error}'),
-                  backgroundColor: AppColors.error,
-                ),
+              VibeSnackBar.error(
+                context,
+                '${_tr('event_create_error')}: ${state.error}',
               );
             }
           },
           builder: (context, state) {
-            return Stack(
-              children: [
-                ListView(
-                  controller: _scrollController,
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    VibeHeader.headerHeight + 20,
-                    20,
-                    84,
+            return GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: Stack(
+                children: [
+                  ListView(
+                    controller: _scrollController,
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      VibeHeader.headerHeight + 20,
+                      20,
+                      84,
+                    ),
+                    children: [
+                      _coverComposer(card, border),
+                      const SizedBox(height: 20),
+                      _sectionHeader(
+                        _tr('event_section_core').toUpperCase(),
+                        sectionHint,
+                      ),
+                      const SizedBox(height: 10),
+                      _cardShell(card, border, _coreSection()),
+                      const SizedBox(height: 18),
+                      _sectionHeader(
+                        _tr('event_section_schedule').toUpperCase(),
+                        sectionHint,
+                      ),
+                      const SizedBox(height: 10),
+                      _cardShell(card, border, _scheduleSection()),
+                      const SizedBox(height: 18),
+                      _sectionHeader(
+                        _tr('event_section_location').toUpperCase(),
+                        sectionHint,
+                      ),
+                      const SizedBox(height: 10),
+                      _cardShell(card, border, _locationSection()),
+                    ],
                   ),
-                  children: [
-                    _coverComposer(card, border),
-                    const SizedBox(height: 20),
-                    _sectionHeader(
-                      _tr('event_section_core').toUpperCase(),
-                      sectionHint,
-                    ),
-                    const SizedBox(height: 10),
-                    _cardShell(card, border, _coreSection()),
-                    const SizedBox(height: 18),
-                    _sectionHeader(
-                      _tr('event_section_schedule').toUpperCase(),
-                      sectionHint,
-                    ),
-                    const SizedBox(height: 10),
-                    _cardShell(card, border, _scheduleSection()),
-                    const SizedBox(height: 18),
-                    _sectionHeader(
-                      _tr('event_section_location').toUpperCase(),
-                      sectionHint,
-                    ),
-                    const SizedBox(height: 10),
-                    _cardShell(card, border, _locationSection()),
-                  ],
-                ),
-                _bottomButton(state),
-                if (state.isSubmitting)
-                  Container(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    alignment: Alignment.center,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: border),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2.2),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(_tr('event_create_loading')),
-                        ],
+                  _bottomButton(state),
+                  if (state.isSubmitting)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const VibeLoading(
+                              size: 18,
+                              strokeWidth: 2.2,
+                              segments: 10,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(_tr('event_create_loading')),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -603,97 +584,141 @@ class _CreateEventPageState extends State<CreateEventPage>
                 ],
               ),
               const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: SizedBox(
-                  height: 144,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 380),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            child: previewUrl == null
-                                ? Container()
-                                : Transform.scale(
-                                    key: ValueKey(previewUrl),
-                                    scale: 1 + (pulse * 0.015),
-                                    child: Image.network(
-                                      previewUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) =>
-                                          Container(color: Colors.black12),
+              GestureDetector(
+                onTap: _pickAndUploadImage,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: SizedBox(
+                    height: 144,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 380),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: previewUrl == null
+                                  ? Container()
+                                  : Transform.scale(
+                                      key: ValueKey(previewUrl),
+                                      scale: 1 + (pulse * 0.015),
+                                      child: Image.network(
+                                        previewUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) =>
+                                            Container(color: Colors.black12),
+                                      ),
                                     ),
-                                  ),
-                          ),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black.withValues(
-                                    alpha: previewUrl == null ? 0.18 : 0.04,
-                                  ),
-                                  Colors.black.withValues(
-                                    alpha: previewUrl == null ? 0.5 : 0.38,
-                                  ),
-                                ],
-                              ),
                             ),
-                          ),
-                          if (previewUrl == null)
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: _GalaxyPainter(progress: pulse),
-                              ),
-                            ),
-                          Positioned(
-                            left: 14,
-                            top: 14,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 5,
-                              ),
+                            DecoratedBox(
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.26),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.2),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withValues(
+                                      alpha: previewUrl == null ? 0.18 : 0.04,
+                                    ),
+                                    Colors.black.withValues(
+                                      alpha: previewUrl == null ? 0.5 : 0.38,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: const Text(
-                                'Live Preview',
+                            ),
+                            if (previewUrl == null)
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _GalaxyPainter(progress: pulse),
+                                ),
+                              ),
+                            Positioned(
+                              left: 14,
+                              top: 14,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.26),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Live Preview',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 14,
+                              top: 14,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      previewUrl == null
+                                          ? Icons.add_photo_alternate_rounded
+                                          : Icons.edit_rounded,
+                                      color: Colors.white,
+                                      size: 13,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      previewUrl == null
+                                          ? 'Upload Cover'
+                                          : 'Change Cover',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Positioned(
+                              left: 14,
+                              right: 14,
+                              bottom: 12,
+                              child: Text(
+                                'Your event cover appears exactly like this in feed.',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.4,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.2,
                                 ),
                               ),
                             ),
-                          ),
-                          const Positioned(
-                            left: 14,
-                            right: 14,
-                            bottom: 12,
-                            child: Text(
-                              'Your event cover appears exactly like this in feed.',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                height: 1.2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -819,6 +844,9 @@ class _CreateEventPageState extends State<CreateEventPage>
   }
 
   Widget _coreSection() {
+    final border = _isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -850,12 +878,12 @@ class _CreateEventPageState extends State<CreateEventPage>
                 decoration: BoxDecoration(
                   color: selected
                       ? color.withValues(alpha: 0.15)
-                      : AppColors.bgSecondary,
+                      : (_isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : AppColors.bgSecondary),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: selected
-                        ? color.withValues(alpha: 0.6)
-                        : AppColors.borderLight,
+                    color: selected ? color.withValues(alpha: 0.6) : border,
                   ),
                 ),
                 child: Row(
@@ -878,30 +906,44 @@ class _CreateEventPageState extends State<CreateEventPage>
           }).toList(),
         ),
         const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: VibeTextField(
-                maxLines: 1,
-                controller: _tagCtrl,
-                label: _tr('event_field_vibe_tags'),
-                hint: _tr('event_field_add_tag_hint'),
-                onSubmitted: (value) => _addTag(),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
+            Text(
+              _tr('event_field_vibe_tags'),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.secondary,
               ),
             ),
-            const SizedBox(width: 8),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 9.5),
-              child: IconButton.filledTonal(
-                onPressed: _addTag,
-                icon: const Icon(Icons.add_rounded),
-              ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: VibeTextField(
+                    maxLines: 1,
+                    controller: _tagCtrl,
+                    hint: _tr('event_field_add_tag_hint'),
+                    onSubmitted: (value) => _addTag(),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  onPressed: _addTag,
+                  icon: const Icon(Icons.add_rounded),
+                ),
+              ],
             ),
           ],
         ),
@@ -925,15 +967,17 @@ class _CreateEventPageState extends State<CreateEventPage>
             Expanded(
               child: Text(
                 'Pick up to 5 photos',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: _isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             FilledButton.tonalIcon(
-              onPressed: _addPresetPhoto,
+              onPressed: _pickAndUploadImage,
               icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
               label: const Text('Add photo'),
             ),
@@ -944,9 +988,11 @@ class _CreateEventPageState extends State<CreateEventPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             decoration: BoxDecoration(
-              color: AppColors.bgSecondary,
+              color: _isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : AppColors.bgSecondary,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderLight),
+              border: Border.all(color: border),
             ),
             child: Row(
               children: [
@@ -964,13 +1010,15 @@ class _CreateEventPageState extends State<CreateEventPage>
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Add at least 1 photo to unlock premium cover quality.',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: _isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -999,7 +1047,9 @@ class _CreateEventPageState extends State<CreateEventPage>
                           width: 84,
                           height: 84,
                           decoration: BoxDecoration(
-                            color: AppColors.bgSecondary,
+                            color: _isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : AppColors.bgSecondary,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.broken_image_outlined),
@@ -1117,11 +1167,7 @@ class _CreateEventPageState extends State<CreateEventPage>
           suffix: _isSearchingPlaces
               ? const Padding(
                   padding: EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  child: VibeLoading(size: 16, strokeWidth: 2, segments: 8),
                 )
               : null,
           focusNode: _locationSearchNode,
@@ -1272,13 +1318,7 @@ class _CreateEventPageState extends State<CreateEventPage>
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    border: Border.all(color: AppColors.primary),
                   ),
                   child: const Icon(
                     Icons.location_on_rounded,
@@ -1334,15 +1374,21 @@ class _CreateEventPageState extends State<CreateEventPage>
   }
 
   Widget _pickerButton(IconData icon, String text, VoidCallback onTap) {
+    final bgColor = _isDark ? AppColors.darkBgSecondary : AppColors.bgSecondary;
+    final borderColor = _isDark
+        ? AppColors.darkBorderLight
+        : AppColors.borderLight;
+    final textColor = _isDark ? AppColors.darkTextPrimary : AppColors.secondary;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.bgSecondary,
+          color: bgColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderLight, width: 1.1),
+          border: Border.all(color: borderColor, width: 1.1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1351,9 +1397,9 @@ class _CreateEventPageState extends State<CreateEventPage>
             const SizedBox(width: 8),
             Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w800,
-                color: AppColors.secondary,
+                color: textColor,
                 fontSize: 14,
               ),
             ),
@@ -1370,12 +1416,17 @@ class _CreateEventPageState extends State<CreateEventPage>
     required int max,
     required ValueChanged<int> onChanged,
   }) {
+    final bgColor = _isDark ? AppColors.darkBgSecondary : AppColors.bgSecondary;
+    final borderColor = _isDark
+        ? AppColors.darkBorderLight
+        : AppColors.borderLight;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bgSecondary,
+        color: bgColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight, width: 1.2),
+        border: Border.all(color: borderColor, width: 1.2),
       ),
       child: Column(
         children: [
@@ -1411,7 +1462,9 @@ class _CreateEventPageState extends State<CreateEventPage>
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: AppColors.primary,
-              inactiveTrackColor: AppColors.borderLight,
+              inactiveTrackColor: _isDark
+                  ? AppColors.darkBorderLight
+                  : AppColors.borderLight,
               thumbColor: AppColors.primary,
               overlayColor: AppColors.primary.withValues(alpha: 0.18),
             ),
@@ -1449,7 +1502,9 @@ class _CreateEventPageState extends State<CreateEventPage>
                         border: Border.all(
                           color: value == quick
                               ? AppColors.primary
-                              : AppColors.borderLight,
+                              : (_isDark
+                                    ? AppColors.darkBorderLight
+                                    : AppColors.borderLight),
                           width: 1.2,
                         ),
                       ),

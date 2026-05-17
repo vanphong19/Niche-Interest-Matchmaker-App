@@ -135,14 +135,13 @@ class _VibeTextFieldState extends State<VibeTextField> {
         fontWeight: FontWeight.w500,
         color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
       ),
-      autovalidateMode:
-          widget.autovalidateMode ?? AutovalidateMode.onUserInteraction,
+      autovalidateMode: widget.autovalidateMode ?? AutovalidateMode.disabled,
       onChanged: (value) {
         widget.onChanged?.call(value);
-        if (widget.validator != null) {
+        if (_errorText != null) {
           setState(() {
-            _errorText = widget.validator!(value);
-            _isValid = _errorText == null && value.isNotEmpty;
+            _errorText = null;
+            _isValid = false;
           });
         }
       },
@@ -160,6 +159,7 @@ class _VibeTextFieldState extends State<VibeTextField> {
         return error;
       },
       decoration: InputDecoration(
+        errorText: _errorText,
         hintText: widget.hint,
         hintStyle: const TextStyle(
           color: AppColors.textHint,
@@ -178,7 +178,10 @@ class _VibeTextFieldState extends State<VibeTextField> {
               top: 12,
               bottom: 12,
             ),
-        counterText: widget.showCounter ? null : '',
+        counterText: null,
+        counter: (widget.maxLength != null && !widget.showCounter)
+            ? const SizedBox.shrink()
+            : null,
         // Only use prefixIcon for single-line fields
         prefixIcon: (!isMultilineWithIcon && widget.prefixIcon != null)
             ? Container(

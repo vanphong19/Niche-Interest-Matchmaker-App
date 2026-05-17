@@ -5,6 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "niche_interest_matchmaker_app (web chrome)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome"
+    },
+    {
+      "name": "niche_interest_matchmaker_app (web server)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "web-server"
+    },
+    {
       "name": "niche_interest_matchmaker_app (dev debug)",
       "request": "launch",
       "type": "dart",

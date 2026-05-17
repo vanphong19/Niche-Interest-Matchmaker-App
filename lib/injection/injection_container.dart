@@ -5,6 +5,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/network/dio_client.dart';
 import '../core/network/network_info.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
+import '../features/auth/data/services/social_auth_service.dart';
+import '../features/auth/data/services/supabase_auth_service.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/settings/presentation/bloc/settings_bloc.dart';
@@ -48,6 +50,8 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(sl<DioClient>().dio),
   );
+  sl.registerLazySingleton<SocialAuthService>(() => SocialAuthService());
+  sl.registerLazySingleton<SupabaseAuthService>(() => SupabaseAuthService());
 
   // Bloc
   sl.registerFactory<AuthBloc>(() => AuthBloc(sl<AuthRepository>()));

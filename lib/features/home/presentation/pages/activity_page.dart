@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/snackbar_service.dart';
+import '../../../../core/widgets/vibe_empty_state.dart';
+import '../../../../core/services/signalr_service.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
+import '../../../profile/data/services/user_api_service.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../../event/presentation/bloc/event_bloc.dart';
 
@@ -20,17 +26,22 @@ class _ActivityPageState extends State<ActivityPage>
     with SingleTickerProviderStateMixin {
   late final EventBloc _eventBloc;
   late final TabController _tabController;
+  StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
 
   @override
   void initState() {
     super.initState();
     _eventBloc = sl<EventBloc>();
     _eventBloc.add(LoadMyEvents());
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+    _realtimeSubscription = sl<SignalRService>().dataChangeStream.listen((_) {
+      _eventBloc.add(LoadMyEvents());
+    });
   }
 
   @override
   void dispose() {
+    _realtimeSubscription?.cancel();
     _eventBloc.close();
     _tabController.dispose();
     super.dispose();
@@ -41,7 +52,9 @@ class _ActivityPageState extends State<ActivityPage>
     return BlocProvider.value(
       value: _eventBloc,
       child: Scaffold(
-        backgroundColor: AppColors.bgSecondary,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkBgPrimary
+            : AppColors.bgSecondary,
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -59,9 +72,10 @@ class _ActivityPageState extends State<ActivityPage>
             indicatorColor: AppColors.primary,
             indicatorWeight: 3,
             tabs: const [
-              Tab(text: 'Hosting'),
+              Tab(text: 'Hosted'),
               Tab(text: 'Joined'),
               Tab(text: 'Past'),
+              Tab(text: 'Notifications'),
             ],
           ),
         ),
@@ -82,6 +96,9 @@ class _ActivityPageState extends State<ActivityPage>
                 _buildEventList(state.hosting, isHost: true),
                 _buildEventList(state.joined, isHost: false),
                 _buildEventList(state.past, isHost: false, isPast: true),
+                _NotificationsTab(
+                  onChanged: () => _eventBloc.add(LoadMyEvents()),
+                ),
               ],
             );
           },
@@ -96,25 +113,15 @@ class _ActivityPageState extends State<ActivityPage>
     bool isPast = false,
   }) {
     if (events.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.event_busy_rounded,
-              size: 64,
-              color: AppColors.borderMedium,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No events here yet',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
-                fontSize: 16,
-              ),
-            ),
-          ],
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: VibeEmptyState(
+            title: 'No events here yet',
+            message:
+                'Events will appear here as soon as your activity changes.',
+            icon: Icons.event_busy_rounded,
+          ),
         ),
       );
     }
@@ -130,13 +137,7 @@ class _ActivityPageState extends State<ActivityPage>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(color: AppColors.borderLight),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +153,7 @@ class _ActivityPageState extends State<ActivityPage>
                         image: NetworkImage(
                           event.photoUrls.isNotEmpty
                               ? event.photoUrls.first
-                              : 'https://picsum.photos/100',
+                              : 'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-${(event.id.hashCode % 20) + 1}.webp',
                         ),
                         fit: BoxFit.cover,
                       ),
@@ -241,6 +242,146 @@ class _ActivityPageState extends State<ActivityPage>
                 ],
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _NotificationsTab extends StatefulWidget {
+  const _NotificationsTab({required this.onChanged});
+  final VoidCallback onChanged;
+
+  @override
+  State<_NotificationsTab> createState() => _NotificationsTabState();
+}
+
+class _NotificationsTabState extends State<_NotificationsTab> {
+  late Future<List<Map<String, dynamic>>> _future;
+  StreamSubscription<Map<String, dynamic>>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = sl<UserApiService>().getNotifications();
+    _subscription = sl<SignalRService>().notificationStream.listen((_) {
+      if (mounted) _refresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _future = sl<UserApiService>().getNotifications();
+    });
+  }
+
+  Future<void> _act(Map<String, dynamic> notification) async {
+    final id = (notification['id'] ?? notification['Id']).toString();
+    final action = (notification['action'] ?? notification['Action'] ?? '')
+        .toString();
+    final resourceId =
+        (notification['resourceId'] ?? notification['ResourceId'] ?? '')
+            .toString();
+    try {
+      if (action.isNotEmpty) {
+        await sl<UserApiService>().actOnNotification(id, action);
+      }
+      sl<SignalRService>().emitLocalChange('notification', {
+        'resourceId': resourceId,
+      });
+      if (!mounted) return;
+      VibeSnackBar.success(context, 'Updated successfully');
+      widget.onChanged();
+      await _refresh();
+    } catch (e) {
+      if (mounted) VibeFeedback.apiError(context, e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final notifications = snapshot.data ?? [];
+        if (notifications.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: VibeEmptyState(
+                title: 'No notifications',
+                message: 'Friend requests and event invites will appear here.',
+                icon: Icons.notifications_none_rounded,
+              ),
+            ),
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
+            itemCount: notifications.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final n = notifications[index];
+              final action = (n['action'] ?? n['Action'] ?? '').toString();
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF171D2A) : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : AppColors.borderLight,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.notifications_rounded,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            (n['title'] ?? n['Title'] ?? 'Notification')
+                                .toString(),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            (n['body'] ?? n['Body'] ?? '').toString(),
+                            style: const TextStyle(
+                              color: AppColors.textHint,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (action.isNotEmpty)
+                      TextButton(
+                        onPressed: () => _act(n),
+                        child: const Text('Accept'),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         );
       },

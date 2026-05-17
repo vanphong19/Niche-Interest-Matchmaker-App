@@ -1,6 +1,6 @@
 // lib/features/event/domain/entities/event.dart
 
-enum EventCategory { sports, dining, social, arts, outdoors, gaming }
+enum EventCategory { sports, dining, social, arts, outdoor, gaming }
 
 enum EventStatus { draft, active, cancelled, completed }
 
@@ -21,8 +21,12 @@ class EventLocation {
 
   factory EventLocation.fromJson(Map<String, dynamic> json) {
     return EventLocation(
-      name: json['name'] as String? ?? json['placeName'] as String? ?? '',
-      address: json['address'] as String? ?? '',
+      name:
+          json['name'] as String? ??
+          json['locationName'] as String? ??
+          json['placeName'] as String? ??
+          '',
+      address: json['address'] as String? ?? json['location'] as String? ?? '',
       latitude: (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0,
       longitude: (json['longitude'] ?? json['lng'] as num?)?.toDouble() ?? 0,
       placeId: json['placeId'] as String?,
@@ -61,6 +65,7 @@ class Event {
   final String? vibeTags;
   final bool isJoined;
   final bool isPending;
+  final bool isHostFriend;
   final DateTime createdAt;
   final double? price;
 
@@ -87,6 +92,7 @@ class Event {
     this.vibeTags,
     this.isJoined = false,
     this.isPending = false,
+    this.isHostFriend = false,
     required this.createdAt,
     this.price,
   });
@@ -98,7 +104,12 @@ class Event {
     return Event(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
-      description: json['description'] as String? ?? '',
+      description:
+          json['description'] as String? ??
+          json['Description'] as String? ??
+          json['desc'] as String? ??
+          json['about'] as String? ??
+          '',
       category: _parseCategory(json['category'] as String?),
       hostId:
           creator?['id'] as String? ??
@@ -121,16 +132,30 @@ class Event {
       location: locationData != null
           ? EventLocation.fromJson(locationData)
           : EventLocation(
-              name: '',
-              address: '',
-              latitude: json['lat'] as double? ?? 0,
-              longitude: json['lng'] as double? ?? 0,
+              name:
+                  json['locationName'] as String? ??
+                  json['LocationName'] as String? ??
+                  '',
+              address:
+                  json['location'] as String? ??
+                  json['Location'] as String? ??
+                  json['address'] as String? ??
+                  '',
+              latitude:
+                  (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0,
+              longitude:
+                  (json['longitude'] ?? json['lng'] as num?)?.toDouble() ?? 0,
             ),
       startDateTime: json['dateTime'] != null
           ? DateTime.parse(json['dateTime'] as String)
           : DateTime.now(),
-      endDateTime: json['endTime'] != null
-          ? DateTime.parse(json['endTime'] as String)
+      endDateTime:
+          (json['endDateTime'] ?? json['EndDateTime'] ?? json['endTime']) !=
+              null
+          ? DateTime.parse(
+              (json['endDateTime'] ?? json['EndDateTime'] ?? json['endTime'])
+                  as String,
+            )
           : null,
       maxParticipants: json['maxParticipants'] as int? ?? 20,
       currentParticipants: json['currentParticipants'] as int? ?? 0,
@@ -145,10 +170,15 @@ class Event {
       isPublic: json['isPublic'] as bool? ?? true,
       photoUrls: _extractPhotos(json),
       matchScore: (json['matchScore'] as num?)?.toDouble() ?? 0,
-      vibeTags:
-          json['vibeTags'] as String? ?? (json['tags'] as List?)?.join(', '),
+      vibeTags: _parseVibeTags(
+        json['vibeTags'] ?? json['VibeTags'] ?? json['tags'],
+      ),
       isJoined: json['isJoined'] as bool? ?? false,
       isPending: json['isPending'] as bool? ?? false,
+      isHostFriend:
+          json['isHostFriend'] as bool? ??
+          json['IsHostFriend'] as bool? ??
+          false,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
@@ -175,15 +205,21 @@ class Event {
       case 'arts':
       case 'art':
         return EventCategory.arts;
-      case 'outdoors':
       case 'outdoor':
-        return EventCategory.outdoors;
+        return EventCategory.outdoor;
       case 'gaming':
       case 'games':
         return EventCategory.gaming;
       default:
         return EventCategory.social;
     }
+  }
+
+  static String? _parseVibeTags(dynamic tags) {
+    if (tags == null) return null;
+    if (tags is String) return tags;
+    if (tags is List) return tags.map((e) => e.toString()).join(', ');
+    return tags.toString();
   }
 
   static EventStatus _parseStatus(String? str) {
@@ -225,7 +261,7 @@ class Event {
     if (json['imageUrl'] is String) {
       return [json['imageUrl'] as String];
     }
-    return ['https://picsum.photos/seed/${json['id']}/800/400'];
+    return const [];
   }
 
   String get categoryName {
@@ -238,7 +274,7 @@ class Event {
         return 'Social';
       case EventCategory.arts:
         return 'Arts';
-      case EventCategory.outdoors:
+      case EventCategory.outdoor:
         return 'Outdoors';
       case EventCategory.gaming:
         return 'Gaming';
@@ -255,7 +291,7 @@ class Event {
         return '💬';
       case EventCategory.arts:
         return '🎨';
-      case EventCategory.outdoors:
+      case EventCategory.outdoor:
         return '⛺';
       case EventCategory.gaming:
         return '🎮';
@@ -279,11 +315,13 @@ class Event {
     List<String>? participantAvatars,
     EventStatus? status,
     bool? isEliteOnly,
+    bool? isPublic,
     List<String>? photoUrls,
     double? matchScore,
     String? vibeTags,
     bool? isJoined,
     bool? isPending,
+    bool? isHostFriend,
     DateTime? createdAt,
     double? price,
   }) {
@@ -304,11 +342,13 @@ class Event {
       participantAvatars: participantAvatars ?? this.participantAvatars,
       status: status ?? this.status,
       isEliteOnly: isEliteOnly ?? this.isEliteOnly,
+      isPublic: isPublic ?? this.isPublic,
       photoUrls: photoUrls ?? this.photoUrls,
       matchScore: matchScore ?? this.matchScore,
       vibeTags: vibeTags ?? this.vibeTags,
       isJoined: isJoined ?? this.isJoined,
       isPending: isPending ?? this.isPending,
+      isHostFriend: isHostFriend ?? this.isHostFriend,
       createdAt: createdAt ?? this.createdAt,
       price: price ?? this.price,
     );

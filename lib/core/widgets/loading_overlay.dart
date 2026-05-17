@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import 'vibe_loading.dart';
 
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay({
@@ -72,13 +73,11 @@ class _LoadingLayer extends StatelessWidget {
                   child: const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: AppColors.primary,
-                        ),
+                      VibeLoading(
+                        size: 40,
+                        strokeWidth: 3,
+                        color: AppColors.primary,
+                        segments: 12,
                       ),
                       SizedBox(height: AppSpacing.lg),
                       Text(

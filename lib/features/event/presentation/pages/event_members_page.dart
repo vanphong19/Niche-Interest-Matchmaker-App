@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/vibe_empty_state.dart';
+import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../injection/injection_container.dart';
 import '../../data/services/event_api_service.dart';
 
@@ -85,7 +87,16 @@ class _EventMembersPageState extends State<EventMembersPage>
 
         final members = snapshot.data!;
         if (members.isEmpty) {
-          return const Center(child: Text('No members yet'));
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: VibeEmptyState(
+                title: 'No members yet',
+                message: 'Participants will appear here as soon as they join.',
+                icon: Icons.group_outlined,
+              ),
+            ),
+          );
         }
 
         return ListView.builder(
@@ -100,8 +111,10 @@ class _EventMembersPageState extends State<EventMembersPage>
                 borderRadius: BorderRadius.circular(14),
               ),
               child: ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: NetworkImage(member['avatarUrl']!),
+                leading: VibeAvatar(
+                  imageUrl: member['avatarUrl'],
+                  name: member['name'],
+                  size: 40,
                 ),
                 title: Text(
                   member['name'] ?? 'Member',
@@ -127,11 +140,12 @@ class _EventMembersPageState extends State<EventMembersPage>
         final requests = snapshot.data!;
         if (requests.isEmpty) {
           return const Center(
-            child: Text(
-              'No pending requests',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: VibeEmptyState(
+                title: 'No pending requests',
+                message: 'New join requests will appear here in realtime.',
+                icon: Icons.mark_email_unread_outlined,
               ),
             ),
           );
@@ -151,8 +165,10 @@ class _EventMembersPageState extends State<EventMembersPage>
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(request['avatarUrl']!),
+                  VibeAvatar(
+                    imageUrl: request['avatarUrl'],
+                    name: request['name'],
+                    size: 40,
                   ),
                   const SizedBox(width: 10),
                   Expanded(

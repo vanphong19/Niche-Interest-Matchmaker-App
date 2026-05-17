@@ -24,11 +24,7 @@ class _VibeAppState extends State<VibeApp> {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [
-        BlocProvider<AuthBloc>(
-          create: (_) => sl<AuthBloc>(),
-        ),
-      ],
+      providers: [BlocProvider<AuthBloc>(create: (_) => sl<AuthBloc>())],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
@@ -51,6 +47,18 @@ class _VibeAppState extends State<VibeApp> {
                   themeMode: themeMode,
                   locale: Locale(localeStr),
                   scrollBehavior: NoScrollGlowBehavior(),
+                  builder: (context, child) {
+                    return GestureDetector(
+                      onTap: () {
+                        final currentFocus = FocusScope.of(context);
+                        if (!currentFocus.hasPrimaryFocus &&
+                            currentFocus.focusedChild != null) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        }
+                      },
+                      child: child,
+                    );
+                  },
                   routerConfig: _appRouter.config(),
                 );
               },

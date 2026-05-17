@@ -492,7 +492,7 @@ class _ScoreSection extends StatelessWidget {
                 children: [
                   AnimatedBuilder(
                     animation: pulse,
-                    builder: (_, __) {
+                    builder: (_, _) {
                       final spread = 8 + (pulse.value * 8);
                       return Container(
                         width: ringSize,
