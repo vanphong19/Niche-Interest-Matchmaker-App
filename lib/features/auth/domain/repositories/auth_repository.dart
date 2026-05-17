@@ -6,7 +6,9 @@ abstract class AuthRepository {
     String email,
     String password,
     String displayName,
+    String verificationCode,
   );
+  Future<void> sendSignUpOtp(String email);
   Future<void> signOut();
   Future<AuthUser?> getCurrentUser();
 
@@ -22,4 +24,6 @@ abstract class AuthRepository {
     String providerId,
   );
   Future<void> changePassword(String currentPassword, String newPassword);
+  Future<void> forgotPassword(String email);
+  Future<void> resetPassword(String email, String code, String newPassword);
 }

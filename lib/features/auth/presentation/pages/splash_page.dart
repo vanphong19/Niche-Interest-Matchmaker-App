@@ -1,5 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:niche_interest_matchmaker_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:niche_interest_matchmaker_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:niche_interest_matchmaker_app/core/theme/app_colors.dart';
@@ -33,6 +37,29 @@ class _SplashPageState extends State<SplashPage> {
     final token = await storage.read(key: 'jwt_token');
 
     if (token == null || token.isEmpty) {
+      // Check if we just returned from a Web Supabase OAuth redirect
+      final supabaseSession = Supabase.instance.client.auth.currentSession;
+      if (supabaseSession != null) {
+        setState(() {
+          _loadProgress = 0.5;
+          _loadingText = "Authenticating with server...";
+        });
+        final metadata = supabaseSession.user.userMetadata ?? {};
+        if (mounted) {
+          context.read<AuthBloc>().add(
+            SocialLoginSubmitted(
+              provider: 'google',
+              email: supabaseSession.user.email ?? '',
+              displayName: metadata['full_name']?.toString() ??
+                  metadata['name']?.toString() ??
+                  '',
+              providerId: supabaseSession.user.id,
+            ),
+          );
+        }
+        return; // Let app.dart BlocListener handle the navigation
+      }
+
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) AutoRouter.of(context).replaceAll([const LoginRoute()]);
       return;
@@ -164,13 +191,6 @@ class _SplashPageState extends State<SplashPage> {
                           color: Colors.white.withValues(alpha: 0.08),
                           width: 1.5,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                            blurRadius: 40,
-                            spreadRadius: 5,
-                          ),
-                        ],
                       ),
                       child: Center(
                         child: ShaderMask(
@@ -260,15 +280,6 @@ class _SplashPageState extends State<SplashPage> {
                                     Color(0xFF7B7FFA),
                                   ],
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                    blurRadius: 10,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
                               ),
                             ),
                           ],

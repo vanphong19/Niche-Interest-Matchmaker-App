@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import 'vibe_loading.dart';
 
 enum VibeButtonType { primary, secondary, outlined, text, danger }
 
@@ -202,11 +203,7 @@ class _VibeButtonState extends State<VibeButton>
 
   Widget _buildContent(Color textColor) {
     if (widget.isLoading) {
-      return SizedBox(
-        width: 18,
-        height: 18,
-        child: CircularProgressIndicator(strokeWidth: 2.5, color: textColor),
-      );
+      return VibeLoading(size: 20, strokeWidth: 2.5, color: textColor);
     }
 
     return Row(

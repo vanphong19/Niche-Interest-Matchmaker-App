@@ -1,4 +1,5 @@
 // lib/features/profile/presentation/pages/profile_page.dart
+import 'dart:async';
 import 'dart:ui';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/widgets/avatar_widget.dart';
+import '../../../../core/widgets/vibe_empty_state.dart';
 import '../../../../core/utils/profile_state.dart';
+import '../../../../core/services/signalr_service.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../../event/data/services/event_api_service.dart';
@@ -34,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage>
   List<Event> _joinedEvents = const [];
   List<Event> _pastEvents = const [];
   bool _historyLoading = true;
+  StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
 
   @override
   void initState() {
@@ -64,6 +68,10 @@ class _ProfilePageState extends State<ProfilePage>
     _animController.forward();
     _loadMyEvents();
     _loadProfile();
+    _realtimeSubscription = sl<SignalRService>().dataChangeStream.listen((_) {
+      _loadProfile();
+      _loadMyEvents();
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -74,17 +82,22 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Future<void> _loadMyEvents() async {
-    final result = await sl<EventApiService>().getMyEvents();
-    if (!mounted) return;
-    setState(() {
-      _joinedEvents = result['joined'] ?? const [];
-      _pastEvents = result['past'] ?? const [];
-      _historyLoading = false;
-    });
+    try {
+      final result = await sl<EventApiService>().getMyEvents();
+      if (!mounted) return;
+      setState(() {
+        _joinedEvents = result['joined'] ?? const [];
+        _pastEvents = result['past'] ?? const [];
+        _historyLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _historyLoading = false);
+    }
   }
 
   @override
   void dispose() {
+    _realtimeSubscription?.cancel();
     _animController.dispose();
     super.dispose();
   }
@@ -209,11 +222,11 @@ class _ProfilePageState extends State<ProfilePage>
               height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorderLight : AppColors.borderLight,
+                  width: 1.5,
                 ),
+                color: isDark ? AppColors.darkBgTertiary : Colors.white,
               ),
               child: Padding(
                 padding: const EdgeInsets.all(3),
@@ -306,7 +319,7 @@ class _ProfilePageState extends State<ProfilePage>
           children: [
             Expanded(
               child: _StatChip(
-                value: '${profile.createdCount}',
+                value: '${profile.hostedCount}',
                 label: 'Hosted',
                 isDark: isDark,
                 icon: Icons.auto_awesome_rounded,
@@ -322,8 +335,8 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             Expanded(
               child: _StatChip(
-                value: '${profile.joinedCount}',
-                label: 'Attended',
+                value: '${profile.attendingCount}',
+                label: 'Attending',
                 isDark: isDark,
                 icon: Icons.people_alt_rounded,
                 color: const Color(0xFF10B981),
@@ -338,11 +351,11 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             Expanded(
               child: _StatChip(
-                value: '${profile.friendsCount}',
-                label: 'Friends',
+                value: '${profile.pastCount}',
+                label: 'Past',
                 isDark: isDark,
-                icon: Icons.favorite_rounded,
-                color: const Color(0xFFF43F5E),
+                icon: Icons.history_rounded,
+                color: const Color(0xFF64748B),
               ),
             ),
           ],
@@ -397,9 +410,10 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         const SizedBox(height: 16),
         if (selected.isEmpty)
-          Text(
-            'No interests selected yet.',
-            style: TextStyle(color: AppColors.textHint, fontSize: 14),
+          const VibeEmptyState(
+            title: 'No interests yet',
+            message: 'Add interests so matches and invites fit you better.',
+            icon: Icons.interests_rounded,
           )
         else
           Wrap(
@@ -494,52 +508,10 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         const SizedBox(height: 16),
         if (badges.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF1A2233), const Color(0xFF111722)]
-                    : [const Color(0xFFF8FAFF), Colors.white],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark ? Colors.white10 : AppColors.borderLight,
-              ),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.military_tech_rounded,
-                    size: 32,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'No Badges Yet',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Participate in events to earn your first badge!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? Colors.white60 : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+          const VibeEmptyState(
+            title: 'No badges yet',
+            message: 'Join and host events to unlock profile badges.',
+            icon: Icons.military_tech_rounded,
           )
         else
           SizedBox(
@@ -633,7 +605,7 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             if (_historyLoading)
               Container(
                 height: 80,
@@ -758,7 +730,7 @@ class _ProfilePageState extends State<ProfilePage>
             Image.network(
               event.photoUrls.isNotEmpty
                   ? event.photoUrls.first
-                  : 'https://picsum.photos/seed/${event.id}/900/500',
+                  : 'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-${(event.id.hashCode % 20) + 1}.webp',
               fit: BoxFit.cover,
               errorBuilder: (e, s, t) =>
                   Container(color: AppColors.bgSecondary),
@@ -789,13 +761,6 @@ class _ProfilePageState extends State<ProfilePage>
                     color: Colors.white.withValues(alpha: 0.2),
                     width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF1E40AF).withValues(alpha: 0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -893,7 +858,7 @@ class _ProfilePageState extends State<ProfilePage>
           Image.network(
             event.photoUrls.isNotEmpty
                 ? event.photoUrls.first
-                : 'https://picsum.photos/seed/${event.id}/400',
+                : 'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-${(event.id.hashCode % 20) + 1}.webp',
             fit: BoxFit.cover,
             errorBuilder: (e, s, t) => Container(color: AppColors.bgSecondary),
           ),
@@ -1079,13 +1044,6 @@ class _ReputationBadge extends StatelessWidget {
                   fontSize: 26,
                   letterSpacing: -0.5,
                   height: 1,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(0, 2),
-                      blurRadius: 4,
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -1131,16 +1089,11 @@ class _BadgeCard extends StatelessWidget {
       height: 140,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: data.isUnlocked
-            ? [
-                BoxShadow(
-                  color: primary.withValues(alpha: isDark ? 0.2 : 0.1),
-                  blurRadius: 18,
-                  offset: const Offset(0, 4),
-                  spreadRadius: -2,
-                ),
-              ]
-            : [],
+        border: Border.all(
+          color: data.isUnlocked
+              ? primary.withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.08),
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -1212,14 +1165,6 @@ class _BadgeCard extends StatelessWidget {
                             ),
                             width: 1.5,
                           ),
-                          boxShadow: data.isUnlocked
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.white.withValues(alpha: 0.18),
-                                    blurRadius: 14,
-                                  ),
-                                ]
-                              : [],
                         ),
                         child: Icon(
                           data.icon,

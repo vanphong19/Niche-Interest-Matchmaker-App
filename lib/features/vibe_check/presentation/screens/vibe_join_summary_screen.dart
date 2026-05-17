@@ -12,7 +12,7 @@ class VibeJoinSummaryScreen extends StatelessWidget {
     return PageRouteBuilder<void>(
       transitionDuration: const Duration(milliseconds: 420),
       reverseTransitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, __, ___) => const VibeJoinSummaryScreen(),
+      pageBuilder: (_, _, _) => const VibeJoinSummaryScreen(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final offset =
             Tween<Offset>(

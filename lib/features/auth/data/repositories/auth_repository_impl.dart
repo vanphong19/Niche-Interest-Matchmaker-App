@@ -79,6 +79,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String email,
     String password,
     String displayName,
+    String verificationCode,
   ) async {
     try {
       final response = await _dio.post(
@@ -87,6 +88,7 @@ class AuthRepositoryImpl implements AuthRepository {
           'email': email,
           'password': password,
           'displayName': displayName,
+          'verificationCode': verificationCode,
         },
       );
       final payload = _unwrap(response.data);
@@ -95,7 +97,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (e.response?.statusCode == 400) {
         final msg =
             _unwrap(e.response?.data)['message']?.toString() ??
-            'Email đã tồn tại';
+            'Email đã tồn tại hoặc mã OTP không đúng';
         throw Exception(msg);
       }
       if (e.type == DioExceptionType.connectionError ||
@@ -105,6 +107,20 @@ class AuthRepositoryImpl implements AuthRepository {
       throw Exception(
         'Đăng ký thất bại: ${_unwrap(e.response?.data)['message'] ?? e.message}',
       );
+    }
+  }
+
+  @override
+  Future<void> sendSignUpOtp(String email) async {
+    try {
+      await _dio.post(
+        '/api/auth/send-otp',
+        data: {'email': email},
+      );
+    } on DioException catch (e) {
+      final msg = _unwrap(e.response?.data)['message']?.toString() ??
+          'Không thể gửi mã xác thực. Email có thể đã tồn tại.';
+      throw Exception(msg);
     }
   }
 
@@ -172,8 +188,20 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    await secureStorage.delete(key: 'jwt_token');
-    await secureStorage.delete(key: 'refresh_token');
+    try {
+      final refreshToken = await secureStorage.read(key: 'refresh_token');
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await _dio.post(
+          '/api/auth/logout',
+          data: {'refreshToken': refreshToken},
+        );
+      }
+    } catch (e) {
+      // Ignore network errors during logout
+    } finally {
+      await secureStorage.delete(key: 'jwt_token');
+      await secureStorage.delete(key: 'refresh_token');
+    }
   }
 
   @override
@@ -195,6 +223,37 @@ class AuthRepositoryImpl implements AuthRepository {
     } on DioException catch (e) {
       final msg = _unwrap(e.response?.data)['message']?.toString() ??
           'Failed to change password';
+      throw Exception(msg);
+    }
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async {
+    try {
+      await _dio.post('/api/auth/forgot-password', data: {'email': email});
+    } on DioException catch (e) {
+      final msg =
+          _unwrap(e.response?.data)['message']?.toString() ??
+          'Failed to send reset code';
+      throw Exception(msg);
+    }
+  }
+
+  @override
+  Future<void> resetPassword(
+    String email,
+    String code,
+    String newPassword,
+  ) async {
+    try {
+      await _dio.post(
+        '/api/auth/reset-password',
+        data: {'email': email, 'code': code, 'newPassword': newPassword},
+      );
+    } on DioException catch (e) {
+      final msg =
+          _unwrap(e.response?.data)['message']?.toString() ??
+          'Invalid or expired reset code';
       throw Exception(msg);
     }
   }

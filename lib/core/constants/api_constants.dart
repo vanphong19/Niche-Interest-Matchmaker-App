@@ -2,11 +2,14 @@
 class ApiConstants {
   ApiConstants._();
 
-  // Tự động chọn URL: localhost cho Web/iOS, 10.0.2.2 cho Android Emulator
+  // Tự động chọn URL: localhost cho Web, IP mạng LAN cho điện thoại thật/máy ảo
   static String get baseUrl {
-    // Nếu chạy trên Web hoặc không phải Android Emulator thì dùng localhost
-    // Vì bạn đang test trên trình duyệt nên tôi đổi mặc định về localhost:5230
-    return 'http://localhost:5230';
+    // kIsWeb cần import 'package:flutter/foundation.dart';
+    // Nếu chạy trên Web thì gọi thẳng localhost
+    // Đã cập nhật port thành 5230 theo Backend của user
+    return const bool.fromEnvironment('dart.library.js_util')
+        ? 'http://localhost:5230'
+        : 'http://192.168.1.6:5230'; // IP LAN của máy tính
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────

@@ -7,9 +7,14 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vibe_button.dart';
+import '../../../../core/widgets/vibe_empty_state.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../../core/widgets/avatar_widget.dart';
+import '../../../../core/widgets/snackbar_service.dart';
+import '../../../../core/services/signalr_service.dart';
 import '../../../../injection/injection_container.dart';
 import '../../data/services/event_api_service.dart';
+import '../../domain/entities/event.dart';
 
 @RoutePage()
 class ManageEventPage extends StatefulWidget {
@@ -27,15 +32,33 @@ class _ManageEventPageState extends State<ManageEventPage>
 
   late Future<List<Map<String, String>>> _requestsFuture;
   late Future<List<Map<String, String>>> _participantsFuture;
+  bool _isReadOnly = false;
+  StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+    _realtimeSubscription = sl<SignalRService>().dataChangeStream.listen((
+      data,
+    ) {
+      final eventId = (data['eventId'] ?? data['EventId'])?.toString();
+      if (eventId == null || eventId == widget.eventId) _refresh();
+    });
   }
 
   void _loadData() {
+    sl<EventApiService>().getEventDetail(widget.eventId).then((event) {
+      if (!mounted) return;
+      final ended = event.endDateTime?.isBefore(DateTime.now()) ?? false;
+      setState(() {
+        _isReadOnly =
+            ended ||
+            event.status == EventStatus.completed ||
+            event.status == EventStatus.cancelled;
+      });
+    });
     _requestsFuture = sl<EventApiService>().getPendingJoinRequests(
       widget.eventId,
     );
@@ -46,6 +69,7 @@ class _ManageEventPageState extends State<ManageEventPage>
 
   @override
   void dispose() {
+    _realtimeSubscription?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -57,18 +81,23 @@ class _ManageEventPageState extends State<ManageEventPage>
   }
 
   Future<void> _approve(String requestId) async {
+    if (_isReadOnly) return;
     HapticFeedback.mediumImpact();
     await sl<EventApiService>().approveJoinRequest(widget.eventId, requestId);
+    sl<SignalRService>().emitLocalChange('event', {'eventId': widget.eventId});
     _refresh();
   }
 
   Future<void> _reject(String requestId) async {
+    if (_isReadOnly) return;
     HapticFeedback.lightImpact();
     await sl<EventApiService>().rejectJoinRequest(widget.eventId, requestId);
+    sl<SignalRService>().emitLocalChange('event', {'eventId': widget.eventId});
     _refresh();
   }
 
   Future<void> _removeMember(String userId) async {
+    if (_isReadOnly) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -95,11 +124,18 @@ class _ManageEventPageState extends State<ManageEventPage>
     if (confirmed == true) {
       HapticFeedback.mediumImpact();
       await sl<EventApiService>().removeParticipant(widget.eventId, userId);
+      sl<SignalRService>().emitLocalChange('event', {
+        'eventId': widget.eventId,
+      });
       _refresh();
     }
   }
 
   void _showInviteDialog() {
+    if (_isReadOnly) {
+      VibeSnackBar.info(context, 'This event is done. Members are read-only.');
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -120,14 +156,16 @@ class _ManageEventPageState extends State<ManageEventPage>
       appBar: VibeHeader(
         title: 'Manage Event',
         subtitle: 'Participants & Requests',
-        actions: [
-          VibeHeaderButton(
-            icon: Icons.person_add_rounded,
-            onTap: _showInviteDialog,
-            isDark: isDark,
-            color: AppColors.primary,
-          ),
-        ],
+        actions: _isReadOnly
+            ? null
+            : [
+                VibeHeaderButton(
+                  icon: Icons.person_add_rounded,
+                  onTap: _showInviteDialog,
+                  isDark: isDark,
+                  color: AppColors.primary,
+                ),
+              ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
@@ -258,11 +296,11 @@ class _ManageEventPageState extends State<ManageEventPage>
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundImage: NetworkImage(
-              member['avatarUrl'] ?? 'https://i.pravatar.cc/100',
-            ),
+          VibeAvatar(
+            imageUrl: member['avatarUrl'],
+            name: member['name'],
+            size: 48,
+            showBorder: false,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -288,7 +326,7 @@ class _ManageEventPageState extends State<ManageEventPage>
               ],
             ),
           ),
-          if (!isHost)
+          if (!isHost && !_isReadOnly)
             IconButton(
               onPressed: () => _removeMember(member['id'] ?? ''),
               icon: const Icon(
@@ -316,11 +354,11 @@ class _ManageEventPageState extends State<ManageEventPage>
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundImage: NetworkImage(
-                  request['avatarUrl'] ?? 'https://i.pravatar.cc/100',
-                ),
+              VibeAvatar(
+                imageUrl: request['avatarUrl'],
+                name: request['name'],
+                size: 44,
+                showBorder: false,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -367,24 +405,25 @@ class _ManageEventPageState extends State<ManageEventPage>
             ),
           ],
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: VibeButton(
-                  label: 'Reject',
-                  onPressed: () => _reject(request['id'] ?? ''),
-                  type: VibeButtonType.secondary,
+          if (!_isReadOnly)
+            Row(
+              children: [
+                Expanded(
+                  child: VibeButton(
+                    label: 'Reject',
+                    onPressed: () => _reject(request['id'] ?? ''),
+                    type: VibeButtonType.secondary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: VibeButton(
-                  label: 'Approve',
-                  onPressed: () => _approve(request['id'] ?? ''),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: VibeButton(
+                    label: 'Approve',
+                    onPressed: () => _approve(request['id'] ?? ''),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
@@ -392,23 +431,15 @@ class _ManageEventPageState extends State<ManageEventPage>
 
   Widget _buildEmptyState(String message, IconData icon) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 48,
-            color: AppColors.textHint.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: const TextStyle(
-              color: AppColors.textHint,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: VibeEmptyState(
+          title: message,
+          message: message == 'No pending requests'
+              ? 'New join requests will appear here in realtime.'
+              : 'Participants will appear here as soon as they join.',
+          icon: icon,
+        ),
       ),
     );
   }
@@ -428,6 +459,29 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
   List<Map<String, String>> _results = [];
   bool _isLoading = false;
   final Set<String> _invitedIds = {};
+  final Set<String> _participantIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParticipants();
+  }
+
+  Future<void> _loadParticipants() async {
+    final participants = await sl<EventApiService>().getEventParticipants(
+      widget.eventId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _participantIds
+        ..clear()
+        ..addAll(
+          participants
+              .map((member) => (member['id'] ?? '').toLowerCase())
+              .where((id) => id.isNotEmpty),
+        );
+    });
+  }
 
   Future<void> _search() async {
     final query = _searchCtrl.text.trim();
@@ -436,10 +490,18 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
       return;
     }
     setState(() => _isLoading = true);
-    final results = await sl<EventApiService>().searchUsers(query);
+    final results = await sl<EventApiService>().searchUsers(
+      query,
+      eventId: widget.eventId,
+    );
     if (mounted) {
       setState(() {
-        _results = results;
+        _results = results
+            .where(
+              (user) =>
+                  !_participantIds.contains((user['id'] ?? '').toLowerCase()),
+            )
+            .toList();
         _isLoading = false;
       });
     }
@@ -449,19 +511,17 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
     HapticFeedback.mediumImpact();
     try {
       await sl<EventApiService>().inviteUser(widget.eventId, userId);
-      setState(() => _invitedIds.add(userId));
+      setState(() => _invitedIds.add(userId.toLowerCase()));
+      sl<SignalRService>().emitLocalChange('event', {
+        'eventId': widget.eventId,
+      });
       widget.onInvite();
       if (mounted) {
-        _showLuxuryToast(context, 'User invited successfully!');
+        VibeFeedback.apiSuccess(context, 'User invited successfully!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to invite user: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        VibeFeedback.apiError(context, e);
       }
     }
   }
@@ -482,13 +542,9 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        border: Border.all(
+          color: isDark ? Colors.white10 : AppColors.borderLight,
+        ),
       ),
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       child: Column(
@@ -526,32 +582,87 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
           TextField(
             controller: _searchCtrl,
+            onChanged: (_) => _search(),
+            textAlignVertical: TextAlignVertical.center,
             style: TextStyle(
-              color: isDark ? Colors.white : AppColors.secondary,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
+              constraints: const BoxConstraints(
+                maxHeight: 45,
+              ),
               hintText: 'Search by name or email...',
               hintStyle: TextStyle(
-                color: isDark ? Colors.white38 : AppColors.textHint,
+                color: isDark ? AppColors.darkTextHint : AppColors.textHint,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
-              prefixIcon: Icon(
-                Icons.search_rounded,
-                color: isDark ? Colors.white38 : AppColors.textHint,
+              prefixIcon: Container(
+                width: 46,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 0,
+              ),
+              suffixIcon: _searchCtrl.text.isNotEmpty
+                  ? Container(
+                      width: 40,
+                      alignment: Alignment.center,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          _search();
+                          setState(() {});
+                        },
+                      ),
+                    )
+                  : null,
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 0,
               ),
               filled: true,
               fillColor: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : AppColors.bgSecondary,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.white,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
+                  width: 1.2,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 16),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.2,
+                ),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
+                  width: 1.2,
+                ),
+              ),
             ),
-            onChanged: (_) => _search(),
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -559,33 +670,24 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
                 ? const Center(child: CircularProgressIndicator())
                 : _results.isEmpty
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _searchCtrl.text.isEmpty
-                              ? Icons.person_search_rounded
-                              : Icons.search_off_rounded,
-                          size: 48,
-                          color: isDark ? Colors.white24 : Colors.black12,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchCtrl.text.isEmpty
-                              ? 'Enter a name or email to start'
-                              : 'No users found matching your search',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isDark ? Colors.white38 : AppColors.textHint,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: VibeEmptyState(
+                        title: _searchCtrl.text.isEmpty
+                            ? 'Search users'
+                            : 'No users found',
+                        message: _searchCtrl.text.isEmpty
+                            ? 'Enter a name or email to find people to invite.'
+                            : 'Try a different name or email.',
+                        icon: _searchCtrl.text.isEmpty
+                            ? Icons.person_search_rounded
+                            : Icons.search_off_rounded,
+                      ),
                     ),
                   )
                 : ListView.separated(
                     itemCount: _results.length,
-                    separatorBuilder: (_, __) => Divider(
+                    separatorBuilder: (_, _) => Divider(
                       color: isDark
                           ? Colors.white10
                           : Colors.black.withValues(alpha: 0.03),
@@ -593,35 +695,28 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
                     ),
                     itemBuilder: (context, index) {
                       final user = _results[index];
+                      final userId = user['id'] ?? '';
+                      final inviteStatus = (user['inviteStatus'] ?? '')
+                          .toLowerCase();
+                      final isParticipant = _participantIds.contains(
+                        userId.toLowerCase(),
+                      );
+                      final isAlreadyInvited =
+                          isParticipant ||
+                          _invitedIds.contains(userId.toLowerCase()) ||
+                          inviteStatus == 'invited' ||
+                          inviteStatus == 'pending' ||
+                          inviteStatus == 'joined' ||
+                          inviteStatus == 'accepted';
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                        leading: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              width: 2,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 24,
-                            backgroundColor: isDark
-                                ? Colors.white10
-                                : AppColors.bgSecondary,
-                            backgroundImage:
-                                (user['avatarUrl']?.isNotEmpty ?? false)
-                                ? NetworkImage(user['avatarUrl']!)
-                                : null,
-                            child: (user['avatarUrl']?.isEmpty ?? true)
-                                ? Icon(
-                                    Icons.person_rounded,
-                                    color: isDark
-                                        ? Colors.white24
-                                        : Colors.black12,
-                                  )
-                                : null,
-                            onBackgroundImageError: (o, s) {},
-                          ),
+                        leading: VibeAvatar(
+                          imageUrl: user['avatarUrl'],
+                          name: user['name'],
+                          size: 48,
+                          showBorder: true,
+                          borderColor: AppColors.primary.withValues(alpha: 0.2),
+                          borderWidth: 2,
                         ),
                         title: Text(
                           user['name'] ?? '',
@@ -641,14 +736,14 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
                           width: 80,
                           height: 32,
                           child: ElevatedButton(
-                            onPressed: _invitedIds.contains(user['id'])
+                            onPressed: isAlreadyInvited
                                 ? null
-                                : () => _invite(user['id']!),
+                                : () => _invite(userId),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _invitedIds.contains(user['id'])
+                              backgroundColor: isAlreadyInvited
                                   ? Colors.grey.withValues(alpha: 0.1)
                                   : AppColors.primary,
-                              foregroundColor: _invitedIds.contains(user['id'])
+                              foregroundColor: isAlreadyInvited
                                   ? Colors.grey
                                   : Colors.white,
                               elevation: 0,
@@ -658,9 +753,11 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
                               ),
                             ),
                             child: Text(
-                              _invitedIds.contains(user['id'])
-                                  ? 'Invited'
-                                  : 'Invite',
+                              inviteStatus == 'joined' ||
+                                      isParticipant ||
+                                      inviteStatus == 'accepted'
+                                  ? 'Joined'
+                                  : (isAlreadyInvited ? 'Invited' : 'Invite'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
@@ -673,106 +770,6 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showLuxuryToast(BuildContext context, String message) {
-    final overlay = Overlay.of(context);
-    final entry = OverlayEntry(
-      builder: (context) => _LuxuryToastWidget(message: message),
-    );
-
-    overlay.insert(entry);
-    Future.delayed(const Duration(seconds: 3), () {
-      if (entry.mounted) entry.remove();
-    });
-  }
-}
-
-class _LuxuryToastWidget extends StatefulWidget {
-  final String message;
-  const _LuxuryToastWidget({required this.message});
-
-  @override
-  State<_LuxuryToastWidget> createState() => _LuxuryToastWidgetState();
-}
-
-class _LuxuryToastWidgetState extends State<_LuxuryToastWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacity;
-  late Animation<Offset> _offset;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _offset = Tween<Offset>(
-      begin: const Offset(0, -0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
-
-    _controller.forward();
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) _controller.reverse();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 20,
-      left: 20,
-      right: 20,
-      child: FadeTransition(
-        opacity: _opacity,
-        child: SlideTransition(
-          position: _offset,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981), // Emerald Green
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle_outline, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      widget.message,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

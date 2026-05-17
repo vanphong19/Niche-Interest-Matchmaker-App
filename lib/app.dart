@@ -51,6 +51,18 @@ class _VibeAppState extends State<VibeApp> {
                   themeMode: themeMode,
                   locale: Locale(localeStr),
                   scrollBehavior: NoScrollGlowBehavior(),
+                  builder: (context, child) {
+                    return GestureDetector(
+                      onTap: () {
+                        final currentFocus = FocusScope.of(context);
+                        if (!currentFocus.hasPrimaryFocus &&
+                            currentFocus.focusedChild != null) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        }
+                      },
+                      child: child,
+                    );
+                  },
                   routerConfig: _appRouter.config(),
                 );
               },

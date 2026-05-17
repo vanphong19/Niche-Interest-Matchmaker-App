@@ -143,6 +143,8 @@ class CreateEventCubit extends Cubit<CreateEventState> {
         'time': '${state.time?.hour}:${state.time?.minute}',
         'locationName': state.locationName,
         'location': state.address,
+        'latitude': state.coordinates?.latitude,
+        'longitude': state.coordinates?.longitude,
         'isEliteOnly': state.isEliteOnly,
         'isPublic': state.isPublic,
         'vibeTags': state.vibeTags.join(', '),

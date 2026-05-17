@@ -37,15 +37,29 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
     AutoRoute(page: ManageEventRoute.page, path: '/event/:id/manage'),
     AutoRoute(page: UserMatchListRoute.page, path: '/match/list'),
+    AutoRoute(page: MapDiscoveryRoute.page, path: '/map'),
 
     // ─── Settings ─────────────────────────────────────────────
     AutoRoute(page: SettingsRoute.page, path: '/settings'),
+    AutoRoute(
+      page: ChangePasswordRoute.page,
+      path: '/settings/change-password',
+    ),
+    AutoRoute(page: HelpCenterRoute.page, path: '/settings/help-center'),
+    AutoRoute(
+      page: TermsOfServiceRoute.page,
+      path: '/settings/terms-of-service',
+    ),
+    AutoRoute(page: PrivacyPolicyRoute.page, path: '/settings/privacy-policy'),
 
     // ─── Profile Edit & View ───────────────────────────────────
     AutoRoute(page: EditProfileRoute.page, path: '/profile/edit'),
     AutoRoute(page: LocationPickerRoute.page, path: '/profile/location-picker'),
     AutoRoute(page: OtherUserProfileRoute.page, path: '/profile/:id'),
     AutoRoute(page: AllActivityHistoryRoute.page, path: '/profile/history'),
+
+    // Public profile slug, e.g. http://localhost:xxxx/namle
+    AutoRoute(page: PublicProfileRoute.page, path: '/:id'),
   ];
 
   @override

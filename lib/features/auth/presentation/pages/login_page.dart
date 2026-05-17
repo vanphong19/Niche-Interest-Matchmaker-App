@@ -1,13 +1,17 @@
 // lib/features/auth/presentation/pages/login_page.dart
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:niche_interest_matchmaker_app/core/utils/profile_state.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/widgets/vibe_button.dart';
 import '../../../../core/widgets/vibe_text_field.dart';
+import '../../../../features/auth/data/services/supabase_auth_service.dart';
+import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -26,6 +30,7 @@ class _LoginPageState extends State<LoginPage>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isSocialLoading = false;
 
   late AnimationController _animController;
   late Animation<Offset> _slideAnimation;
@@ -68,17 +73,14 @@ class _LoginPageState extends State<LoginPage>
           context.router.replaceAll([const BaseRoute()]);
         }
         if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          VibeSnackBar.error(context, state.message);
         }
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Stack(
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Stack(
           children: [
             // Background decoration
             Positioned(
@@ -140,10 +142,12 @@ class _LoginPageState extends State<LoginPage>
                                     prefixIcon: Icons.email_outlined,
                                     keyboardType: TextInputType.emailAddress,
                                     validator: (v) {
-                                      if (v == null || v.isEmpty)
+                                      if (v == null || v.isEmpty) {
                                         return 'Email is required';
-                                      if (!v.contains('@'))
+                                      }
+                                      if (!v.contains('@')) {
                                         return 'Enter a valid email';
+                                      }
                                       return null;
                                     },
                                   ),
@@ -155,10 +159,12 @@ class _LoginPageState extends State<LoginPage>
                                     prefixIcon: Icons.lock_outline_rounded,
                                     isPassword: true,
                                     validator: (v) {
-                                      if (v == null || v.isEmpty)
+                                      if (v == null || v.isEmpty) {
                                         return 'Password is required';
-                                      if (v.length < 6)
+                                      }
+                                      if (v.length < 6) {
                                         return 'Min 6 characters';
+                                      }
                                       return null;
                                     },
                                   ),
@@ -200,6 +206,7 @@ class _LoginPageState extends State<LoginPage>
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -286,11 +293,7 @@ class _LoginPageState extends State<LoginPage>
               color: Color(0xFFEA4335),
             ),
             text: 'Google',
-            onTap: () {
-              context.read<AuthBloc>().add(
-                const LoginSubmitted('social@google.com', 'social123'),
-              );
-            },
+            onTap: _isSocialLoading ? null : () => _handleGoogleLogin(),
           ),
         ),
         const SizedBox(width: 16),
@@ -302,39 +305,185 @@ class _LoginPageState extends State<LoginPage>
               color: Color(0xFF1877F2),
             ),
             text: 'Facebook',
-            onTap: () {
-              context.read<AuthBloc>().add(
-                const LoginSubmitted('social@facebook.com', 'social123'),
-              );
-            },
+            onTap: _isSocialLoading ? null : () => _showComingSoonDialog(),
           ),
         ),
       ],
     );
   }
 
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isSocialLoading = true);
+    try {
+      final data = await sl<SupabaseAuthService>().signInWithGoogle();
+      if (!mounted || data == null) {
+        if (mounted) setState(() => _isSocialLoading = false);
+        return;
+      }
+      context.read<AuthBloc>().add(
+        SocialLoginSubmitted(
+          provider: data['provider'] ?? 'google',
+          email: data['email'] ?? '',
+          displayName: data['displayName'] ?? '',
+          providerId: data['providerId'] ?? '',
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSocialLoading = false);
+        VibeSnackBar.error(context, e.toString());
+      }
+    }
+  }
+
+  void _showComingSoonDialog() {
+    HapticFeedback.mediumImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? AppColors.darkBgSecondary : Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1877F2), Color(0xFF42A5F5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1877F2).withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: FaIcon(
+                  FontAwesomeIcons.facebook,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Coming Soon',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Facebook login is currently under development. '
+              'Please use Google Sign-In or email to continue.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: AppColors.warning,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'In Development',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.warning,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            VibeButton(
+              label: 'Got it',
+              onPressed: () => Navigator.pop(context),
+              height: 44,
+              fontSize: 14,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _socialButton({
     required Widget icon,
     required String text,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
+    final isLoading = _isSocialLoading && text == 'Google';
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         height: 52,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight, width: 1.5),
+          border: Border.all(
+            color: isLoading
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : AppColors.borderLight,
+            width: 1.5,
+          ),
+          color: isLoading
+              ? AppColors.primary.withValues(alpha: 0.04)
+              : Colors.transparent,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            icon,
+            if (isLoading)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              )
+            else
+              icon,
             const SizedBox(width: 10),
             Text(
-              text,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              isLoading ? 'Signing in...' : text,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: isLoading ? AppColors.primary : null,
+              ),
             ),
           ],
         ),

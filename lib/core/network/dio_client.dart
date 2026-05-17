@@ -7,7 +7,6 @@ import '../constants/api_constants.dart';
 import '../errors/failures.dart';
 import '../errors/exceptions.dart';
 import 'interceptors/auth_interceptor.dart';
-import 'interceptors/mock_interceptor.dart';
 
 class DioClient {
   late final Dio _dio;
@@ -35,7 +34,6 @@ class DioClient {
         secureStorage: _secureStorage,
         dio: _dio,
       ),
-      MockInterceptor(),
       LogInterceptor(
         requestBody: true,
         responseBody: true,

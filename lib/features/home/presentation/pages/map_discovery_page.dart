@@ -8,11 +8,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../../event/presentation/bloc/event_bloc.dart';
+import '../../../../core/utils/app_localizations.dart';
 
 @RoutePage()
 class MapDiscoveryPage extends StatefulWidget {
@@ -31,8 +31,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
     viewportFraction: 0.85,
   );
 
-  List<Event> _searchResults = [];
-  bool _showSuggestions = false;
   String _selectedCategory = 'All';
 
   final List<Map<String, String>> _categories = [
@@ -50,13 +48,23 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
     super.initState();
     _eventBloc = sl<EventBloc>();
     _eventBloc.add(LoadEvents());
-    _searchFocus.addListener(() {
-      setState(() {
-        if (!_searchFocus.hasFocus) {
-          _showSuggestions = false;
-        }
-      });
-    });
+    _cardPageController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_cardPageController.page == null) return;
+    final maxScroll = _cardPageController.position.maxScrollExtent;
+    final currentScroll = _cardPageController.position.pixels;
+    if (maxScroll - currentScroll <= 200) {
+      if (!_eventBloc.state.isLoading && !_eventBloc.state.hasReachedMax) {
+        _eventBloc.add(
+          LoadEvents(
+            category: _selectedCategory == 'All' ? null : _selectedCategory,
+            isRefresh: false,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -68,44 +76,13 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
   }
 
   void _onSearch(String query) {
-    if (query.length > 1) {
-      // Search across title, category, vibe tags, and location
-      final state = _eventBloc.state;
-      if (state.events.isNotEmpty) {
-        final q = query.toLowerCase();
-        final filtered = state.events.where((e) {
-          return e.title.toLowerCase().contains(q) ||
-              e.categoryName.toLowerCase().contains(q) ||
-              (e.vibeTags?.toLowerCase().contains(q) ?? false) ||
-              e.location.name.toLowerCase().contains(q) ||
-              e.location.address.toLowerCase().contains(q);
-        }).toList();
-        setState(() {
-          _searchResults = filtered;
-          _showSuggestions = true;
-        });
-      } else {
-        _eventBloc.add(SearchEvents(query));
-      }
-    } else if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _showSuggestions = false;
-      });
-      _eventBloc.add(
-        LoadEvents(
-          category: _selectedCategory == 'All' ? null : _selectedCategory,
-        ),
-      );
-    }
+    setState(() {}); // Just trigger rebuild to filter list below
   }
 
   void _onCategoryTap(String category) {
     HapticFeedback.selectionClick();
     setState(() => _selectedCategory = category);
     _eventBloc.add(LoadEvents(category: category == 'All' ? null : category));
-    _searchCtrl.clear();
-    setState(() => _showSuggestions = false);
   }
 
   @override
@@ -120,10 +97,19 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
             // Map Layer
             BlocBuilder<EventBloc, EventState>(
               builder: (context, state) {
+                final query = _searchCtrl.text.toLowerCase();
                 List<Event> events = [];
                 if (state.events.isNotEmpty) {
                   events = state.events
                       .where((e) => e.status == EventStatus.active)
+                      .where((e) {
+                        if (query.isEmpty) return true;
+                        return e.title.toLowerCase().contains(query) ||
+                            e.categoryName.toLowerCase().contains(query) ||
+                            e.location.name.toLowerCase().contains(query) ||
+                            (e.vibeTags?.toLowerCase().contains(query) ??
+                                false);
+                      })
                       .toList();
                 }
 
@@ -134,7 +120,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                     initialZoom: 14.0,
                     onTap: (_, _) {
                       FocusScope.of(context).unfocus();
-                      setState(() => _showSuggestions = false);
                     },
                     interactionOptions: const InteractionOptions(
                       flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
@@ -256,122 +241,113 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
               right: 20,
               child: Column(
                 children: [
-                  // Search bar
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.black.withValues(alpha: 0.8)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(23),
-                      border: Border.all(
-                        color: _searchFocus.hasFocus
-                            ? AppColors.primary
-                            : (isDark ? Colors.white : Colors.black).withValues(
-                                alpha: 0.1,
+                  // Search bar + Back button cùng hàng
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _MapBackButton(isDark: isDark),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchCtrl,
+                          focusNode: _searchFocus,
+                          onChanged: _onSearch,
+                          textAlignVertical: TextAlignVertical.center,
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: InputDecoration(
+                            constraints: const BoxConstraints(
+                              maxHeight:
+                                  45, // ← ép đúng height, không để Flutter tự tính
+                            ),
+                            hintText: AppLocalizations.tr('search_placeholder'),
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? AppColors.darkTextHint
+                                  : AppColors.textHint,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            prefixIcon: Container(
+                              width: 46,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.search_rounded,
+                                color: AppColors.primary,
+                                size: 22,
                               ),
-                        width: 1.2,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: TextField(
-                      controller: _searchCtrl,
-                      focusNode: _searchFocus,
-                      onChanged: _onSearch,
-                      textAlignVertical: TextAlignVertical.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.secondary,
-                        fontSize: 15,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: AppLocalizations.tr('search_placeholder'),
-                        hintStyle: TextStyle(
-                          color: isDark
-                              ? AppColors.darkTextHint
-                              : AppColors.textHint,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                        prefixIcon: Center(
-                          widthFactor: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 16, right: 8),
-                            child: const Icon(
-                              Icons.search_rounded,
-                              color: AppColors.primary,
-                              size: 22,
+                            ),
+                            prefixIconConstraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 0,
+                            ),
+                            suffixIcon: _searchCtrl.text.isNotEmpty
+                                ? Container(
+                                    width: 40,
+                                    alignment: Alignment.center,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      icon: const Icon(
+                                        Icons.close_rounded,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        _searchCtrl.clear();
+                                        _onSearch('');
+                                        _searchFocus.unfocus();
+                                        setState(() {});
+                                      },
+                                    ),
+                                  )
+                                : null,
+                            suffixIconConstraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 0,
+                            ),
+                            filled: true,
+                            fillColor: isDark
+                                ? Colors.black.withValues(alpha: 0.85)
+                                : Colors.white,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 15,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.18)
+                                    : const Color(0xFFCBD5E1),
+                                width: 1.2,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                                width: 1.2,
+                              ),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.18)
+                                    : const Color(0xFFCBD5E1),
+                                width: 1.2,
+                              ),
                             ),
                           ),
                         ),
-                        prefixIconConstraints: const BoxConstraints(
-                          minWidth: 48,
-                          minHeight: 50,
-                        ),
-                        suffixIcon: Center(
-                          widthFactor: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _searchCtrl.text.isNotEmpty
-                                ? GestureDetector(
-                                    onTap: () {
-                                      _searchCtrl.clear();
-                                      _onSearch('');
-                                      _searchFocus.unfocus();
-                                    },
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.close_rounded,
-                                        color: AppColors.textSecondary,
-                                        size: 16,
-                                      ),
-                                    ),
-                                  )
-                                : GestureDetector(
-                                    onTap: () {},
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Icon(
-                                        Icons.tune_rounded,
-                                        color: isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.textSecondary,
-                                        size: 22,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        suffixIconConstraints: const BoxConstraints(
-                          minWidth: 44,
-                          minHeight: 50,
-                        ),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 11,
-                        ),
-                        filled: false,
                       ),
-                    ),
+                    ],
                   ),
                   // Category filter chips
                   const SizedBox(height: 12),
@@ -385,10 +361,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                         final cat = _categories[index];
                         final isSelected = _selectedCategory == cat['name'];
                         return Padding(
-                          padding: EdgeInsets.only(
-                            right: 8,
-                            left: index == 0 ? 0 : 0,
-                          ),
+                          padding: EdgeInsets.only(right: 8),
                           child: GestureDetector(
                             onTap: () => _onCategoryTap(cat['name']!),
                             child: AnimatedContainer(
@@ -403,24 +376,13 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                                     : (isDark ? Colors.black : Colors.white)
                                           .withValues(alpha: 0.85),
                                 borderRadius: BorderRadius.circular(16),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: AppColors.primary.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ]
-                                    : [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.08,
-                                          ),
-                                          blurRadius: 8,
-                                        ),
-                                      ],
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : (isDark
+                                            ? Colors.white10
+                                            : AppColors.borderLight),
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -452,118 +414,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                       },
                     ),
                   ),
-                  // Search Suggestions Dropdown
-                  if (_showSuggestions && _searchResults.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.36,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (isDark
-                            ? AppColors.darkCardBackground
-                            : Colors.white),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shrinkWrap: true,
-                          itemCount: _searchResults.length,
-                          separatorBuilder: (_, _) => Divider(
-                            height: 1,
-                            color: isDark
-                                ? AppColors.darkBorderLight
-                                : AppColors.borderLight,
-                            indent: 68,
-                          ),
-                          itemBuilder: (context, index) {
-                            final event = _searchResults[index];
-                            return ListTile(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                _searchFocus.unfocus();
-                                setState(() => _showSuggestions = false);
-                                _mapController.move(
-                                  LatLng(
-                                    event.location.latitude,
-                                    event.location.longitude,
-                                  ),
-                                  15,
-                                );
-                                context.router.push(
-                                  EventDetailRoute(eventId: event.id),
-                                );
-                              },
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
-                              ),
-                              leading: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: AppColors.getCategoryColor(
-                                    event.categoryName,
-                                  ).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    event.categoryEmoji,
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                                ),
-                              ),
-                              title: Text(
-                                event.title,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: isDark
-                                      ? AppColors.darkTextPrimary
-                                      : AppColors.secondary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Text(
-                                '${event.categoryName} • ${event.location.name}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primarySurface,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${event.matchScore.toInt()}%',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -577,14 +427,23 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                 height: 165,
                 child: BlocBuilder<EventBloc, EventState>(
                   builder: (context, state) {
-                    if (state.events.isNotEmpty) {
+                    final query = _searchCtrl.text.toLowerCase();
+                    final List<Event> filteredEvents = state.events.where((e) {
+                      if (query.isEmpty) return true;
+                      return e.title.toLowerCase().contains(query) ||
+                          e.categoryName.toLowerCase().contains(query) ||
+                          e.location.name.toLowerCase().contains(query) ||
+                          (e.vibeTags?.toLowerCase().contains(query) ?? false);
+                    }).toList();
+
+                    if (filteredEvents.isNotEmpty) {
                       return PageView.builder(
                         controller: _cardPageController,
                         physics: const BouncingScrollPhysics(),
-                        itemCount: state.events.length,
+                        itemCount: filteredEvents.length,
                         clipBehavior: Clip.none,
                         onPageChanged: (index) {
-                          final event = state.events[index];
+                          final event = filteredEvents[index];
                           _mapController.move(
                             LatLng(
                               event.location.latitude,
@@ -594,7 +453,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           );
                         },
                         itemBuilder: (context, index) {
-                          final event = state.events[index];
+                          final event = filteredEvents[index];
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: _buildGlassCard(event, isDark),
@@ -602,7 +461,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                         },
                       );
                     }
-                    if (state.events.isEmpty && !state.isLoading) {
+                    if (filteredEvents.isEmpty && !state.isLoading) {
                       return Center(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -675,7 +534,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                       child: Image.network(
                         event.photoUrls.isNotEmpty
                             ? event.photoUrls.first
-                            : 'https://picsum.photos/200',
+                            : 'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-${(event.id.hashCode % 20) + 1}.webp',
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
                           color: AppColors.bgSecondary,
@@ -809,6 +668,49 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MapBackButton extends StatelessWidget {
+  const _MapBackButton({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        context.router.maybePop();
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.72)
+                  : Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 18,
+              color: isDark ? Colors.white : AppColors.secondary,
             ),
           ),
         ),

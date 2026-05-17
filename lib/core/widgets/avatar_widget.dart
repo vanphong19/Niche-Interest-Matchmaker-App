@@ -30,26 +30,26 @@ class VibeAvatar extends StatelessWidget {
   final String? heroTag;
 
   String get _initials {
-    if (name == null || name!.isEmpty) return '?';
+    if (name == null || name!.trim().isEmpty) return '?';
     final parts = name!.trim().split(' ');
     if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
     }
     return parts[0][0].toUpperCase();
   }
 
   Color get _initialsColor {
-    if (name == null || name!.isEmpty) return AppColors.primary;
+    if (name == null || name!.trim().isEmpty) return const Color(0xFF6366F1); // Indigo default
     final hash = name!.codeUnits.fold<int>(0, (prev, el) => prev + el);
     final colors = [
-      AppColors.primary,
-      AppColors.accent,
-      AppColors.categoryOutdoors,
-      AppColors.categoryDining,
-      AppColors.categoryArts,
-      AppColors.categoryGaming,
-      AppColors.categoryMusic,
-      AppColors.categoryTech,
+      const Color(0xFF6366F1), // Indigo
+      const Color(0xFFEC4899), // Pink
+      const Color(0xFF8B5CF6), // Violet
+      const Color(0xFF06B6D4), // Cyan
+      const Color(0xFF10B981), // Emerald
+      const Color(0xFFF59E0B), // Amber
+      const Color(0xFFEF4444), // Red
+      const Color(0xFF3B82F6), // Blue
     ];
     return colors[hash % colors.length];
   }
@@ -94,6 +94,13 @@ class VibeAvatar extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
+    String? resolvedUrl = imageUrl;
+    if (resolvedUrl != null && resolvedUrl.isNotEmpty) {
+      if (resolvedUrl.contains('dicebear.com') && resolvedUrl.contains('/svg')) {
+        resolvedUrl = resolvedUrl.replaceAll('/svg', '/png');
+      }
+    }
+
     return Container(
       width: size,
       height: size,
@@ -108,9 +115,9 @@ class VibeAvatar extends StatelessWidget {
         boxShadow: showBorder ? AppSpacing.shadowSmall : null,
       ),
       child: ClipOval(
-        child: imageUrl != null && imageUrl!.isNotEmpty
+        child: resolvedUrl != null && resolvedUrl.isNotEmpty
             ? CachedNetworkImage(
-                imageUrl: imageUrl!,
+                imageUrl: resolvedUrl,
                 fit: BoxFit.cover,
                 width: size,
                 height: size,
@@ -123,16 +130,26 @@ class VibeAvatar extends StatelessWidget {
   }
 
   Widget _buildInitials() {
+    final color = _initialsColor;
     return Container(
-      color: _initialsColor.withValues(alpha: 0.15),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color,
+            color.withValues(alpha: 0.65),
+          ],
+        ),
+      ),
       child: Center(
         child: Text(
           _initials,
           style: TextStyle(
-            fontSize: size * 0.36,
-            fontWeight: FontWeight.w700,
-            color: _initialsColor,
-            letterSpacing: 0.5,
+            fontSize: size * 0.38,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: -0.5,
           ),
         ),
       ),

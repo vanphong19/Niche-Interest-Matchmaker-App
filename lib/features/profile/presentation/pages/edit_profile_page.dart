@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,8 +14,10 @@ import '../../../../core/widgets/vibe_button.dart';
 import '../../../../core/widgets/vibe_text_field.dart';
 import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../injection/injection_container.dart';
 import '../../data/services/user_api_service.dart';
+
 import '../../../../router/app_router.gr.dart';
 
 @RoutePage()
@@ -34,6 +37,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _emailCtrl;
 
   String? _localAvatarPath;
+  Uint8List? _localAvatarBytes;
+  String? _localAvatarName;
   late String _avatarUrl;
   late List<Map<String, dynamic>> _allInterests;
 
@@ -99,13 +104,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() => _isSaving = true);
     HapticFeedback.mediumImpact();
 
+    String? avatarToSend = _avatarUrl;
+    if (_localAvatarPath != null || _localAvatarBytes != null) {
+      final userApi = sl<UserApiService>();
+      final uploadedUrl = kIsWeb
+          ? await userApi.uploadAvatarBytes(
+              _localAvatarBytes!,
+              _localAvatarName ?? 'avatar.jpg',
+            )
+          : await userApi.uploadAvatar(_localAvatarPath!);
+      if (uploadedUrl != null) {
+        avatarToSend = uploadedUrl;
+      } else {
+        if (!mounted) return;
+        setState(() => _isSaving = false);
+        VibeSnackBar.error(context, 'Failed to upload profile image.');
+        return;
+      }
+    }
+
     final newProfile = ProfileState.notifier.value.copyWith(
       name: _nameCtrl.text,
       username: _usernameCtrl.text,
       bio: _bioCtrl.text,
       location: _locationCtrl.text,
       email: _emailCtrl.text,
-      avatarUrl: _localAvatarPath ?? _avatarUrl,
+      avatarUrl: avatarToSend,
       interests: _allInterests,
     );
 
@@ -126,6 +150,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) context.router.maybePop();
+  }
+
+  void _removeAvatar() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _localAvatarPath = null;
+      _localAvatarBytes = null;
+      _localAvatarName = null;
+      _avatarUrl = '';
+    });
   }
 
   Future<void> _pickAvatar() async {
@@ -162,7 +196,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       imageQuality: 70,
                     );
                     if (image != null) {
-                      setState(() => _localAvatarPath = image.path);
+                      final bytes = kIsWeb ? await image.readAsBytes() : null;
+                      setState(() {
+                        _localAvatarPath = image.path;
+                        _localAvatarBytes = bytes;
+                        _localAvatarName = image.name;
+                      });
                     }
                   },
                 ),
@@ -176,7 +215,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       imageQuality: 70,
                     );
                     if (image != null) {
-                      setState(() => _localAvatarPath = image.path);
+                      final bytes = kIsWeb ? await image.readAsBytes() : null;
+                      setState(() {
+                        _localAvatarPath = image.path;
+                        _localAvatarBytes = bytes;
+                        _localAvatarName = image.name;
+                      });
                     }
                   },
                 ),
@@ -311,14 +355,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(4),
-                    child: ClipOval(
-                      child: _localAvatarPath != null
-                          ? Image.file(
-                              File(_localAvatarPath!),
-                              fit: BoxFit.cover,
-                            )
-                          : Image.network(_avatarUrl, fit: BoxFit.cover),
-                    ),
+                    child: _localAvatarPath != null
+                        ? ClipOval(
+                            child: kIsWeb && _localAvatarBytes != null
+                                ? Image.memory(
+                                    _localAvatarBytes!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.file(
+                                    File(_localAvatarPath!),
+                                    fit: BoxFit.cover,
+                                  ),
+                          )
+                        : VibeAvatar(
+                            imageUrl: _avatarUrl,
+                            name: _nameCtrl.text.isEmpty ? '?' : _nameCtrl.text,
+                            size: 104,
+                            showBorder: false,
+                          ),
                   ),
                 ),
                 Positioned(
@@ -349,6 +403,42 @@ class _EditProfilePageState extends State<EditProfilePage> {
               fontSize: 13,
             ),
           ),
+          if (_avatarUrl.isNotEmpty || _localAvatarPath != null) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _removeAvatar,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  border: Border.all(
+                    color: const Color(0xFFFCA5A5),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.delete_outline_rounded,
+                      color: Color(0xFFEF4444),
+                      size: 16,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Remove Photo',
+                      style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -374,23 +464,35 @@ class _EditProfilePageState extends State<EditProfilePage> {
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 16),
-        GestureDetector(
-          onTap: () async {
-            HapticFeedback.selectionClick();
-            final result = await context.router.push(LocationPickerRoute());
-            if (result != null && result is String) {
-              setState(() => _locationCtrl.text = result);
-            }
-          },
-          child: AbsorbPointer(
-            child: VibeTextField(
-              label: 'Location',
-              controller: _locationCtrl,
-              hint: 'Select your location',
-              prefixIcon: Icons.location_on_outlined,
-              suffixIcon: Icons.map_outlined,
-              readOnly: true,
-            ),
+        VibeTextField(
+          label: 'Location',
+          controller: _locationCtrl,
+          hint: 'Type or select your location',
+          prefixIcon: Icons.location_on_outlined,
+          keyboardType: TextInputType.streetAddress,
+          textInputAction: TextInputAction.next,
+          suffix: IconButton(
+            tooltip: 'Choose on map',
+            icon: const Icon(Icons.map_outlined, size: 20),
+            color: AppColors.primary,
+            onPressed: () async {
+              HapticFeedback.selectionClick();
+              final result = await context.router.push(LocationPickerRoute());
+              if (result != null && result is String) {
+                setState(() => _locationCtrl.text = result);
+              } else if (result is Map) {
+                final location =
+                    (result['displayName'] ??
+                            result['fullAddress'] ??
+                            result['address'] ??
+                            result['name'] ??
+                            '')
+                        .toString();
+                if (location.isNotEmpty) {
+                  setState(() => _locationCtrl.text = location);
+                }
+              }
+            },
           ),
         ),
         const SizedBox(height: 12),

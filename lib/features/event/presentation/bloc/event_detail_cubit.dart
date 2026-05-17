@@ -38,13 +38,20 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
   EventDetailCubit(this._apiService) : super(EventDetailInitial());
 
-  Future<void> loadEvent(String id) async {
-    emit(EventDetailLoading());
+  Future<void> loadEvent(String id, {bool showLoading = true}) async {
+    final previous = state;
+    if (showLoading || previous is! EventDetailLoaded) {
+      emit(EventDetailLoading());
+    }
     try {
       final event = await _apiService.getEventDetail(id);
       emit(EventDetailLoaded(event: event));
     } catch (e) {
-      emit(EventDetailError(e.toString()));
+      if (previous is EventDetailLoaded && !showLoading) {
+        emit(previous.copyWith(error: e.toString()));
+      } else {
+        emit(EventDetailError(e.toString()));
+      }
     }
   }
 
@@ -54,7 +61,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       emit(currentState.copyWith(isJoining: true, error: null));
       try {
         Event updatedEvent;
-        if (currentState.event.isJoined) {
+        if (currentState.event.isJoined || currentState.event.isPending) {
           updatedEvent = await _apiService.leaveEvent(currentState.event.id);
         } else {
           updatedEvent = await _apiService.joinEvent(currentState.event.id);

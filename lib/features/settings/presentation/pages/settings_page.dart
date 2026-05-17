@@ -14,8 +14,12 @@ import '../../../../router/app_router.gr.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../profile/data/services/user_api_service.dart';
 import '../../../../core/widgets/vibe_button.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../../core/widgets/snackbar_service.dart';
+import '../../../../core/widgets/avatar_widget.dart';
+import '../../../../injection/injection_container.dart';
 
 @RoutePage()
 class SettingsPage extends StatefulWidget {
@@ -254,28 +258,20 @@ class _SettingsPageState extends State<SettingsPage>
           borderRadius: BorderRadius.circular(24),
           onTap: () => context.router.push(const EditProfileRoute()),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Row(
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primary, width: 2),
-                    image: DecorationImage(
-                      image: NetworkImage(
-                        profile.avatarUrl.isNotEmpty
-                            ? profile.avatarUrl
-                            : 'https://i.pravatar.cc/300?u=${profile.email}',
-                      ),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                VibeAvatar(
+                  imageUrl: profile.avatarUrl,
+                  name: profile.name,
+                  size: 64,
+                  showBorder: true,
+                  borderColor: AppColors.primary,
+                  borderWidth: 2,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -300,33 +296,6 @@ class _SettingsPageState extends State<SettingsPage>
                         ),
                       ),
                     ],
-                  ),
-                ),
-                // Refined Edit Button: Subtle and modern
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      context.router.push(const EditProfileRoute());
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.edit_note_rounded,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -466,27 +435,12 @@ class _SettingsPageState extends State<SettingsPage>
       child: Column(
         children: [
           _tapTile(
-            Icons.shield_outlined,
-            AppLocalizations.tr('privacy_visibility'),
-            '',
-            textSecondary,
-            subtitleColor,
-            onTap: () => _showBasicDialog(
-              AppLocalizations.tr('privacy'),
-              AppLocalizations.tr('privacy_desc'),
-            ),
-          ),
-          _tileDiv(dividerColor),
-          _tapTile(
             Icons.lock_outlined,
             AppLocalizations.tr('change_password'),
             '',
             textSecondary,
             subtitleColor,
-            onTap: () => _showBasicDialog(
-              AppLocalizations.tr('change_password'),
-              AppLocalizations.tr('change_password_desc'),
-            ),
+            onTap: () => context.router.push(const ChangePasswordRoute()),
           ),
           _tileDiv(dividerColor),
           _tapTile(
@@ -507,10 +461,7 @@ class _SettingsPageState extends State<SettingsPage>
             '',
             textSecondary,
             subtitleColor,
-            onTap: () => _showBasicDialog(
-              AppLocalizations.tr('help_center'),
-              AppLocalizations.tr('help_desc'),
-            ),
+            onTap: () => context.router.push(const HelpCenterRoute()),
           ),
           _tileDiv(dividerColor),
           _tapTile(
@@ -519,10 +470,16 @@ class _SettingsPageState extends State<SettingsPage>
             '',
             textSecondary,
             subtitleColor,
-            onTap: () => _showBasicDialog(
-              AppLocalizations.tr('terms'),
-              AppLocalizations.tr('terms_desc'),
-            ),
+            onTap: () => context.router.push(const TermsOfServiceRoute()),
+          ),
+          _tileDiv(dividerColor),
+          _tapTile(
+            Icons.privacy_tip_outlined,
+            'Privacy Policy',
+            '',
+            textSecondary,
+            subtitleColor,
+            onTap: () => context.router.push(const PrivacyPolicyRoute()),
           ),
         ],
       ),
@@ -836,7 +793,7 @@ class _SettingsPageState extends State<SettingsPage>
   void _showDeleteDialog() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           AppLocalizations.tr('delete_account'),
@@ -848,7 +805,7 @@ class _SettingsPageState extends State<SettingsPage>
         content: Text(AppLocalizations.tr('delete_confirm')),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               AppLocalizations.tr('cancel'),
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -856,7 +813,20 @@ class _SettingsPageState extends State<SettingsPage>
           ),
           VibeButton(
             label: AppLocalizations.tr('delete'),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await sl<UserApiService>().deleteAccount();
+                if (!mounted) return;
+                ProfileState.reset();
+                context.read<AuthBloc>().add(LogoutRequested());
+                context.router.popUntilRoot();
+                VibeSnackBar.success(context, 'Account deleted successfully.');
+              } catch (e) {
+                if (!mounted) return;
+                VibeSnackBar.error(context, 'Failed to delete account: $e');
+              }
+            },
             height: 40,
             width: 120,
             fontSize: 14,
