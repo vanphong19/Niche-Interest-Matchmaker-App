@@ -337,7 +337,7 @@ class _ProfilePageState extends State<ProfilePage>
             Expanded(
               child: _StatChip(
                 value: '${profile.attendingCount}',
-                label: 'Attending',
+                label: 'Joined',
                 isDark: isDark,
                 icon: Icons.people_alt_rounded,
                 color: const Color(0xFF10B981),
@@ -352,11 +352,11 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             Expanded(
               child: _StatChip(
-                value: '${profile.pastCount}',
-                label: 'Past',
+                value: '${profile.friendsCount}',
+                label: 'Friends',
                 isDark: isDark,
-                icon: Icons.history_rounded,
-                color: const Color(0xFF64748B),
+                icon: Icons.favorite_rounded,
+                color: const Color(0xFFF43F5E),
               ),
             ),
           ],

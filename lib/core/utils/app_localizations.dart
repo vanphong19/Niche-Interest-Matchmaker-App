@@ -232,6 +232,12 @@ class AppLocalizations {
       'event_validation_location': 'Please enter location name and address.',
       'event_validation_end_time':
           'End date/time must be after start date/time.',
+      'edit_event_title': 'Edit Event',
+      'edit_event_loading': 'Saving changes...',
+      'edit_event_success': 'Event updated successfully!',
+      'edit_event_error': 'Error updating event',
+      'edit_event_validation_capacity': 'Capacity cannot be lower than the current number of participants ({current}).',
+      'edit_event_read_only_fields': 'Location and schedule are locked after event creation to prevent participant confusion.',
 
       // New additions for UI
       'appearance_desc':
@@ -478,6 +484,12 @@ class AppLocalizations {
       'event_validation_location': 'Vui lòng nhập tên địa điểm và địa chỉ.',
       'event_validation_end_time':
           'Thời gian kết thúc phải sau thời gian bắt đầu.',
+      'edit_event_title': 'Chỉnh Sửa Sự Kiện',
+      'edit_event_loading': 'Đang lưu thay đổi...',
+      'edit_event_success': 'Cập nhật sự kiện thành công!',
+      'edit_event_error': 'Lỗi cập nhật sự kiện',
+      'edit_event_validation_capacity': 'Sức chứa không được thấp hơn số lượng người tham gia hiện tại ({current}).',
+      'edit_event_read_only_fields': 'Địa điểm và lịch trình được khóa sau khi tạo kèo để tránh gây hiểu lầm cho người tham gia.',
 
       // New additions for UI
       'appearance_desc': 'Cài đặt giao diện hiện đang đồng bộ với chế độ tối.',

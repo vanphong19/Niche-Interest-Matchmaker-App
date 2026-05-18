@@ -363,11 +363,13 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.darkBorderLight
+                      : AppColors.borderLight,
+                  width: 1.5,
                 ),
+                color: isDark ? AppColors.darkBgTertiary : Colors.white,
               ),
               child: Padding(
                 padding: const EdgeInsets.all(3),

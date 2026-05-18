@@ -36,6 +36,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
     AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
     AutoRoute(page: ManageEventRoute.page, path: '/event/:id/manage'),
+    AutoRoute(page: EditEventRoute.page, path: '/event/:id/edit'),
     AutoRoute(page: UserMatchListRoute.page, path: '/match/list'),
     AutoRoute(page: MapDiscoveryRoute.page, path: '/map'),
 

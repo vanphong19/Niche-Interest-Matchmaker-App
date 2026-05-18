@@ -484,7 +484,7 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                         ),
                       );
                     }
-                    return const SizedBox();
+                    return _buildShimmerCards(isDark);
                   },
                 ),
               ),
@@ -672,6 +672,99 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildShimmerCards(bool isDark) {
+    return PageView.builder(
+      controller: PageController(viewportFraction: 0.85),
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Container(
+            decoration: BoxDecoration(
+              color: (isDark ? AppColors.darkCardBackground : Colors.white)
+                  .withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: (isDark ? Colors.white : Colors.white).withValues(
+                  alpha: 0.1,
+                ),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Mock Image
+                Container(
+                  width: 110,
+                  height: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+                // Mock details
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 18, 18, 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Category pill
+                        Container(
+                          width: 80,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Title line 1
+                        Container(
+                          width: double.infinity,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Title line 2
+                        Container(
+                          width: 120,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const Spacer(),
+                        // Time
+                        Container(
+                          width: 100,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
