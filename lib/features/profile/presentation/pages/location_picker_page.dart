@@ -260,7 +260,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           // Top Search Bar (Only if not read only)
           if (!widget.isReadOnly)
             Positioned(
-              top: MediaQuery.of(context).padding.top + 80,
+              top: MediaQuery.viewPaddingOf(context).top + VibeHeader.headerHeight + 16,
               left: 20,
               right: 20,
               child: Column(

@@ -144,9 +144,9 @@ class _ProfilePageState extends State<ProfilePage>
                       children: [
                         SizedBox(
                           height:
-                              MediaQuery.of(context).padding.top +
+                              MediaQuery.viewPaddingOf(context).top +
                               VibeHeader.headerHeight +
-                              16,
+                              20,
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -154,7 +154,6 @@ class _ProfilePageState extends State<ProfilePage>
                             crossAxisAlignment: CrossAxisAlignment
                                 .center, // Center profile info
                             children: [
-                              const SizedBox(height: 12),
                               Center(
                                 child: FadeTransition(
                                   opacity: _headerFade,
@@ -338,7 +337,7 @@ class _ProfilePageState extends State<ProfilePage>
             Expanded(
               child: _StatChip(
                 value: '${profile.attendingCount}',
-                label: 'Attending',
+                label: 'Joined',
                 isDark: isDark,
                 icon: Icons.people_alt_rounded,
                 color: const Color(0xFF10B981),
@@ -353,11 +352,11 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             Expanded(
               child: _StatChip(
-                value: '${profile.pastCount}',
-                label: 'Past',
+                value: '${profile.friendsCount}',
+                label: 'Friends',
                 isDark: isDark,
-                icon: Icons.history_rounded,
-                color: const Color(0xFF64748B),
+                icon: Icons.favorite_rounded,
+                color: const Color(0xFFF43F5E),
               ),
             ),
           ],

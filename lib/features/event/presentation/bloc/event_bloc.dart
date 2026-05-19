@@ -84,15 +84,15 @@ class EventBloc extends Bloc<EventEvent, EventState> {
 
     final version = ++_loadVersion;
     final selectedCategory = event.category;
-
     if (event.isRefresh) {
+      final shouldClear = selectedCategory != state.selectedCategory;
       emit(
         state.copyWith(
           selectedCategory: selectedCategory,
           isLoading: true,
           error: null,
           hasReachedMax: false,
-          events: [],
+          events: shouldClear ? [] : state.events,
         ),
       );
     } else {

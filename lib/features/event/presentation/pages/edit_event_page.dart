@@ -1,15 +1,13 @@
-import 'dart:math' as math;
-import 'dart:async';
+// lib/features/event/presentation/pages/edit_event_page.dart
 
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_localizations.dart';
@@ -19,157 +17,127 @@ import '../../../../core/widgets/vibe_text_field.dart';
 import '../../../../core/widgets/vibe_header.dart';
 import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../injection/injection_container.dart';
-import '../../../../router/app_router.gr.dart';
 import '../../data/services/event_api_service.dart';
 import '../../domain/entities/event.dart';
-import '../bloc/create_event_cubit.dart';
 import '../bloc/event_bloc.dart' as import_event_bloc;
 
 @RoutePage()
-class CreateEventPage extends StatefulWidget {
-  const CreateEventPage({super.key});
+class EditEventPage extends StatefulWidget {
+  final String eventId;
+  final Event? event;
+
+  const EditEventPage({
+    super.key,
+    required this.eventId,
+    this.event,
+  });
 
   @override
-  State<CreateEventPage> createState() => _CreateEventPageState();
+  State<EditEventPage> createState() => _EditEventPageState();
 }
 
-class _CreateEventPageState extends State<CreateEventPage>
+class _EditEventPageState extends State<EditEventPage>
     with SingleTickerProviderStateMixin {
-  late final CreateEventCubit _cubit;
   late final EventApiService _apiService;
   final ScrollController _scrollController = ScrollController();
 
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _descriptionCtrl = TextEditingController();
-  final TextEditingController _locationNameCtrl = TextEditingController();
-  final TextEditingController _addressCtrl = TextEditingController();
   final TextEditingController _tagCtrl = TextEditingController();
 
-  late DateTime _startDate;
-  late TimeOfDay _startTime;
-  DateTime? _endDate;
-  TimeOfDay? _endTime;
+  Event? _event;
+  bool _isLoadingEvent = false;
+  bool _isSubmitting = false;
 
-  EventCategory _selectedCategory = EventCategory.sports;
+  EventCategory _selectedCategory = EventCategory.social;
   int _maxParticipants = 12;
   bool _isEliteOnly = false;
   bool _isPublic = true;
 
   final List<String> _vibeTags = [];
   final List<String> _photoUrls = [];
-
-  final MapController _mapController = MapController();
-  LatLng _coords = const LatLng(10.7769, 106.7009);
-  final TextEditingController _locationSearchCtrl = TextEditingController();
-  final FocusNode _locationSearchNode = FocusNode();
-
-  List<Map<String, dynamic>> _placeSuggestions = const [];
-  bool _isSearchingPlaces = false;
-  int _searchSequence = 0;
-  Timer? _searchDebounce;
   int _selectedCoverPreset = 0;
   late final AnimationController _heroPulse;
-
-  static const List<String> _locationQuickQueries = [
-    'Đại học',
-    'Trường THPT',
-    'Sân bay',
-    'Trung tâm thương mại',
-    'Bến xe',
-    'Ga tàu',
-  ];
 
   @override
   void initState() {
     super.initState();
-    _cubit = sl<CreateEventCubit>();
     _apiService = sl<EventApiService>();
     _heroPulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2900),
     )..repeat(reverse: true);
 
-    final now = DateTime.now();
-    _startDate = now.add(const Duration(days: 1));
-    _startTime = const TimeOfDay(hour: 19, minute: 0);
-    _endDate = _startDate;
-    _endTime = const TimeOfDay(hour: 21, minute: 0);
+    if (widget.event != null) {
+      _event = widget.event;
+      _initializeFields();
+    } else {
+      _loadEventDetails();
+    }
+  }
 
-    _locationNameCtrl.text = '';
-    _addressCtrl.text = '';
-    _locationSearchCtrl.text = '';
+  void _initializeFields() {
+    final e = _event;
+    if (e == null) return;
 
-    _locationSearchNode.addListener(() {
-      if (_locationSearchNode.hasFocus && _placeSuggestions.isEmpty) {
-        _runPlaceSearch(_locationSearchCtrl.text);
+    _titleCtrl.text = e.title;
+    _descriptionCtrl.text = e.description;
+    _selectedCategory = e.category;
+    _maxParticipants = e.maxParticipants;
+    _isPublic = e.isPublic;
+    _isEliteOnly = e.isEliteOnly;
+
+    _vibeTags.clear();
+    if (e.vibeTags != null && e.vibeTags!.isNotEmpty) {
+      final tags = e.vibeTags!.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty);
+      for (final t in tags) {
+        if (t.startsWith('preset:')) {
+          _selectedCoverPreset = int.tryParse(t.replaceFirst('preset:', '')) ?? 0;
+        } else {
+          _vibeTags.add(t);
+        }
       }
+    }
+
+    _photoUrls.clear();
+    _photoUrls.addAll(e.photoUrls);
+  }
+
+  Future<void> _loadEventDetails() async {
+    setState(() {
+      _isLoadingEvent = true;
     });
+
+    try {
+      final fetched = await _apiService.getEventDetail(widget.eventId);
+      if (!mounted) return;
+      setState(() {
+        _event = fetched;
+        _isLoadingEvent = false;
+      });
+      _initializeFields();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingEvent = false;
+      });
+      VibeSnackBar.error(context, 'Failed to load event details: $e');
+    }
   }
 
   @override
   void dispose() {
-    _cubit.close();
     _scrollController.dispose();
-
     _titleCtrl.dispose();
     _descriptionCtrl.dispose();
-    _locationNameCtrl.dispose();
-    _addressCtrl.dispose();
     _tagCtrl.dispose();
-    _locationSearchCtrl.dispose();
-    _locationSearchNode.dispose();
-    _searchDebounce?.cancel();
     _heroPulse.dispose();
-
     super.dispose();
   }
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   String _tr(String key) => AppLocalizations.tr(key);
-
-  Future<void> _pickDate({required bool isEnd}) async {
-    final initialDate = isEnd ? (_endDate ?? _startDate) : _startDate;
-    final firstDate = isEnd ? _startDate : DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (picked == null) return;
-
-    setState(() {
-      if (isEnd) {
-        _endDate = picked;
-      } else {
-        _startDate = picked;
-        if (_endDate != null && _endDate!.isBefore(_startDate)) {
-          _endDate = _startDate;
-        }
-      }
-    });
-  }
-
-  Future<void> _pickTime({required bool isEnd}) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: isEnd ? (_endTime ?? _startTime) : _startTime,
-    );
-    if (picked == null) return;
-
-    setState(() {
-      if (isEnd) {
-        _endTime = picked;
-      } else {
-        _startTime = picked;
-      }
-    });
-  }
-
-  DateTime _mergeDateTime(DateTime date, TimeOfDay time) {
-    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
-  }
 
   String _formatDate(DateTime value) {
     final day = value.day.toString().padLeft(2, '0');
@@ -263,6 +231,7 @@ class _CreateEventPageState extends State<CreateEventPage>
               image.name.isNotEmpty ? image.name : 'event-cover.jpg',
             )
           : await _apiService.uploadImage(image.path);
+
       if (!mounted) return;
 
       if (url != null) {
@@ -283,119 +252,60 @@ class _CreateEventPageState extends State<CreateEventPage>
     }
   }
 
-  Future<void> _searchPlaces(String query) async {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 260), () async {
-      await _runPlaceSearch(query);
-    });
-  }
+  Future<void> _submitChanges() async {
+    final e = _event;
+    if (e == null) return;
 
-  Future<void> _runPlaceSearch(String query) async {
-    // We allow empty query to show top/recommended places
+    if (_titleCtrl.text.trim().isEmpty || _descriptionCtrl.text.trim().isEmpty) {
+      VibeSnackBar.error(context, _tr('event_validation_title_description'));
+      return;
+    }
 
-    final requestId = ++_searchSequence;
-    setState(() => _isSearchingPlaces = true);
-
-    final result = await _apiService.searchPlaces(query.trim());
-
-    if (!mounted || requestId != _searchSequence) {
+    // Front-end capacity validation check
+    if (_maxParticipants < e.currentParticipants) {
+      final message = _tr('edit_event_validation_capacity')
+          .replaceAll('{current}', e.currentParticipants.toString());
+      VibeSnackBar.error(context, message);
       return;
     }
 
     setState(() {
-      _placeSuggestions = result;
-      _isSearchingPlaces = false;
-    });
-  }
-
-  void _applyPlaceSelection(Map<String, dynamic> place) {
-    final lat = (place['lat'] as num?)?.toDouble() ?? _coords.latitude;
-    final lng = (place['lng'] as num?)?.toDouble() ?? _coords.longitude;
-    final point = LatLng(lat, lng);
-
-    setState(() {
-      final name = place['name'] as String? ?? '';
-      final address = place['address'] as String? ?? '';
-
-      // Show full details in search box for better clarity as requested
-      _locationSearchCtrl.text = address.isNotEmpty ? '$name, $address' : name;
-
-      _locationNameCtrl.text = name;
-      _addressCtrl.text = address;
-      _coords = point;
-      _placeSuggestions = const [];
+      _isSubmitting = true;
     });
 
-    _mapController.move(point, 16.2);
-    _apiService.recordPlaceSelection(place);
-    FocusScope.of(context).unfocus();
-  }
-
-  Future<void> _submitEvent() async {
-    if (_titleCtrl.text.trim().isEmpty ||
-        _descriptionCtrl.text.trim().isEmpty) {
-      VibeSnackBar.warning(context, _tr('event_validation_title_description'));
-      return;
-    }
-
-    if (_locationNameCtrl.text.trim().isEmpty ||
-        _addressCtrl.text.trim().isEmpty) {
-      VibeSnackBar.warning(context, _tr('event_validation_location'));
-      return;
-    }
-
-    final startDateTime = _mergeDateTime(_startDate, _startTime);
-    DateTime? endDateTime;
-    if (_endDate != null && _endTime != null) {
-      endDateTime = _mergeDateTime(_endDate!, _endTime!);
-      if (!endDateTime.isAfter(startDateTime)) {
-        VibeSnackBar.warning(context, _tr('event_validation_end_time'));
-        return;
-      }
-    }
-
-    // Default Cover Selection if no cover uploaded
-    final finalPhotoUrls = List<String>.from(_photoUrls);
-    if (finalPhotoUrls.isEmpty) {
-      final titleHash = _titleCtrl.text.trim().hashCode.abs();
-      final coverIndex = (titleHash % 20) + 1;
-      finalPhotoUrls.add(
-        'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-$coverIndex.webp',
-      );
-    }
-
-    _cubit.updateVibe(_titleCtrl.text.trim(), _selectedCategory.name, [
-      ..._vibeTags,
-      'preset:$_selectedCoverPreset',
-    ]);
-    _cubit.updateSchedule(
-      _startDate,
-      _startTime,
-      _maxParticipants,
-      _isEliteOnly,
-      _isPublic,
-    );
-    _cubit.updateLocation(
-      _locationNameCtrl.text.trim(),
-      _addressCtrl.text.trim(),
-      _coords,
-    );
-
-    await _cubit.submitEvent(
-      extraData: {
+    try {
+      final updatedPhotoUrls = List<String>.from(_photoUrls);
+      final tagsToSave = [..._vibeTags, 'preset:$_selectedCoverPreset'];
+      final data = {
+        'title': _titleCtrl.text.trim(),
         'description': _descriptionCtrl.text.trim(),
         'category': _selectedCategory.name,
-        'startDateTime': startDateTime.toIso8601String(),
-        'endDateTime': endDateTime?.toIso8601String(),
         'maxParticipants': _maxParticipants,
-        'latitude': _coords.latitude,
-        'longitude': _coords.longitude,
-        'photoUrls': finalPhotoUrls,
-        'locationName': _locationNameCtrl.text.trim(),
-        'location': _addressCtrl.text.trim(),
+        'photoUrls': updatedPhotoUrls,
         'isPublic': _isPublic,
-      },
-    );
+        'vibeTags': tagsToSave.join(', '),
+      };
+
+      final updatedEvent = await _apiService.updateEvent(e.id, data);
+
+      if (!mounted) return;
+      // Refresh list views
+      sl<import_event_bloc.EventBloc>().add(
+        import_event_bloc.LoadEvents(),
+      );
+
+      VibeSnackBar.success(context, _tr('edit_event_success'));
+      context.router.maybePop(updatedEvent);
+    } catch (err) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+      VibeSnackBar.error(
+        context,
+        '${_tr('edit_event_error')}: $err',
+      );
+    }
   }
 
   @override
@@ -410,112 +320,120 @@ class _CreateEventPageState extends State<CreateEventPage>
         ? AppColors.darkTextHint
         : const Color(0xFF8B97B6);
 
-    return BlocProvider.value(
-      value: _cubit,
-      child: Scaffold(
+    if (_isLoadingEvent) {
+      return Scaffold(
         backgroundColor: bg,
-        extendBodyBehindAppBar: true,
-        appBar: VibeHeader(
-          title: _tr('create_event_title_new'),
-          actions: [
-            VibeHeaderButton(
-              icon: Icons.auto_awesome_rounded,
-              onTap: () {},
-              isDark: _isDark,
-              color: AppColors.primary,
+        appBar: VibeHeader(title: _tr('edit_event_title')),
+        body: const Center(
+          child: VibeLoading(size: 40, strokeWidth: 3, segments: 10),
+        ),
+      );
+    }
+
+    final e = _event;
+    if (e == null) {
+      return Scaffold(
+        backgroundColor: bg,
+        appBar: VibeHeader(title: _tr('edit_event_title')),
+        body: const Center(child: Text('Event not found.')),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: bg,
+      extendBodyBehindAppBar: true,
+      appBar: VibeHeader(
+        title: _tr('edit_event_title'),
+      ),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Stack(
+          children: [
+            ListView(
+              controller: _scrollController,
+              padding: EdgeInsets.fromLTRB(
+                20,
+                MediaQuery.viewPaddingOf(context).top +
+                    VibeHeader.headerHeight +
+                    20,
+                20,
+                84,
+              ),
+              children: [
+                _coverComposer(card, border),
+                const SizedBox(height: 20),
+                _sectionHeader(
+                  _tr('event_section_core').toUpperCase(),
+                  sectionHint,
+                ),
+                const SizedBox(height: 10),
+                _cardShell(card, border, _coreSection(border)),
+                const SizedBox(height: 18),
+                _sectionHeader(
+                  '${_tr('event_section_schedule').toUpperCase()} (LOCKED)',
+                  sectionHint,
+                ),
+                const SizedBox(height: 10),
+                _cardShell(card, border, _scheduleSectionLocked()),
+                const SizedBox(height: 18),
+                _sectionHeader(
+                  '${_tr('event_section_location').toUpperCase()} (LOCKED)',
+                  sectionHint,
+                ),
+                const SizedBox(height: 10),
+                _cardShell(card, border, _locationSectionLocked()),
+                const SizedBox(height: 30),
+              ],
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildFooterAction(bg, border),
             ),
           ],
         ),
-        body: BlocConsumer<CreateEventCubit, CreateEventState>(
-          listener: (context, state) {
-            if (state.isSuccess) {
-              // Professional state refresh
-              sl<import_event_bloc.EventBloc>().add(
-                import_event_bloc.LoadEvents(),
-              );
+      ),
+    );
+  }
 
-              context.router.replaceAll([const HomeRoute()]);
-              VibeSnackBar.success(context, _tr('event_create_success'));
-            } else if (state.error != null) {
-              VibeSnackBar.error(
-                context,
-                '${_tr('event_create_error')}: ${state.error}',
-              );
-            }
-          },
-          builder: (context, state) {
-            return GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: Stack(
-                children: [
-                  ListView(
-                    controller: _scrollController,
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      MediaQuery.viewPaddingOf(context).top +
-                          VibeHeader.headerHeight +
-                          20,
-                      20,
-                      84,
-                    ),
-                    children: [
-                      _coverComposer(card, border),
-                      const SizedBox(height: 20),
-                      _sectionHeader(
-                        _tr('event_section_core').toUpperCase(),
-                        sectionHint,
-                      ),
-                      const SizedBox(height: 10),
-                      _cardShell(card, border, _coreSection()),
-                      const SizedBox(height: 18),
-                      _sectionHeader(
-                        _tr('event_section_schedule').toUpperCase(),
-                        sectionHint,
-                      ),
-                      const SizedBox(height: 10),
-                      _cardShell(card, border, _scheduleSection()),
-                      const SizedBox(height: 18),
-                      _sectionHeader(
-                        _tr('event_section_location').toUpperCase(),
-                        sectionHint,
-                      ),
-                      const SizedBox(height: 10),
-                      _cardShell(card, border, _locationSection()),
-                    ],
-                  ),
-                  _bottomButton(state),
-                  if (state.isSubmitting)
-                    Container(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      alignment: Alignment.center,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: border),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const VibeLoading(
-                              size: 18,
-                              strokeWidth: 2.2,
-                              segments: 10,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(_tr('event_create_loading')),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
+  Widget _sectionHeader(String text, Color sectionHint) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.w800,
+        color: sectionHint,
+      ),
+    );
+  }
+
+  Widget _cardShell(Color card, Color border, Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: border),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildFooterAction(Color bg, Color border) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: bg.withValues(alpha: 0.94),
+        border: Border(top: BorderSide(color: border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: VibeButton(
+          label: _tr('save').toUpperCase(),
+          onPressed: _isSubmitting ? () {} : _submitChanges,
+          isLoading: _isSubmitting,
         ),
       ),
     );
@@ -821,34 +739,7 @@ class _CreateEventPageState extends State<CreateEventPage>
     );
   }
 
-  Widget _sectionHeader(String text, Color sectionHint) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        letterSpacing: 1.2,
-        fontWeight: FontWeight.w800,
-        color: sectionHint,
-      ),
-    );
-  }
-
-  Widget _cardShell(Color card, Color border, Widget child) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: border),
-      ),
-      child: child,
-    );
-  }
-
-  Widget _coreSection() {
-    final border = _isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
+  Widget _coreSection(Color border) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -949,6 +840,7 @@ class _CreateEventPageState extends State<CreateEventPage>
             ),
           ],
         ),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -1014,7 +906,7 @@ class _CreateEventPageState extends State<CreateEventPage>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Add at least 1 photo to unlock premium cover quality.',
+                    'Add photos to enrich your event profile visual aesthetics.',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -1086,54 +978,56 @@ class _CreateEventPageState extends State<CreateEventPage>
     );
   }
 
-  Widget _scheduleSection() {
+  Widget _scheduleSectionLocked() {
+    final e = _event!;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildLockedNoticeBadge(),
+        const SizedBox(height: 14),
         Row(
           children: [
             Expanded(
-              child: _pickerButton(
-                Icons.calendar_month_rounded,
-                _formatDate(_startDate),
-                () => _pickDate(isEnd: false),
+              child: _lockedField(
+                icon: Icons.calendar_month_rounded,
+                text: _formatDate(e.startDateTime),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _pickerButton(
-                Icons.schedule_rounded,
-                _startTime.format(context),
-                () => _pickTime(isEnd: false),
+              child: _lockedField(
+                icon: Icons.schedule_rounded,
+                text: TimeOfDay.fromDateTime(e.startDateTime).format(context),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _pickerButton(
-                Icons.event_available_rounded,
-                _endDate == null ? '-' : _formatDate(_endDate!),
-                () => _pickDate(isEnd: true),
+        if (e.endDateTime != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _lockedField(
+                  icon: Icons.event_available_rounded,
+                  text: _formatDate(e.endDateTime!),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _pickerButton(
-                Icons.timelapse_rounded,
-                _endTime == null ? '-' : _endTime!.format(context),
-                () => _pickTime(isEnd: true),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _lockedField(
+                  icon: Icons.timelapse_rounded,
+                  text: TimeOfDay.fromDateTime(e.endDateTime!).format(context),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
+            ],
+          ),
+        ],
+        const SizedBox(height: 18),
         _stepperRow(
           title: _tr('event_field_max_participants'),
           value: _maxParticipants,
-          min: 2,
-          max: 50,
+          min: e.currentParticipants, // The absolute limit set by business logic
+          max: 100,
           onChanged: (value) => setState(() => _maxParticipants = value),
         ),
         const SizedBox(height: 12),
@@ -1156,210 +1050,137 @@ class _CreateEventPageState extends State<CreateEventPage>
     );
   }
 
-  Widget _locationSection() {
+  Widget _locationSectionLocked() {
+    final e = _event!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        VibeTextField(
-          controller: _locationSearchCtrl,
-          label: _tr('event_field_search_place'),
-          hint: _tr('event_field_search_place_hint'),
-          onChanged: _searchPlaces,
-          prefixIcon: Icons.search_rounded,
-          suffix: _isSearchingPlaces
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: VibeLoading(size: 16, strokeWidth: 2, segments: 8),
-                )
-              : null,
-          focusNode: _locationSearchNode,
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 32,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _locationQuickQueries.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final query = _locationQuickQueries[index];
-              return InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () {
-                  _locationSearchCtrl.text = query;
-                  _searchPlaces(query);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.24),
-                    ),
-                  ),
-                  child: Text(
-                    query,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        if (_placeSuggestions.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: _isDark ? const Color(0xFF151B2A) : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderLight),
+        _buildLockedNoticeBadge(),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.1),
             ),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.36,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary),
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
-              child: Scrollbar(
-                thumbVisibility: _placeSuggestions.length > 5,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _placeSuggestions.length,
-                  separatorBuilder: (_, _) => Divider(
-                    height: 1,
-                    color: AppColors.borderLight.withValues(alpha: 0.65),
-                  ),
-                  itemBuilder: (context, index) {
-                    final option = _placeSuggestions[index];
-                    return InkWell(
-                      onTap: () => _applyPlaceSelection(option),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 30,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.12,
-                                ),
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              child: const Icon(
-                                Icons.place_rounded,
-                                color: AppColors.primary,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    option['name'] as String? ?? '',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    option['address'] as String? ?? '',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      e.location.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        color: AppColors.secondary,
                       ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-        if (_placeSuggestions.isEmpty && _locationNameCtrl.text.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.1),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary),
-                  ),
-                  child: const Icon(
-                    Icons.location_on_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    ),
+                    if (e.location.address.isNotEmpty) ...[
+                      const SizedBox(height: 2),
                       Text(
-                        _locationNameCtrl.text,
+                        e.location.address,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
-                          color: AppColors.secondary,
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      if (_addressCtrl.text.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          _addressCtrl.text,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLockedNoticeBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.categorySports.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.categorySports.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.lock_rounded,
+            color: AppColors.categorySports,
+            size: 15,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _tr('edit_event_read_only_fields'),
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.categorySports,
+                height: 1.3,
+              ),
             ),
           ),
         ],
-      ],
+      ),
+    );
+  }
+
+  Widget _lockedField({required IconData icon, required String text}) {
+    final bgColor = _isDark ? AppColors.darkBgSecondary : AppColors.bgSecondary;
+    final borderColor = _isDark
+        ? AppColors.darkBorderLight
+        : AppColors.borderLight;
+    final textColor = (_isDark ? AppColors.darkTextPrimary : AppColors.secondary)
+        .withValues(alpha: 0.5);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1.1),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: AppColors.primary.withValues(alpha: 0.5), size: 18),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: textColor,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1371,42 +1192,6 @@ class _CreateEventPageState extends State<CreateEventPage>
         fontWeight: FontWeight.w700,
         letterSpacing: 0.1,
         color: _isDark ? AppColors.darkTextPrimary : AppColors.secondary,
-      ),
-    );
-  }
-
-  Widget _pickerButton(IconData icon, String text, VoidCallback onTap) {
-    final bgColor = _isDark ? AppColors.darkBgSecondary : AppColors.bgSecondary;
-    final borderColor = _isDark
-        ? AppColors.darkBorderLight
-        : AppColors.borderLight;
-    final textColor = _isDark ? AppColors.darkTextPrimary : AppColors.secondary;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderColor, width: 1.1),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: AppColors.primary, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              text,
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                color: textColor,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1472,9 +1257,9 @@ class _CreateEventPageState extends State<CreateEventPage>
             ),
             child: Slider(
               min: min.toDouble(),
-              max: max.toDouble(),
-              divisions: max - min,
-              value: value.toDouble(),
+              max: max < min ? min.toDouble() : max.toDouble(),
+              divisions: (max - min) <= 0 ? 1 : max - min,
+              value: value.toDouble().clamp(min.toDouble(), max.toDouble()),
               label: '$value',
               onChanged: (next) => onChanged(next.round()),
             ),
@@ -1498,39 +1283,30 @@ class _CreateEventPageState extends State<CreateEventPage>
                       ),
                       decoration: BoxDecoration(
                         color: value == quick
-                            ? AppColors.primary.withValues(alpha: 0.12)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
+                            ? AppColors.primary
+                            : (_isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.white),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: value == quick
                               ? AppColors.primary
                               : (_isDark
-                                    ? AppColors.darkBorderLight
-                                    : AppColors.borderLight),
-                          width: 1.2,
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : AppColors.borderLight),
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (value == quick)
-                            const Icon(
-                              Icons.check_rounded,
-                              size: 14,
-                              color: AppColors.primary,
-                            ),
-                          if (value == quick) const SizedBox(width: 4),
-                          Text(
-                            '$quick',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: value == quick
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        '$quick',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w900,
+                          color: value == quick
+                              ? Colors.white
+                              : (_isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.secondary),
+                        ),
                       ),
                     ),
                   ),
@@ -1549,47 +1325,28 @@ class _CreateEventPageState extends State<CreateEventPage>
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    final cardBg = _isDark
-        ? Colors.white.withValues(alpha: 0.03)
-        : const Color(0xFFF7F9FF);
-    final activeBorder = AppColors.primary.withValues(alpha: 0.24);
-    final normalBorder = _isDark
-        ? Colors.white.withValues(alpha: 0.08)
+    final bgColor = _isDark ? AppColors.darkBgSecondary : AppColors.bgSecondary;
+    final borderColor = _isDark
+        ? AppColors.darkBorderLight
         : AppColors.borderLight;
-    final titleColor = _isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.secondary;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: cardBg,
+        color: bgColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: value ? activeBorder : normalBorder,
-          width: 1.2,
-        ),
+        border: Border.all(color: borderColor, width: 1.1),
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: value
-                  ? AppColors.primary.withValues(alpha: 0.14)
-                  : (_isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.white),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              color: value
-                  ? AppColors.primary
-                  : (_isDark ? AppColors.darkTextHint : AppColors.textHint),
-              size: 18,
-            ),
+            child: Icon(icon, color: AppColors.primary, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1598,17 +1355,17 @@ class _CreateEventPageState extends State<CreateEventPage>
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: value ? AppColors.primary : titleColor,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: const TextStyle(
+                    fontSize: 10.5,
                     color: AppColors.textSecondary,
-                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1621,21 +1378,6 @@ class _CreateEventPageState extends State<CreateEventPage>
             onChanged: onChanged,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _bottomButton(CreateEventState state) {
-    return Positioned(
-      left: 20,
-      right: 20,
-      bottom: 14,
-      child: VibeButton(
-        label: state.isSubmitting
-            ? _tr('event_create_loading')
-            : _tr('event_create_button'),
-        isLoading: state.isSubmitting,
-        onPressed: state.isSubmitting ? null : _submitEvent,
       ),
     );
   }

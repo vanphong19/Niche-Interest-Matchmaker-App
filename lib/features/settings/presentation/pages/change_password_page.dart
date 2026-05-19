@@ -91,85 +91,87 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         subtitle: 'Secure your account with a strong password',
         showBackButton: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    VibeTextField(
-                      controller: _oldPasswordCtrl,
-                      label: 'Current Password',
-                      isPassword: true,
-                      prefixIcon: Icons.lock_outline_rounded,
-                      hint: 'Enter current password',
-                    ),
-                    const SizedBox(height: 20),
-                    VibeTextField(
-                      controller: _newPasswordCtrl,
-                      label: 'New Password',
-                      isPassword: true,
-                      prefixIcon: Icons.lock_outline_rounded,
-                      hint: 'Enter new password',
-                    ),
-                    const SizedBox(height: 20),
-                    VibeTextField(
-                      controller: _confirmPasswordCtrl,
-                      label: 'Confirm New Password',
-                      isPassword: true,
-                      prefixIcon: Icons.verified_user_outlined,
-                      hint: 'Confirm new password',
-                    ),
-                    const SizedBox(height: 32),
-                    VibeButton(
-                      label: 'Update Password',
-                      onPressed: _isLoading ? null : _handleSubmit,
-                      isLoading: _isLoading,
-                    ),
-                  ],
-                ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          MediaQuery.viewPaddingOf(context).top + VibeHeader.headerHeight + 20,
+          24,
+          24,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Password Requirements',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.secondary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _requirementItem('Minimum 6 characters'),
-                    _requirementItem('Include letters and numbers'),
-                    _requirementItem('Avoid using your name or email'),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  VibeTextField(
+                    controller: _oldPasswordCtrl,
+                    label: 'Current Password',
+                    isPassword: true,
+                    prefixIcon: Icons.lock_outline_rounded,
+                    hint: 'Enter current password',
+                  ),
+                  const SizedBox(height: 20),
+                  VibeTextField(
+                    controller: _newPasswordCtrl,
+                    label: 'New Password',
+                    isPassword: true,
+                    prefixIcon: Icons.lock_outline_rounded,
+                    hint: 'Enter new password',
+                  ),
+                  const SizedBox(height: 20),
+                  VibeTextField(
+                    controller: _confirmPasswordCtrl,
+                    label: 'Confirm New Password',
+                    isPassword: true,
+                    prefixIcon: Icons.verified_user_outlined,
+                    hint: 'Confirm new password',
+                  ),
+                  const SizedBox(height: 32),
+                  VibeButton(
+                    label: 'Update Password',
+                    onPressed: _isLoading ? null : _handleSubmit,
+                    isLoading: _isLoading,
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Password Requirements',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _requirementItem('Minimum 6 characters'),
+                  _requirementItem('Include letters and numbers'),
+                  _requirementItem('Avoid using your name or email'),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

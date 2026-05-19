@@ -12,6 +12,7 @@ import '../../../../core/widgets/vibe_header.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/services/signalr_service.dart';
+import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../../injection/injection_container.dart';
 import '../../data/services/event_api_service.dart';
 import '../../domain/entities/event.dart';
@@ -98,27 +99,14 @@ class _ManageEventPageState extends State<ManageEventPage>
 
   Future<void> _removeMember(String userId) async {
     if (_isReadOnly) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showVibeConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Member?'),
-        content: const Text(
-          'Are you sure you want to remove this participant from the event?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Remove',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
+      title: 'Remove Member?',
+      message: 'Are you sure you want to remove this participant from the event?',
+      confirmLabel: 'Remove',
+      cancelLabel: 'Cancel',
+      icon: Icons.person_remove_rounded,
+      isDestructive: true,
     );
 
     if (confirmed == true) {
@@ -236,7 +224,15 @@ class _ManageEventPageState extends State<ManageEventPage>
         return RefreshIndicator(
           onRefresh: _refresh,
           child: ListView.builder(
-            padding: EdgeInsets.fromLTRB(20, 145, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.viewPaddingOf(context).top +
+                  VibeHeader.headerHeight +
+                  60 +
+                  20,
+              20,
+              20,
+            ),
             itemCount: members.length,
             itemBuilder: (context, index) {
               final member = members[index];
@@ -266,7 +262,15 @@ class _ManageEventPageState extends State<ManageEventPage>
         return RefreshIndicator(
           onRefresh: _refresh,
           child: ListView.builder(
-            padding: EdgeInsets.fromLTRB(20, 145, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.viewPaddingOf(context).top +
+                  VibeHeader.headerHeight +
+                  60 +
+                  20,
+              20,
+              20,
+            ),
             itemCount: requests.length,
             itemBuilder: (context, index) {
               final request = requests[index];
