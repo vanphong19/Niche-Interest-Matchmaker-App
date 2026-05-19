@@ -65,6 +65,17 @@ class _ActivityPageState extends State<ActivityPage>
               fontWeight: FontWeight.w900,
             ),
           ),
+          actions: [
+            IconButton(
+              tooltip: 'Open check-in demo',
+              onPressed: () => context.router.push(const CheckinDetailRoute()),
+              icon: const Icon(
+                Icons.verified_user_rounded,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           bottom: TabBar(
             controller: _tabController,
             labelColor: AppColors.primary,
@@ -215,9 +226,16 @@ class _ActivityPageState extends State<ActivityPage>
                         ),
                       ],
                       ElevatedButton(
-                        onPressed: () => context.router.push(
-                          EventDetailRoute(eventId: event.id),
-                        ),
+                        onPressed: () {
+                          if (!isHost && !isPast) {
+                            context.router.push(const CheckinDetailRoute());
+                            return;
+                          }
+
+                          context.router.push(
+                            EventDetailRoute(eventId: event.id),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isPast
                               ? AppColors.bgSecondary
