@@ -40,6 +40,15 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: UserMatchListRoute.page, path: '/match/list'),
     AutoRoute(page: MapDiscoveryRoute.page, path: '/map'),
 
+    // Check-in UI Routes
+    AutoRoute(page: CheckinDetailRoute.page, path: '/checkin'),
+    AutoRoute(page: CheckinMethodRoute.page, path: '/checkin/method'),
+    AutoRoute(page: QrCheckinScannerRoute.page, path: '/checkin/qr'),
+    AutoRoute(page: CheckinVerifyingRoute.page, path: '/checkin/verifying'),
+    AutoRoute(page: NfcCheckinWaitingRoute.page, path: '/checkin/nfc'),
+    AutoRoute(page: NfcCheckinResultRoute.page, path: '/checkin/nfc/result'),
+    AutoRoute(page: TrustProfileRoute.page, path: '/checkin/trust'),
+
     // ─── Settings ─────────────────────────────────────────────
     AutoRoute(page: SettingsRoute.page, path: '/settings'),
     AutoRoute(
