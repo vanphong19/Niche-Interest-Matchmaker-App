@@ -182,6 +182,19 @@ class AppLocalizations {
       'checkin_meetup_streak': 'Meetup Streak',
       'checkin_earned_badges': 'Earned Badges',
 
+      // Find in Crowd
+      'finder_title': 'Find In Crowd',
+      'finder_find_in_crowd': 'Find in Crowd',
+      'finder_start': 'Start Finding',
+      'finder_cancel': 'Cancel',
+      'finder_waiting': 'Waiting',
+      'finder_accept': 'Share Temporary Location',
+      'finder_decline': 'Not Now',
+      'finder_stop': 'Stop Finding',
+      'finder_continue': 'Continue',
+      'finder_back_to_meeting': 'Back to Meeting',
+      'finder_find_again': 'Find Again',
+
       // Map
       'search_placeholder': 'Search vibe, location or category...',
       'no_vibes_found': 'No public vibes found here.',
@@ -285,8 +298,10 @@ class AppLocalizations {
       'edit_event_loading': 'Saving changes...',
       'edit_event_success': 'Event updated successfully!',
       'edit_event_error': 'Error updating event',
-      'edit_event_validation_capacity': 'Capacity cannot be lower than the current number of participants ({current}).',
-      'edit_event_read_only_fields': 'Location and schedule are locked after event creation to prevent participant confusion.',
+      'edit_event_validation_capacity':
+          'Capacity cannot be lower than the current number of participants ({current}).',
+      'edit_event_read_only_fields':
+          'Location and schedule are locked after event creation to prevent participant confusion.',
 
       // New additions for UI
       'appearance_desc':
@@ -441,16 +456,14 @@ class AppLocalizations {
       'checkin_nav_trust': 'Tin cậy',
       'checkin_starts_in': 'Bắt đầu sau 15:00',
       'checkin_meeting_point': 'Điểm hẹn',
-      'checkin_required_note':
-          'Check-in giúp duy trì điểm uy tín của bạn',
+      'checkin_required_note': 'Check-in giúp duy trì điểm uy tín của bạn',
       'checkin_check_in': 'Check-in',
       'checkin_chat': 'Chat',
       'checkin_map': 'Bản đồ',
       'checkin_participants': 'Người tham gia',
       'checkin_confirmed_count': '3 đã xác nhận',
       'checkin_method_title': 'Bạn muốn check-in bằng cách nào?',
-      'checkin_method_subtitle':
-          'Chọn phương thức có sẵn tại địa điểm meetup',
+      'checkin_method_subtitle': 'Chọn phương thức có sẵn tại địa điểm meetup',
       'checkin_qr_method': 'Check-in QR',
       'checkin_qr_method_desc': 'Xác thực QR nhanh và dễ dàng',
       'checkin_nfc_method': 'Check-in NFC',
@@ -481,6 +494,19 @@ class AppLocalizations {
       'checkin_attendance_rate': 'Tỷ lệ tham dự',
       'checkin_meetup_streak': 'Chuỗi meetup',
       'checkin_earned_badges': 'Huy hiệu đã nhận',
+
+      // Find in Crowd
+      'finder_title': 'Tìm Trong Đám Đông',
+      'finder_find_in_crowd': 'Tìm trong đám đông',
+      'finder_start': 'Bắt đầu tìm',
+      'finder_cancel': 'Hủy',
+      'finder_waiting': 'Đang chờ',
+      'finder_accept': 'Chia sẻ vị trí tạm thời',
+      'finder_decline': 'Để sau',
+      'finder_stop': 'Dừng tìm',
+      'finder_continue': 'Tiếp tục',
+      'finder_back_to_meeting': 'Về buổi hẹn',
+      'finder_find_again': 'Tìm lại',
 
       // Map
       'search_placeholder': 'Tìm vibe, địa điểm hoặc danh mục...',
@@ -586,8 +612,10 @@ class AppLocalizations {
       'edit_event_loading': 'Đang lưu thay đổi...',
       'edit_event_success': 'Cập nhật sự kiện thành công!',
       'edit_event_error': 'Lỗi cập nhật sự kiện',
-      'edit_event_validation_capacity': 'Sức chứa không được thấp hơn số lượng người tham gia hiện tại ({current}).',
-      'edit_event_read_only_fields': 'Địa điểm và lịch trình được khóa sau khi tạo kèo để tránh gây hiểu lầm cho người tham gia.',
+      'edit_event_validation_capacity':
+          'Sức chứa không được thấp hơn số lượng người tham gia hiện tại ({current}).',
+      'edit_event_read_only_fields':
+          'Địa điểm và lịch trình được khóa sau khi tạo kèo để tránh gây hiểu lầm cho người tham gia.',
 
       // New additions for UI
       'appearance_desc': 'Cài đặt giao diện hiện đang đồng bộ với chế độ tối.',

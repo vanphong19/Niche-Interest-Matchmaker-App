@@ -16,6 +16,12 @@ import '../core/services/signalr_service.dart';
 
 import '../features/event/data/services/event_api_service.dart'
     as import_event_api;
+import '../features/checkin/data/datasources/checkin_remote_data_source.dart';
+import '../features/checkin/data/repositories/checkin_repository_impl.dart';
+import '../features/checkin/data/services/nfc_payload_parser.dart';
+import '../features/checkin/domain/repositories/checkin_repository.dart';
+import '../features/checkin/domain/usecases/check_in_with_nfc_usecase.dart';
+import '../features/checkin/presentation/bloc/checkin_bloc.dart';
 import '../features/event/presentation/bloc/event_bloc.dart'
     as import_event_bloc;
 import '../features/event/presentation/bloc/create_event_cubit.dart'
@@ -83,5 +89,23 @@ Future<void> configureDependencies() async {
   // ─── Profile Feature ──────────────────────────────────────────
   sl.registerLazySingleton<import_user_api.UserApiService>(
     () => import_user_api.UserApiService(sl<DioClient>().dio),
+  );
+
+  // Check-in Feature
+  sl.registerLazySingleton<NfcPayloadParser>(() => NfcPayloadParser());
+  sl.registerLazySingleton<CheckinRemoteDataSource>(
+    () => CheckinRemoteDataSource(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<CheckinRepository>(
+    () => CheckinRepositoryImpl(
+      remoteDataSource: sl<CheckinRemoteDataSource>(),
+      nfcPayloadParser: sl<NfcPayloadParser>(),
+    ),
+  );
+  sl.registerLazySingleton<CheckInWithNfcUseCase>(
+    () => CheckInWithNfcUseCase(sl<CheckinRepository>()),
+  );
+  sl.registerFactory<CheckinBloc>(
+    () => CheckinBloc(checkInWithNfcUseCase: sl<CheckInWithNfcUseCase>()),
   );
 }
