@@ -18,6 +18,8 @@ import '../../../event/data/services/event_api_service.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../data/services/user_api_service.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../trust/domain/services/reputation_service.dart';
+import '../../../trust/presentation/pages/trust_dashboard_page.dart';
 import 'all_activity_history_page.dart';
 
 @RoutePage()
@@ -184,6 +186,11 @@ class _ProfilePageState extends State<ProfilePage>
                               FadeTransition(
                                 opacity: _sectionsFade,
                                 child: _buildBadgesSection(isDark, profileData),
+                              ),
+                              const SizedBox(height: 24),
+                              FadeTransition(
+                                opacity: _sectionsFade,
+                                child: _buildTrustPassportBanner(isDark, profileData.reputationScore),
                               ),
                               const SizedBox(height: 24),
                               FadeTransition(
@@ -656,6 +663,123 @@ class _ProfilePageState extends State<ProfilePage>
           ],
         );
       },
+    );
+  }
+
+  // ─── Trust Passport Banner ──────────────────────────
+  Widget _buildTrustPassportBanner(bool isDark, int score) {
+    final levelData = ReputationService.getLevel(score);
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const TrustDashboardPage(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              levelData.gradientColors.first.withValues(alpha: 0.12),
+              levelData.gradientColors.last.withValues(alpha: 0.06),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: levelData.color.withValues(alpha: 0.25),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: levelData.gradientColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: levelData.color.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text('🛡️', style: TextStyle(fontSize: 24)),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hộ chiếu uy tín',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                      color: isDark ? Colors.white : const Color(0xFF1C2C58),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        levelData.emoji,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        levelData.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: levelData.color,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: levelData.color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '$score điểm',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: levelData.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: levelData.color,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

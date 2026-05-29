@@ -314,14 +314,15 @@ class _CreateEventPageState extends State<CreateEventPage>
     final point = LatLng(lat, lng);
 
     setState(() {
-      final name = place['name'] as String? ?? '';
-      final address = place['address'] as String? ?? '';
+      final name = (place['name'] as String? ?? '').trim();
+      final address = (place['address'] as String? ?? '').trim();
+      final locationText = address.isNotEmpty ? address : name;
 
       // Show full details in search box for better clarity as requested
       _locationSearchCtrl.text = address.isNotEmpty ? '$name, $address' : name;
 
       _locationNameCtrl.text = name;
-      _addressCtrl.text = address;
+      _addressCtrl.text = locationText;
       _coords = point;
       _placeSuggestions = const [];
     });
@@ -331,12 +332,26 @@ class _CreateEventPageState extends State<CreateEventPage>
     FocusScope.of(context).unfocus();
   }
 
+  void _syncTypedLocationFallback() {
+    final typedLocation = _locationSearchCtrl.text.trim();
+    if (typedLocation.isEmpty) return;
+
+    if (_locationNameCtrl.text.trim().isEmpty) {
+      _locationNameCtrl.text = typedLocation;
+    }
+    if (_addressCtrl.text.trim().isEmpty) {
+      _addressCtrl.text = typedLocation;
+    }
+  }
+
   Future<void> _submitEvent() async {
     if (_titleCtrl.text.trim().isEmpty ||
         _descriptionCtrl.text.trim().isEmpty) {
       VibeSnackBar.warning(context, _tr('event_validation_title_description'));
       return;
     }
+
+    _syncTypedLocationFallback();
 
     if (_locationNameCtrl.text.trim().isEmpty ||
         _addressCtrl.text.trim().isEmpty) {

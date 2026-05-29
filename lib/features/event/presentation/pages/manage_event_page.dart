@@ -13,6 +13,9 @@ import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../injection/injection_container.dart';
+import '../../../trust/domain/services/reputation_service.dart';
+import '../../../trust/presentation/widgets/user_trust_card.dart';
+import '../../../trust/presentation/widgets/host_review_form.dart';
 import '../../data/services/event_api_service.dart';
 import '../../domain/entities/event.dart';
 
@@ -281,6 +284,9 @@ class _ManageEventPageState extends State<ManageEventPage>
   Widget _buildMemberCard(Map<String, String> member) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isHost = member['role'] == 'Host';
+    // Build a mock trust for this member (keyed by userId for variety)
+    final mockScore = (member['id']?.hashCode ?? 0).abs() % 60 + 40;
+    final memberTrust = mockUserTrust.copyWith(score: mockScore);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -294,47 +300,74 @@ class _ManageEventPageState extends State<ManageEventPage>
               : Colors.black.withValues(alpha: 0.03),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          VibeAvatar(
-            imageUrl: member['avatarUrl'],
-            name: member['name'],
-            size: 48,
-            showBorder: false,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  member['name'] ?? 'Member',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                  ),
+          Row(
+            children: [
+              VibeAvatar(
+                imageUrl: member['avatarUrl'],
+                name: member['name'],
+                size: 48,
+                showBorder: false,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      member['name'] ?? 'Member',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      member['role'] ?? 'Participant',
+                      style: const TextStyle(
+                        color: AppColors.textHint,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  member['role'] ?? 'Participant',
-                  style: const TextStyle(
-                    color: AppColors.textHint,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+              ),
+              if (!isHost) ...[
+                // Review button
+                if (!_isReadOnly)
+                  IconButton(
+                    onPressed: () => showHostReviewForm(
+                      context,
+                      userId: member['id'] ?? '',
+                      userName: member['name'] ?? 'Member',
+                      userAvatarUrl: member['avatarUrl'],
+                      onSubmit: (stars, attended) {
+                        // In real app: call API to update trust score
+                      },
+                    ),
+                    tooltip: 'Đánh giá',
+                    icon: const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 20,
+                    ),
+                  ),
+                IconButton(
+                  onPressed: () => _removeMember(member['id'] ?? ''),
+                  icon: const Icon(
+                    Icons.person_remove_rounded,
+                    color: AppColors.error,
+                    size: 20,
                   ),
                 ),
               ],
-            ),
+            ],
           ),
-          if (!isHost && !_isReadOnly)
-            IconButton(
-              onPressed: () => _removeMember(member['id'] ?? ''),
-              icon: const Icon(
-                Icons.person_remove_rounded,
-                color: AppColors.error,
-                size: 20,
-              ),
-            ),
+          // Trust card (collapsible)
+          if (!isHost)
+            UserTrustCard(trust: memberTrust),
         ],
       ),
     );
