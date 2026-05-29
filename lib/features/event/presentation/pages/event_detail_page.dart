@@ -20,6 +20,8 @@ import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_header.dart';
 import '../../../../core/widgets/vibe_confirm_dialog.dart';
+import '../../../trust/presentation/widgets/commitment_modal.dart';
+import '../../../trust/presentation/widgets/checkin_button.dart';
 import 'event_members_page.dart';
 import '../bloc/event_detail_cubit.dart';
 
@@ -201,6 +203,16 @@ class _EventDetailPageState extends State<EventDetailPage>
     }
 
     if (!event.isJoined) {
+      // Show CommitmentModal before joining
+      final confirmed = await showCommitmentModal(
+        context,
+        eventName: event.title,
+        eventStart: event.startDateTime,
+        location: event.location.address.isNotEmpty
+            ? event.location.address
+            : event.location.name,
+      );
+      if (!confirmed) return;
       await _cubit.toggleJoinLeave();
       sl<SignalRService>().emitLocalChange('event', {'eventId': event.id});
       return;
@@ -585,6 +597,15 @@ class _EventDetailPageState extends State<EventDetailPage>
             // The Circle (Members)
             _buildCircleCard(event),
             const SizedBox(height: 20),
+
+            // Check-in button (only for joined participants)
+            if (event.isJoined) ...[
+              const SizedBox(height: 20),
+              CheckInButton(
+                eventStart: event.startDateTime,
+                eventName: event.title,
+              ),
+            ],
 
             // About Section (Description)
             _buildAboutSection(event),
