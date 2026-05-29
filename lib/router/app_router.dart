@@ -36,8 +36,35 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: CreateEventRoute.page, path: '/event/create'),
     AutoRoute(page: EventDetailRoute.page, path: '/event/:id'),
     AutoRoute(page: ManageEventRoute.page, path: '/event/:id/manage'),
+    AutoRoute(page: EditEventRoute.page, path: '/event/:id/edit'),
     AutoRoute(page: UserMatchListRoute.page, path: '/match/list'),
     AutoRoute(page: MapDiscoveryRoute.page, path: '/map'),
+
+    // Check-in UI Routes
+    AutoRoute(page: CheckinDetailRoute.page, path: '/checkin'),
+    AutoRoute(page: CheckinMethodRoute.page, path: '/checkin/method'),
+    AutoRoute(page: QrCheckinScannerRoute.page, path: '/checkin/qr'),
+    AutoRoute(page: CheckinVerifyingRoute.page, path: '/checkin/verifying'),
+    AutoRoute(page: NfcCheckinWaitingRoute.page, path: '/checkin/nfc'),
+    AutoRoute(page: NfcCheckinResultRoute.page, path: '/checkin/nfc/result'),
+    AutoRoute(page: TrustProfileRoute.page, path: '/checkin/trust'),
+
+    // Find In Crowd UI Routes
+    AutoRoute(page: FindInCrowdMeetingRoute.page, path: '/find-in-crowd'),
+    AutoRoute(page: FinderStartRoute.page, path: '/find-in-crowd/start'),
+    AutoRoute(page: FinderWaitingRoute.page, path: '/find-in-crowd/waiting'),
+    AutoRoute(
+      page: FinderIncomingRequestRoute.page,
+      path: '/find-in-crowd/request',
+    ),
+    AutoRoute(page: FinderRadarRoute.page, path: '/find-in-crowd/radar'),
+    AutoRoute(page: FinderNearbyRoute.page, path: '/find-in-crowd/nearby'),
+    AutoRoute(page: FinderCameraRoute.page, path: '/find-in-crowd/camera'),
+    AutoRoute(
+      page: FinderStopConfirmationRoute.page,
+      path: '/find-in-crowd/stop',
+    ),
+    AutoRoute(page: FinderEndedRoute.page, path: '/find-in-crowd/ended'),
 
     // ─── Settings ─────────────────────────────────────────────
     AutoRoute(page: SettingsRoute.page, path: '/settings'),

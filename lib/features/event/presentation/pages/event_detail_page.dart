@@ -19,6 +19,7 @@ import '../../../../core/widgets/vibe_loading.dart';
 import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../trust/presentation/widgets/commitment_modal.dart';
 import '../../../trust/presentation/widgets/checkin_button.dart';
 import 'event_members_page.dart';
@@ -81,7 +82,7 @@ class _EventDetailPageState extends State<EventDetailPage>
     _statusSubscription = sl<SignalRService>().dataChangeStream.listen((data) {
       final eventId = (data['eventId'] ?? data['EventId'])?.toString();
       if (eventId == null || eventId == widget.eventId) {
-        _cubit.loadEvent(widget.eventId);
+        _cubit.loadEvent(widget.eventId, showLoading: false);
       }
     });
   }
@@ -158,31 +159,18 @@ class _EventDetailPageState extends State<EventDetailPage>
         ),
       );
     }
-    if (mounted) _cubit.loadEvent(widget.eventId);
+    if (mounted) _cubit.loadEvent(widget.eventId, showLoading: false);
   }
 
   Future<void> _deleteEvent(Event event) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showVibeConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Vibe?'),
-        content: const Text(
-          'This action cannot be undone. All participants will be notified.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
+      title: 'Delete Vibe?',
+      message: 'This action cannot be undone. All participants will be notified.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      icon: Icons.delete_forever_rounded,
+      isDestructive: true,
     );
 
     if (confirmed == true) {
@@ -197,27 +185,14 @@ class _EventDetailPageState extends State<EventDetailPage>
 
   Future<void> _confirmJoinAction(Event event) async {
     if (event.isPending) {
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showVibeConfirmDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Cancel request?'),
-          content: const Text(
-            'Your pending join request will be removed from this event.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep Request'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text(
-                'Cancel Request',
-                style: TextStyle(color: AppColors.error),
-              ),
-            ),
-          ],
-        ),
+        title: 'Cancel request?',
+        message: 'Your pending join request will be removed from this event.',
+        confirmLabel: 'Cancel',
+        cancelLabel: 'Keep',
+        icon: Icons.remove_circle_outline_rounded,
+        isDestructive: true,
       );
 
       if (confirmed == true) {
@@ -243,27 +218,14 @@ class _EventDetailPageState extends State<EventDetailPage>
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showVibeConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave Vibe?'),
-        content: const Text(
-          'You will no longer be counted as a participant in this event.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Leave',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
+      title: 'Leave Vibe?',
+      message: 'You will no longer be counted as a participant in this event.',
+      confirmLabel: 'Leave',
+      cancelLabel: 'Cancel',
+      icon: Icons.logout_rounded,
+      isDestructive: true,
     );
 
     if (confirmed == true) {
@@ -439,6 +401,25 @@ class _EventDetailPageState extends State<EventDetailPage>
         ),
       ),
       actions: [
+        if (_canManageMembers(event)) ...[
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Center(
+              child: VibeHeaderButton(
+                icon: Icons.edit_rounded,
+                onTap: () async {
+                  final result = await context.router.push(
+                    EditEventRoute(eventId: event.id, event: event),
+                  );
+                  if (result != null && mounted) {
+                    _cubit.loadEvent(widget.eventId, showLoading: false);
+                  }
+                },
+                isDark: btnDark,
+              ),
+            ),
+          ),
+        ],
         Padding(
           padding: const EdgeInsets.only(right: 20),
           child: Center(
@@ -475,7 +456,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                     Image.network(
                       imageUrls[0],
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (context, error, stackTrace) => Container(
                         color: AppColors.bgSecondary,
                         child: const Icon(
                           Icons.image_not_supported,
@@ -493,14 +474,15 @@ class _EventDetailPageState extends State<EventDetailPage>
                         return Image.network(
                           imageUrls[i],
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: AppColors.bgSecondary,
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              color: AppColors.textHint,
-                              size: 40,
-                            ),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                color: AppColors.bgSecondary,
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  color: AppColors.textHint,
+                                  size: 40,
+                                ),
+                              ),
                         );
                       },
                     ),

@@ -87,6 +87,11 @@ class _HomePageState extends State<HomePage>
     context.router.push(const MapDiscoveryRoute());
   }
 
+  void _openFindInCrowd() {
+    HapticFeedback.selectionClick();
+    context.router.push(const FindInCrowdMeetingRoute());
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -111,6 +116,8 @@ class _HomePageState extends State<HomePage>
                   _buildChatBanner(),
                   const SizedBox(height: 16),
                   _buildExploreMapBanner(),
+                  const SizedBox(height: 12),
+                  _buildFindInCrowdBanner(),
                   const SizedBox(height: 16),
                   _buildEventStatsSection(),
                   const SizedBox(height: 16),
@@ -150,7 +157,7 @@ class _HomePageState extends State<HomePage>
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             color: (isDark ? const Color(0xFF0E121A) : Colors.white).withValues(
-              alpha: 0.82,
+              alpha: 0.52,
             ),
           ),
         ),
@@ -1034,6 +1041,92 @@ class _HomePageState extends State<HomePage>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: _ChatBanner(onTap: openChat, isDark: isDark),
+    );
+  }
+
+  Widget _buildFindInCrowdBanner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        onTap: _openFindInCrowd,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF10233A), const Color(0xFF0F172A)]
+                  : [Colors.white, const Color(0xFFEAF6FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.primary.withValues(alpha: 0.16),
+            ),
+            boxShadow: [
+              if (!isDark)
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: AppColors.accentGradient,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(
+                  Icons.radar_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Find In Crowd',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppColors.secondary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Open GPS finder flow and locate your meetup partner',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: isDark ? Colors.white70 : AppColors.primary,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -15,10 +15,10 @@ import '../../../../router/app_router.gr.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../profile/data/services/user_api_service.dart';
-import '../../../../core/widgets/vibe_button.dart';
 import '../../../../core/widgets/vibe_header.dart';
 import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/widgets/avatar_widget.dart';
+import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../../injection/injection_container.dart';
 
 @RoutePage()
@@ -103,14 +103,13 @@ class _SettingsPageState extends State<SettingsPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        height: MediaQuery.of(context).padding.top + 56 + 16,
+                        height: MediaQuery.viewPaddingOf(context).top + VibeHeader.headerHeight + 20,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 12),
                             // Profile Card
                             _buildProfileCard(
                               cardColor,
@@ -735,104 +734,57 @@ class _SettingsPageState extends State<SettingsPage>
     );
   }
 
-  void _showLogoutDialog() {
-    showDialog(
+  Future<void> _showLogoutDialog() async {
+    final confirmed = await showVibeConfirmDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          AppLocalizations.tr('sign_out'),
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        content: Text(AppLocalizations.tr('sign_out_confirm')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              AppLocalizations.tr('cancel'),
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-          VibeButton(
-            label: AppLocalizations.tr('sign_out'),
-            onPressed: () {
-              Navigator.pop(context);
-              ProfileState.reset();
-              context.read<AuthBloc>().add(LogoutRequested());
-              context.router.popUntilRoot();
-            },
-            height: 40,
-            width: 120,
-            fontSize: 14,
-          ),
-        ],
-      ),
+      title: AppLocalizations.tr('sign_out'),
+      message: AppLocalizations.tr('sign_out_confirm'),
+      confirmLabel: AppLocalizations.tr('sign_out'),
+      cancelLabel: AppLocalizations.tr('cancel'),
+      icon: Icons.logout_rounded,
+      isDestructive: true,
     );
+
+    if (confirmed == true && mounted) {
+      ProfileState.reset();
+      context.read<AuthBloc>().add(LogoutRequested());
+      context.router.popUntilRoot();
+    }
   }
 
   void _showBasicDialog(String title, String content) {
-    showDialog(
+    showVibeConfirmDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        content: Text(content),
-        actions: [
-          VibeButton(
-            label: AppLocalizations.tr('ok'),
-            onPressed: () => Navigator.pop(context),
-            height: 40,
-            width: 100,
-            fontSize: 14,
-          ),
-        ],
-      ),
+      title: title,
+      message: content,
+      confirmLabel: AppLocalizations.tr('ok'),
+      icon: Icons.info_outline_rounded,
     );
   }
 
-  void _showDeleteDialog() {
-    showDialog(
+  Future<void> _showDeleteDialog() async {
+    final confirmed = await showVibeConfirmDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          AppLocalizations.tr('delete_account'),
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            color: Color(0xFFE0527D),
-          ),
-        ),
-        content: Text(AppLocalizations.tr('delete_confirm')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              AppLocalizations.tr('cancel'),
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-          VibeButton(
-            label: AppLocalizations.tr('delete'),
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              try {
-                await sl<UserApiService>().deleteAccount();
-                if (!mounted) return;
-                ProfileState.reset();
-                context.read<AuthBloc>().add(LogoutRequested());
-                context.router.popUntilRoot();
-                VibeSnackBar.success(context, 'Account deleted successfully.');
-              } catch (e) {
-                if (!mounted) return;
-                VibeSnackBar.error(context, 'Failed to delete account: $e');
-              }
-            },
-            height: 40,
-            width: 120,
-            fontSize: 14,
-          ),
-        ],
-      ),
+      title: AppLocalizations.tr('delete_account'),
+      message: AppLocalizations.tr('delete_confirm'),
+      confirmLabel: AppLocalizations.tr('delete'),
+      cancelLabel: AppLocalizations.tr('cancel'),
+      icon: Icons.delete_forever_rounded,
+      isDestructive: true,
     );
+
+    if (confirmed == true && mounted) {
+      try {
+        await sl<UserApiService>().deleteAccount();
+        if (!mounted) return;
+        ProfileState.reset();
+        context.read<AuthBloc>().add(LogoutRequested());
+        context.router.popUntilRoot();
+        VibeSnackBar.success(context, 'Account deleted successfully.');
+      } catch (e) {
+        if (!mounted) return;
+        VibeSnackBar.error(context, 'Failed to delete account: $e');
+      }
+    }
   }
 }

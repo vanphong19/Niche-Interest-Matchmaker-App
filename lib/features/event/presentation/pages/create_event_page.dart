@@ -415,7 +415,7 @@ class _CreateEventPageState extends State<CreateEventPage>
 
   @override
   Widget build(BuildContext context) {
-    final bg = _isDark ? const Color(0xFF0E121A) : const Color(0xFFF4F6FB);
+    final bg = _isDark ? const Color(0xFF0E121A) : const Color(0xFFF5F7FF);
     final card = _isDark ? const Color(0xFF161D2A) : Colors.white;
     final border = _isDark
         ? Colors.white.withValues(alpha: 0.08)
@@ -467,7 +467,9 @@ class _CreateEventPageState extends State<CreateEventPage>
                     controller: _scrollController,
                     padding: EdgeInsets.fromLTRB(
                       20,
-                      VibeHeader.headerHeight + 20,
+                      MediaQuery.viewPaddingOf(context).top +
+                          VibeHeader.headerHeight +
+                          20,
                       20,
                       84,
                     ),

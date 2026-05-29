@@ -45,6 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan QR codes for check-in.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>VibePulse uses your current location to help you find people at a meetup.</string>
+	<key>NFCReaderUsageDescription</key>
+	<string>This app uses NFC to verify event check-ins.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

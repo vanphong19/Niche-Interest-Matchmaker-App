@@ -69,6 +69,11 @@ class EventApiService {
     await _dio.post('/api/app/matches', data: data);
   }
 
+  Future<Event> updateEvent(String eventId, Map<String, dynamic> data) async {
+    final response = await _dio.put('/api/app/matches/$eventId', data: data);
+    return Event.fromJson(_unwrap(response.data) as Map<String, dynamic>);
+  }
+
   Future<void> pinEvent(String id) async {
     await _dio.post('/api/app/matches/$id/pin');
   }

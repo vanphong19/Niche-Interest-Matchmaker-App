@@ -16,6 +16,7 @@ import '../core/services/signalr_service.dart';
 
 import '../features/event/data/services/event_api_service.dart'
     as import_event_api;
+import '../features/checkin/presentation/bloc/checkin_bloc.dart';
 import '../features/event/presentation/bloc/event_bloc.dart'
     as import_event_bloc;
 import '../features/event/presentation/bloc/create_event_cubit.dart'
@@ -84,4 +85,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<import_user_api.UserApiService>(
     () => import_user_api.UserApiService(sl<DioClient>().dio),
   );
+
+  // Check-in Feature
+  sl.registerFactory<CheckinBloc>(() => CheckinBloc());
 }

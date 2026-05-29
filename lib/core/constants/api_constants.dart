@@ -4,12 +4,7 @@ class ApiConstants {
 
   // Tự động chọn URL: localhost cho Web, IP mạng LAN cho điện thoại thật/máy ảo
   static String get baseUrl {
-    // kIsWeb cần import 'package:flutter/foundation.dart';
-    // Nếu chạy trên Web thì gọi thẳng localhost
-    // Đã cập nhật port thành 5230 theo Backend của user
-    return const bool.fromEnvironment('dart.library.js_util')
-        ? 'http://localhost:5230'
-        : 'http://192.168.1.6:5230'; // IP LAN của máy tính
+    return 'https://niche-interest-matchmaker.onrender.com';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────
