@@ -7,6 +7,8 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../checkin_session.dart';
 import '../mock/checkin_mock_data.dart';
+import '../models/checkin_event_details.dart';
+import '../../domain/entities/checkin_result.dart';
 import '../widgets/checkin_scaffold.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/gradient_action_button.dart';
@@ -18,13 +20,19 @@ class NfcCheckinResultPage extends StatelessWidget {
   const NfcCheckinResultPage({
     super.key,
     this.method = 'QR Check-in',
+    this.result,
+    this.eventDetails,
   });
 
   final String method;
+  final CheckinResult? result;
+  final CheckinEventDetails? eventDetails;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final verified = result == null || result!.isValid || result!.isDuplicate;
+    final statusColor = verified ? AppColors.success : AppColors.error;
 
     return CheckinScaffold(
       title: 'Check-in Complete',
@@ -49,7 +57,7 @@ class NfcCheckinResultPage extends StatelessWidget {
                   const NfcPulseTarget(resultMode: true),
                   const SizedBox(height: AppSpacing.xl),
                   Text(
-                    AppLocalizations.tr('checkin_nfc_result_title'),
+                    _title,
                     style: AppTextStyles.displayMedium.copyWith(
                       color: colorScheme.onSurface,
                       fontWeight: FontWeight.w900,
@@ -58,7 +66,7 @@ class NfcCheckinResultPage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'You have successfully checked in.',
+                    result?.message ?? 'You have successfully checked in.',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -74,16 +82,16 @@ class NfcCheckinResultPage extends StatelessWidget {
                               width: 52,
                               height: 52,
                               decoration: BoxDecoration(
-                                color: AppColors.success.withValues(
-                                  alpha: 0.14,
-                                ),
+                                color: statusColor.withValues(alpha: 0.14),
                                 borderRadius: BorderRadius.circular(
                                   AppSpacing.radiusLarge,
                                 ),
                               ),
-                              child: const Icon(
-                                Icons.verified_user_rounded,
-                                color: AppColors.success,
+                              child: Icon(
+                                verified
+                                    ? Icons.verified_user_rounded
+                                    : Icons.error_rounded,
+                                color: statusColor,
                               ),
                             ),
                             const SizedBox(width: AppSpacing.md),
@@ -92,19 +100,18 @@ class NfcCheckinResultPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    CheckinMockData.eventTitle,
+                                    result?.matchName ??
+                                        eventDetails?.title ??
+                                        CheckinMockData.eventTitle,
                                     style: AppTextStyles.bodyMediumSemiBold
-                                        .copyWith(
-                                      color: colorScheme.onSurface,
-                                    ),
+                                        .copyWith(color: colorScheme.onSurface),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
-                                    AppLocalizations.tr('checkin_xp_awarded'),
-                                    style:
-                                        AppTextStyles.captionMedium.copyWith(
-                                      color: AppColors.success,
+                                    _statusText,
+                                    style: AppTextStyles.captionMedium.copyWith(
+                                      color: statusColor,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -157,15 +164,18 @@ class NfcCheckinResultPage extends StatelessWidget {
                     label: AppLocalizations.tr('done'),
                     secondary: true,
                     onPressed: () {
-                      CheckinSession.markCheckedIn();
-                      Navigator.of(context).popUntil(
-                        (route) {
-                          final routeName = route.settings.name;
-                          return routeName == 'CheckinDetailRoute' ||
-                              (routeName?.contains('CheckinDetail') ?? false) ||
-                              route.isFirst;
-                        },
-                      );
+                      if (result?.isValid == true ||
+                          result?.isDuplicate == true) {
+                        CheckinSession.markCheckedIn(
+                          result?.matchId ?? eventDetails?.matchId,
+                        );
+                      }
+                      Navigator.of(context).popUntil((route) {
+                        final routeName = route.settings.name;
+                        return routeName == 'CheckinDetailRoute' ||
+                            (routeName?.contains('CheckinDetail') ?? false) ||
+                            route.isFirst;
+                      });
                     },
                   ),
                 ],
@@ -175,5 +185,23 @@ class NfcCheckinResultPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String get _title {
+    return switch (result?.status) {
+      'duplicate' => 'Already checked in',
+      'valid' => AppLocalizations.tr('checkin_nfc_result_title'),
+      null => AppLocalizations.tr('checkin_nfc_result_title'),
+      _ => 'Check-in not verified',
+    };
+  }
+
+  String get _statusText {
+    if (result?.status == 'valid') return 'Attendance verified';
+    if (result?.status == 'duplicate') return 'Already verified for this event';
+    if (result?.status != null && result?.status != 'valid') {
+      return result?.status ?? '';
+    }
+    return 'Check-in verified';
   }
 }

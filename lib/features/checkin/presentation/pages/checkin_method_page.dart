@@ -5,6 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../mock/checkin_mock_data.dart';
+import '../models/checkin_event_details.dart';
 import '../widgets/checkin_method_card.dart';
 import '../widgets/checkin_scaffold.dart';
 import '../widgets/gps_status_card.dart';
@@ -13,11 +14,16 @@ import 'qr_checkin_scanner_page.dart';
 
 @RoutePage()
 class CheckinMethodPage extends StatelessWidget {
-  const CheckinMethodPage({super.key});
+  const CheckinMethodPage({super.key, this.matchId, this.eventDetails});
+
+  final String? matchId;
+  final CheckinEventDetails? eventDetails;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final details =
+        eventDetails ?? CheckinEventDetails.fallback(matchId: matchId);
 
     return CheckinScaffold(
       title: 'Choose Check-in',
@@ -66,11 +72,11 @@ class CheckinMethodPage extends StatelessWidget {
                         : 'Use NFC when a venue tag is available.',
                     onTap: () {
                       final page = option.recommended
-                          ? const QrCheckinScannerPage()
-                          : const NfcCheckinWaitingPage();
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(builder: (_) => page),
-                      );
+                          ? QrCheckinScannerPage(eventDetails: details)
+                          : NfcCheckinWaitingPage(eventDetails: details);
+                      Navigator.of(
+                        context,
+                      ).push(MaterialPageRoute<void>(builder: (_) => page));
                     },
                   ),
                   const SizedBox(height: AppSpacing.md),

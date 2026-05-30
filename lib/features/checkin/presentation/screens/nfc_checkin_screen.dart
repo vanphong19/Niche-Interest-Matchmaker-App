@@ -4,26 +4,36 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/checkin_bloc.dart';
 import '../bloc/checkin_event.dart';
 import '../bloc/checkin_state.dart';
+import '../models/checkin_event_details.dart';
 import '../widgets/checkin_scaffold.dart';
 import '../widgets/checkin_status_view.dart';
 import '../widgets/nfc_scan_view.dart';
 import '../pages/checkin_verifying_page.dart';
+import '../../../../injection/injection_container.dart';
 
 class NfcCheckinScreen extends StatelessWidget {
-  const NfcCheckinScreen({super.key});
+  const NfcCheckinScreen({super.key, this.matchId, this.eventDetails});
+
+  final String? matchId;
+  final CheckinEventDetails? eventDetails;
 
   @override
   Widget build(BuildContext context) {
+    final details =
+        eventDetails ?? CheckinEventDetails.fallback(matchId: matchId);
     return BlocProvider(
       create: (_) =>
-          CheckinBloc()..add(const CheckinEvent.nfcCheckinRequested()),
-      child: const _NfcCheckinView(),
+          sl<CheckinBloc>()
+            ..add(CheckinEvent.nfcCheckinRequested(matchId: details.matchId)),
+      child: _NfcCheckinView(details: details),
     );
   }
 }
 
 class _NfcCheckinView extends StatelessWidget {
-  const _NfcCheckinView();
+  const _NfcCheckinView({required this.details});
+
+  final CheckinEventDetails details;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +49,22 @@ class _NfcCheckinView extends StatelessWidget {
             case NfcCheckinStatus.success:
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute<void>(
-                  builder: (_) =>
-                      const CheckinVerifyingPage(method: 'NFC Check-in'),
+                  builder: (_) => CheckinVerifyingPage(
+                    method: 'NFC Check-in',
+                    result: state.result,
+                    eventDetails: details,
+                  ),
+                ),
+              );
+            case NfcCheckinStatus.duplicate:
+            case NfcCheckinStatus.rejected:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute<void>(
+                  builder: (_) => CheckinVerifyingPage(
+                    method: 'NFC Check-in',
+                    result: state.result,
+                    eventDetails: details,
+                  ),
                 ),
               );
             case NfcCheckinStatus.failure:
@@ -85,6 +109,8 @@ class _NfcCheckinView extends StatelessWidget {
                   scanning: true,
                 );
               case NfcCheckinStatus.success:
+              case NfcCheckinStatus.duplicate:
+              case NfcCheckinStatus.rejected:
                 return const CheckinStatusView(
                   icon: Icons.verified_rounded,
                   title: 'NFC tag detected',
@@ -96,33 +122,36 @@ class _NfcCheckinView extends StatelessWidget {
                 return CheckinStatusView(
                   icon: Icons.block_rounded,
                   title: 'NFC is not supported',
-                  message: state.errorMessage ??
+                  message:
+                      state.errorMessage ??
                       'This device does not support NFC check-in.',
                 );
               case NfcCheckinStatus.disabled:
                 return CheckinStatusView(
                   icon: Icons.block_rounded,
                   title: 'NFC is turned off',
-                  message: state.errorMessage ??
+                  message:
+                      state.errorMessage ??
                       'Enable NFC in device settings and try again.',
                   actionLabel: 'Retry',
                   onAction: () {
-                    context
-                        .read<CheckinBloc>()
-                        .add(const CheckinEvent.nfcRetryRequested());
+                    context.read<CheckinBloc>().add(
+                      const CheckinEvent.nfcRetryRequested(),
+                    );
                   },
                 );
               case NfcCheckinStatus.failure:
                 return CheckinStatusView(
                   icon: Icons.error_outline_rounded,
                   title: 'Unable to start NFC',
-                  message: state.errorMessage ??
+                  message:
+                      state.errorMessage ??
                       'Something went wrong while starting NFC scanning.',
                   actionLabel: 'Retry',
                   onAction: () {
-                    context
-                        .read<CheckinBloc>()
-                        .add(const CheckinEvent.nfcRetryRequested());
+                    context.read<CheckinBloc>().add(
+                      const CheckinEvent.nfcRetryRequested(),
+                    );
                   },
                 );
             }

@@ -10,6 +10,8 @@ import '../../../../core/widgets/vibe_empty_state.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
+import '../../../checkin/presentation/models/checkin_event_details.dart';
+import '../../../checkin/presentation/pages/checkin_detail_page.dart';
 import '../../../profile/data/services/user_api_service.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../../event/presentation/bloc/event_bloc.dart';
@@ -67,8 +69,18 @@ class _ActivityPageState extends State<ActivityPage>
           ),
           actions: [
             IconButton(
-              tooltip: 'Open check-in demo',
-              onPressed: () => context.router.push(const CheckinDetailRoute()),
+              tooltip: 'Open check-in',
+              onPressed: () {
+                final event = _firstCheckinCandidate(_eventBloc.state.joined);
+                if (event == null) {
+                  VibeSnackBar.info(
+                    context,
+                    'Join an active vibe before checking in.',
+                  );
+                  return;
+                }
+                _openCheckin(event);
+              },
               icon: const Icon(
                 Icons.verified_user_rounded,
                 color: AppColors.primary,
@@ -228,7 +240,7 @@ class _ActivityPageState extends State<ActivityPage>
                       ElevatedButton(
                         onPressed: () {
                           if (!isHost && !isPast) {
-                            context.router.push(const CheckinDetailRoute());
+                            _openCheckin(event);
                             return;
                           }
 
@@ -263,6 +275,23 @@ class _ActivityPageState extends State<ActivityPage>
           ),
         );
       },
+    );
+  }
+
+  Event? _firstCheckinCandidate(List<Event> events) {
+    for (final event in events) {
+      if (event.status == EventStatus.active) return event;
+    }
+    return events.isNotEmpty ? events.first : null;
+  }
+
+  void _openCheckin(Event event) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CheckinDetailPage(
+          eventDetails: CheckinEventDetails.fromEvent(event),
+        ),
+      ),
     );
   }
 }
