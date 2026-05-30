@@ -24,18 +24,11 @@ class VibeBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColors.darkBgSecondary : AppColors.bgPrimary;
-    // final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
+
         border: Border(
           top: BorderSide(
             color: isDark ? AppColors.darkBorderLight : AppColors.borderLight,
@@ -61,18 +54,11 @@ class VibeBottomNav extends StatelessWidget {
                     onTap: () => _handleTap(0),
                   ),
                   _NavItem(
-                    icon: Icons.diversity_3_outlined,
-                    activeIcon: Icons.diversity_3,
-                    label: 'Match',
-                    isSelected: currentIndex == 1,
-                    onTap: () => _handleTap(1),
-                  ),
-                  _NavItem(
                     icon: Icons.map_outlined,
                     activeIcon: Icons.map_rounded,
                     label: 'Map',
                     isSelected: currentIndex == 1,
-                    onTap: () => _handleTap(2),
+                    onTap: () => _handleTap(1),
                   ),
                   const SizedBox(width: 60), // Space for centered CreateButton
                   _NavItem(
@@ -262,16 +248,7 @@ class _CreateButtonState extends State<_CreateButton>
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
-                      blurRadius: 20,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                ),
+                decoration: BoxDecoration(shape: BoxShape.circle),
               ),
               // Primary Star Button
               Container(
@@ -284,13 +261,6 @@ class _CreateButtonState extends State<_CreateButton>
                     end: Alignment.bottomCenter,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
                 child: const Icon(
                   Icons.star_rounded,

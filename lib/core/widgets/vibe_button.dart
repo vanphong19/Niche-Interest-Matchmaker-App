@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import 'vibe_loading.dart';
 
 enum VibeButtonType { primary, secondary, outlined, text, danger }
 
@@ -20,6 +21,8 @@ class VibeButton extends StatefulWidget {
     this.suffixIcon,
     this.width,
     this.height,
+    this.fontSize,
+    this.iconSize,
   });
 
   final String label;
@@ -31,6 +34,8 @@ class VibeButton extends StatefulWidget {
   final IconData? suffixIcon;
   final double? width;
   final double? height;
+  final double? fontSize;
+  final double? iconSize;
 
   @override
   State<VibeButton> createState() => _VibeButtonState();
@@ -48,9 +53,10 @@ class _VibeButtonState extends State<VibeButton>
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -90,10 +96,7 @@ class _VibeButtonState extends State<VibeButton>
     return AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: child,
-        );
+        return Transform.scale(scale: _scaleAnimation.value, child: child);
       },
       child: GestureDetector(
         onTapDown: _handleTapDown,
@@ -132,34 +135,34 @@ class _VibeButtonState extends State<VibeButton>
       height: height,
       decoration: BoxDecoration(
         gradient: _isInteractive
-            ? AppColors.primaryGradient
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF278DFF), Color(0xFF165DD9)],
+              )
             : const LinearGradient(
-                colors: [Color(0xFFAAABFF), Color(0xFFBBBCFF)],
+                colors: [Color(0xFF8EB4DE), Color(0xFF9EC0E4)],
               ),
-        borderRadius: AppSpacing.borderRadiusLarge,
-        boxShadow: _isInteractive
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Center(child: _buildContent(AppColors.textInverse)),
+      child: Center(child: _buildContent(Colors.white)),
     );
   }
 
   Widget _buildSecondary(double height) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: widget.width ?? double.infinity,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.bgTertiary,
-        borderRadius: AppSpacing.borderRadiusLarge,
+        color: isDark ? AppColors.darkBgTertiary : AppColors.bgTertiary,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Center(child: _buildContent(AppColors.textPrimary)),
+      child: Center(
+        child: _buildContent(
+          isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+        ),
+      ),
     );
   }
 
@@ -169,13 +172,10 @@ class _VibeButtonState extends State<VibeButton>
       height: height,
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: AppSpacing.borderRadiusLarge,
-        border: Border.all(
-          color: AppColors.primary,
-          width: 1.5,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF278DFF), width: 1.5),
       ),
-      child: Center(child: _buildContent(AppColors.primary)),
+      child: Center(child: _buildContent(const Color(0xFF278DFF))),
     );
   }
 
@@ -185,7 +185,7 @@ class _VibeButtonState extends State<VibeButton>
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.sm,
       ),
-      child: _buildContent(AppColors.primary),
+      child: _buildContent(const Color(0xFF278DFF)),
     );
   }
 
@@ -195,22 +195,15 @@ class _VibeButtonState extends State<VibeButton>
       height: height,
       decoration: BoxDecoration(
         color: AppColors.error,
-        borderRadius: AppSpacing.borderRadiusLarge,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Center(child: _buildContent(AppColors.textInverse)),
+      child: Center(child: _buildContent(Colors.white)),
     );
   }
 
   Widget _buildContent(Color textColor) {
     if (widget.isLoading) {
-      return SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: textColor,
-        ),
-      );
+      return VibeLoading(size: 20, strokeWidth: 2.5, color: textColor);
     }
 
     return Row(
@@ -218,16 +211,29 @@ class _VibeButtonState extends State<VibeButton>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (widget.prefixIcon != null) ...[
-          Icon(widget.prefixIcon, size: 20, color: textColor),
-          const SizedBox(width: AppSpacing.sm),
+          Icon(
+            widget.prefixIcon,
+            size: widget.iconSize ?? 18,
+            color: textColor,
+          ),
+          const SizedBox(width: 8),
         ],
         Text(
           widget.label,
-          style: AppTextStyles.buttonLarge.copyWith(color: textColor),
+          style: AppTextStyles.buttonMedium.copyWith(
+            color: textColor,
+            fontSize: widget.fontSize ?? 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
+          ),
         ),
         if (widget.suffixIcon != null) ...[
-          const SizedBox(width: AppSpacing.sm),
-          Icon(widget.suffixIcon, size: 20, color: textColor),
+          const SizedBox(width: 8),
+          Icon(
+            widget.suffixIcon,
+            size: widget.iconSize ?? 18,
+            color: textColor,
+          ),
         ],
       ],
     );

@@ -46,11 +46,7 @@ class VibeMatchBloc extends BaseBloc<VibeMatchEvent, VibeMatchState> {
                 highlighted: false,
               ),
             ],
-            participantImages: const [
-              'https://images.unsplash.com/photo-1500648767791-00dcc994a43e',
-              'https://images.unsplash.com/photo-1544005313-94ddf0286df2',
-              'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
-            ],
+            participantImages: const [],
             uiAction: null,
           ),
         );

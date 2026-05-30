@@ -5,20 +5,35 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/network/dio_client.dart';
 import '../core/network/network_info.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
+import '../features/auth/data/services/social_auth_service.dart';
+import '../features/auth/data/services/supabase_auth_service.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/settings/presentation/bloc/settings_bloc.dart';
 import '../features/vibe_check/presentation/bloc/vibe_match_bloc.dart';
 import '../router/app_router.dart';
+import '../core/services/signalr_service.dart';
 
 import '../features/event/data/services/event_api_service.dart'
     as import_event_api;
+import '../features/checkin/data/datasources/checkin_remote_data_source.dart';
+import '../features/checkin/data/repositories/checkin_repository_impl.dart';
+import '../features/checkin/data/services/nfc_payload_parser.dart';
+import '../features/checkin/domain/repositories/checkin_repository.dart';
+import '../features/checkin/domain/strategies/check_in_strategy.dart';
+import '../features/checkin/domain/usecases/check_in_usecase.dart';
+import '../features/checkin/domain/usecases/check_in_with_strategy_usecase.dart';
+import '../features/checkin/domain/usecases/check_in_with_nfc_usecase.dart';
+import '../features/checkin/domain/usecases/get_checkin_eligibility_usecase.dart';
+import '../features/checkin/presentation/bloc/checkin_bloc.dart';
 import '../features/event/presentation/bloc/event_bloc.dart'
     as import_event_bloc;
 import '../features/event/presentation/bloc/create_event_cubit.dart'
     as import_create_event;
 import '../features/event/presentation/bloc/event_detail_cubit.dart'
     as import_event_detail;
+import '../features/profile/data/services/user_api_service.dart'
+    as import_user_api;
 
 final sl = GetIt.instance;
 
@@ -33,6 +48,9 @@ Future<void> configureDependencies() async {
     () => DioClient(secureStorage: sl<FlutterSecureStorage>()),
   );
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
+  sl.registerLazySingleton<SignalRService>(
+    () => SignalRService(sl<FlutterSecureStorage>()),
+  );
 
   // ─── Router ───────────────────────────────────────────────────
   sl.registerLazySingleton<AppRouter>(() => AppRouter());
@@ -42,9 +60,11 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(sl<DioClient>().dio),
   );
+  sl.registerLazySingleton<SocialAuthService>(() => SocialAuthService());
+  sl.registerLazySingleton<SupabaseAuthService>(() => SupabaseAuthService());
 
   // Bloc
-  sl.registerFactory<AuthBloc>(() => AuthBloc());
+  sl.registerFactory<AuthBloc>(() => AuthBloc(sl<AuthRepository>()));
 
   // ─── Settings Feature ─────────────────────────────────────────
   sl.registerFactory<SettingsBloc>(() => SettingsBloc());
@@ -56,7 +76,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<import_event_api.EventApiService>(
     () => import_event_api.EventApiService(sl<DioClient>().dio),
   );
-  sl.registerFactory<import_event_bloc.EventBloc>(
+  sl.registerLazySingleton<import_event_bloc.EventBloc>(
     () => import_event_bloc.EventBloc(sl<import_event_api.EventApiService>()),
   );
   sl.registerFactory<import_create_event.CreateEventCubit>(
@@ -67,6 +87,53 @@ Future<void> configureDependencies() async {
   sl.registerFactory<import_event_detail.EventDetailCubit>(
     () => import_event_detail.EventDetailCubit(
       sl<import_event_api.EventApiService>(),
+    ),
+  );
+
+  // ─── Profile Feature ──────────────────────────────────────────
+  sl.registerLazySingleton<import_user_api.UserApiService>(
+    () => import_user_api.UserApiService(sl<DioClient>().dio),
+  );
+
+  // Check-in Feature
+  sl.registerLazySingleton<NfcPayloadParser>(() => NfcPayloadParser());
+  sl.registerLazySingleton<CheckinRemoteDataSource>(
+    () => CheckinRemoteDataSource(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<CheckinRepository>(
+    () => CheckinRepositoryImpl(
+      remoteDataSource: sl<CheckinRemoteDataSource>(),
+      nfcPayloadParser: sl<NfcPayloadParser>(),
+    ),
+  );
+  sl.registerLazySingleton<QrCheckInStrategy>(
+    () => QrCheckInStrategy(sl<CheckinRepository>()),
+  );
+  sl.registerLazySingleton<NfcCheckInStrategy>(
+    () => NfcCheckInStrategy(sl<CheckinRepository>()),
+  );
+  sl.registerLazySingleton<CheckInStrategyRegistry>(
+    () => CheckInStrategyRegistry([
+      sl<QrCheckInStrategy>(),
+      sl<NfcCheckInStrategy>(),
+    ]),
+  );
+  sl.registerLazySingleton<GetCheckinEligibilityUseCase>(
+    () => GetCheckinEligibilityUseCase(sl<CheckinRepository>()),
+  );
+  sl.registerLazySingleton<CheckInWithStrategyUseCase>(
+    () => CheckInWithStrategyUseCase(sl<CheckInStrategyRegistry>()),
+  );
+  sl.registerLazySingleton<CheckInWithNfcUseCase>(
+    () => CheckInWithNfcUseCase(sl<NfcCheckInStrategy>()),
+  );
+  sl.registerLazySingleton<CheckInUseCase>(
+    () => CheckInUseCase(sl<CheckinRepository>()),
+  );
+  sl.registerFactory<CheckinBloc>(
+    () => CheckinBloc(
+      checkInWithStrategyUseCase: sl<CheckInWithStrategyUseCase>(),
+      getEligibilityUseCase: sl<GetCheckinEligibilityUseCase>(),
     ),
   );
 }

@@ -6,7 +6,6 @@ import '../constants/app_constants.dart';
 export 'dio_client.dart';
 export 'network_info.dart';
 export 'interceptors/auth_interceptor.dart';
-export 'interceptors/mock_interceptor.dart';
 
 /// Backward-compatible NetworkConfig class.
 /// New code should use [DioClient] instead.

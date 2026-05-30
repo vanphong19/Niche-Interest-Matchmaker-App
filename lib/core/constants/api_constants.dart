@@ -2,7 +2,10 @@
 class ApiConstants {
   ApiConstants._();
 
-  static const String baseUrl = 'https://api.vibepulse.app/api/v1';
+  // Tự động chọn URL: localhost cho Web, IP mạng LAN cho điện thoại thật/máy ảo
+  static String get baseUrl {
+    return 'https://niche-interest-matchmaker.onrender.com';
+  }
 
   // ─── Auth ─────────────────────────────────────────────────────────
   static const String login = '/auth/login';

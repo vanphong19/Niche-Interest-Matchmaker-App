@@ -7,6 +7,7 @@ import 'core/utils/app_localizations.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'injection/injection_container.dart';
+import 'core/widgets/no_scroll_glow_behavior.dart';
 import 'router/app_router.dart';
 import 'router/app_router.gr.dart';
 
@@ -23,11 +24,7 @@ class _VibeAppState extends State<VibeApp> {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [
-        BlocProvider<AuthBloc>(
-          create: (_) => sl<AuthBloc>(),
-        ),
-      ],
+      providers: [BlocProvider<AuthBloc>(create: (_) => sl<AuthBloc>())],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
@@ -49,6 +46,19 @@ class _VibeAppState extends State<VibeApp> {
                   darkTheme: AppTheme.darkTheme,
                   themeMode: themeMode,
                   locale: Locale(localeStr),
+                  scrollBehavior: NoScrollGlowBehavior(),
+                  builder: (context, child) {
+                    return GestureDetector(
+                      onTap: () {
+                        final currentFocus = FocusScope.of(context);
+                        if (!currentFocus.hasPrimaryFocus &&
+                            currentFocus.focusedChild != null) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        }
+                      },
+                      child: child,
+                    );
+                  },
                   routerConfig: _appRouter.config(),
                 );
               },

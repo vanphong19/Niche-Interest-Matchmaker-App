@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/snackbar_service.dart';
+import '../../../../core/widgets/vibe_button.dart';
+import '../../../../core/widgets/vibe_text_field.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -19,8 +22,15 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
+  final _codeController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
   final _formKey = GlobalKey<FormState>();
+  final _resetFormKey = GlobalKey<FormState>();
+
   bool _submitted = false;
+  bool _resetSuccess = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -39,6 +49,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
   @override
   void dispose() {
     _emailController.dispose();
+    _codeController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -50,14 +63,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
         if (state is AuthForgotPasswordSuccess) {
           setState(() => _submitted = true);
         }
+        if (state is AuthResetPasswordSuccess) {
+          setState(() {
+            _resetSuccess = true;
+            _submitted = true;
+          });
+          VibeSnackBar.success(context, state.message);
+        }
         if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
-          );
+          VibeSnackBar.error(context, state.message);
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FF),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Stack(
           children: [
             Positioned(
@@ -100,16 +118,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
           Container(
             width: 80,
             height: 80,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE6EEFF),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE6EEFF),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-              ],
             ),
             child: const Icon(
               Icons.lock_reset_rounded,
@@ -135,7 +146,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
             style: TextStyle(
               color: Color(0xFF6D7AA2),
               fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               height: 1.4,
             ),
           ),
@@ -147,101 +158,58 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF315EEA).withValues(alpha: 0.10),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
+                border: Border.all(
+                  color: AppColors.borderLight.withValues(alpha: 0.8),
+                  width: 1.5,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'EMAIL ADDRESS',
-                    style: TextStyle(
-                      fontSize: 11, letterSpacing: 1,
-                      fontWeight: FontWeight.w800, color: Color(0xFF95A2C2),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
+                  VibeTextField(
+                    label: 'Email Address',
                     controller: _emailController,
+                    hint: 'alex.rivera@vibepulse.com',
+                    prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'Email is required';
                       if (!v.contains('@')) return 'Invalid email format';
                       return null;
                     },
-                    decoration: InputDecoration(
-                      hintText: 'alex.rivera@vibepulse.com',
-                      prefixIcon: const Icon(Icons.email_rounded, color: Color(0xFF8C97B8), size: 20),
-                      filled: true,
-                      fillColor: const Color(0xFFF0F3FF),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 20),
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
                       final loading = state is AuthLoading;
-                      return Container(
-                        height: 54,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(26),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(26),
-                            onTap: loading
-                                ? null
-                                : () {
-                                    if (_formKey.currentState!.validate()) {
-                                      context.read<AuthBloc>().add(
-                                            ForgotPasswordSubmitted(
-                                              _emailController.text.trim(),
-                                            ),
-                                          );
-                                    }
-                                  },
-                            child: Center(
-                              child: loading
-                                  ? const SizedBox(
-                                      width: 22, height: 22,
-                                      child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
-                                    )
-                                  : const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text('Reset Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
-                                        SizedBox(width: 8),
-                                        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-                                      ],
-                                    ),
-                            ),
-                          ),
-                        ),
+                      return VibeButton(
+                        label: 'Reset Password',
+                        isLoading: loading,
+                        suffixIcon: Icons.arrow_forward_rounded,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            context.read<AuthBloc>().add(
+                              ForgotPasswordSubmitted(
+                                _emailController.text.trim(),
+                              ),
+                            );
+                          }
+                        },
                       );
                     },
                   ),
                   const SizedBox(height: 12),
                   TextButton.icon(
                     onPressed: () => context.router.maybePop(),
-                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary, size: 18),
-                    label: const Text('Back to login', style: TextStyle(fontWeight: FontWeight.w800)),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Back to login',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ],
               ),
@@ -250,7 +218,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
           const SizedBox(height: 28),
           const Text(
             'VIBEPULSE IDENTITY SYSTEM © 2026',
-            style: TextStyle(fontSize: 10, letterSpacing: 1.1, fontWeight: FontWeight.w700, color: Color(0xFFA1ABCA)),
+            style: TextStyle(
+              fontSize: 10,
+              letterSpacing: 1.1,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFA1ABCA),
+            ),
           ),
         ],
       ),
@@ -258,60 +231,222 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
   }
 
   Widget _buildSuccess() {
-    return Column(
-      children: [
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.elasticOut,
-          builder: (context, value, child) {
-            return Transform.scale(
-              scale: value,
-              child: child,
-            );
-          },
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: AppColors.successLight,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.success.withValues(alpha: 0.2),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+    if (_resetSuccess) {
+      return Column(
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.elasticOut,
+            builder: (context, value, child) {
+              return Transform.scale(scale: value, child: child);
+            },
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppColors.successLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                size: 56,
+                color: AppColors.success,
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
+          const Text(
+            'Đặt lại thành công!',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF1B2A57),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Mật khẩu của ${_emailController.text} đã được thay đổi.\nBạn có thể đăng nhập ngay bây giờ.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF6D7AA2),
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: 200,
+            child: OutlinedButton(
+              onPressed: () => context.router.maybePop(),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.primary, width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: const Text(
+                'Back to Login',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
-            child: const Icon(Icons.check_circle_rounded, size: 56, color: AppColors.success),
           ),
-        ),
-        const SizedBox(height: 28),
-        const Text(
-          'Check your email!',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1B2A57)),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'We\'ve sent a password reset link to\n${_emailController.text}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFF6D7AA2), fontSize: 15, fontWeight: FontWeight.w600, height: 1.5),
-        ),
-        const SizedBox(height: 32),
-        SizedBox(
-          width: 200,
-          child: OutlinedButton(
-            onPressed: () => context.router.maybePop(),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.primary, width: 1.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+        ],
+      );
+    }
+
+    // Otherwise, show the reset password code input and new password form!
+    return Form(
+      key: _resetFormKey,
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
+              color: Color(0xFFE6EEFF),
+              shape: BoxShape.circle,
             ),
-            child: const Text('Back to Login', style: TextStyle(fontWeight: FontWeight.w800)),
+            child: const Icon(
+              Icons.lock_open_rounded,
+              size: 40,
+              color: AppColors.primary,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 24),
+          const Text(
+            'Đặt mật khẩu mới',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 32,
+              height: 1.0,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF1B2A57),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Nhập mã xác thực đã được gửi đến ${_emailController.text} và thiết lập mật khẩu mới.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF6D7AA2),
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 28),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: AppColors.borderLight.withValues(alpha: 0.8),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  VibeTextField(
+                    label: 'Mã xác thực (OTP)',
+                    controller: _codeController,
+                    hint: '123456',
+                    prefixIcon: Icons.pin_rounded,
+                    keyboardType: TextInputType.number,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Vui lòng nhập mã OTP';
+                      if (v.length < 6) return 'Mã OTP gồm 6 chữ số';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  VibeTextField(
+                    label: 'Mật khẩu mới',
+                    controller: _newPasswordController,
+                    isPassword: true,
+                    prefixIcon: Icons.lock_rounded,
+                    hint: '••••••••',
+                    validator: (v) {
+                      if (v == null || v.isEmpty) {
+                        return 'Vui lòng nhập mật khẩu mới';
+                      }
+                      if (v.length < 6) {
+                        return 'Mật khẩu phải từ 6 ký tự';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  VibeTextField(
+                    label: 'Xác nhận mật khẩu mới',
+                    controller: _confirmPasswordController,
+                    isPassword: true,
+                    prefixIcon: Icons.lock_outline_rounded,
+                    hint: '••••••••',
+                    validator: (v) {
+                      if (v == null || v.isEmpty) {
+                        return 'Vui lòng xác nhận mật khẩu';
+                      }
+                      if (v != _newPasswordController.text) {
+                        return 'Mật khẩu xác nhận không khớp';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      final loading = state is AuthLoading;
+                      return VibeButton(
+                        label: 'Đặt lại mật khẩu',
+                        isLoading: loading,
+                        suffixIcon: Icons.arrow_forward_rounded,
+                        onPressed: () {
+                          if (_resetFormKey.currentState!.validate()) {
+                            context.read<AuthBloc>().add(
+                              ResetPasswordSubmitted(
+                                email: _emailController.text.trim(),
+                                code: _codeController.text.trim(),
+                                newPassword: _newPasswordController.text,
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _submitted = false;
+                        _codeController.clear();
+                        _newPasswordController.clear();
+                        _confirmPasswordController.clear();
+                      });
+                    },
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Quay lại nhập Email',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

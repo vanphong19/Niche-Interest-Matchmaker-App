@@ -2,7 +2,7 @@ name: niche_interest_matchmaker_app
 description: "VibePulse - Social Activity Discovery App"
 publish_to: "none"
 
-version: 1.0.0+8
+version: 1.0.0+15
 
 environment:
   sdk: ^3.10.7
@@ -64,6 +64,8 @@ dependencies:
   url_launcher: ^6.3.1
   share_plus: ^10.1.4
   permission_handler: ^11.3.1
+  mobile_scanner: ^7.2.0
+  nfc_manager: ^4.1.1
   timeago: ^3.7.0
   collection: ^1.19.1
 
@@ -75,6 +77,10 @@ dependencies:
 
   # Icons
   font_awesome_flutter: ^11.0.0
+  signalr_netcore: ^1.4.4
+  google_sign_in: 6.2.1
+  flutter_facebook_auth: ^7.1.6
+  supabase_flutter: ^2.9.0
 
 dev_dependencies:
   flutter_test:
