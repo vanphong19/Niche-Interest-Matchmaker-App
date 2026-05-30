@@ -16,6 +16,15 @@ import '../core/services/signalr_service.dart';
 
 import '../features/event/data/services/event_api_service.dart'
     as import_event_api;
+import '../features/checkin/data/datasources/checkin_remote_data_source.dart';
+import '../features/checkin/data/repositories/checkin_repository_impl.dart';
+import '../features/checkin/data/services/nfc_payload_parser.dart';
+import '../features/checkin/domain/repositories/checkin_repository.dart';
+import '../features/checkin/domain/strategies/check_in_strategy.dart';
+import '../features/checkin/domain/usecases/check_in_usecase.dart';
+import '../features/checkin/domain/usecases/check_in_with_strategy_usecase.dart';
+import '../features/checkin/domain/usecases/check_in_with_nfc_usecase.dart';
+import '../features/checkin/domain/usecases/get_checkin_eligibility_usecase.dart';
 import '../features/checkin/presentation/bloc/checkin_bloc.dart';
 import '../features/event/presentation/bloc/event_bloc.dart'
     as import_event_bloc;
@@ -87,5 +96,44 @@ Future<void> configureDependencies() async {
   );
 
   // Check-in Feature
-  sl.registerFactory<CheckinBloc>(() => CheckinBloc());
+  sl.registerLazySingleton<NfcPayloadParser>(() => NfcPayloadParser());
+  sl.registerLazySingleton<CheckinRemoteDataSource>(
+    () => CheckinRemoteDataSource(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<CheckinRepository>(
+    () => CheckinRepositoryImpl(
+      remoteDataSource: sl<CheckinRemoteDataSource>(),
+      nfcPayloadParser: sl<NfcPayloadParser>(),
+    ),
+  );
+  sl.registerLazySingleton<QrCheckInStrategy>(
+    () => QrCheckInStrategy(sl<CheckinRepository>()),
+  );
+  sl.registerLazySingleton<NfcCheckInStrategy>(
+    () => NfcCheckInStrategy(sl<CheckinRepository>()),
+  );
+  sl.registerLazySingleton<CheckInStrategyRegistry>(
+    () => CheckInStrategyRegistry([
+      sl<QrCheckInStrategy>(),
+      sl<NfcCheckInStrategy>(),
+    ]),
+  );
+  sl.registerLazySingleton<GetCheckinEligibilityUseCase>(
+    () => GetCheckinEligibilityUseCase(sl<CheckinRepository>()),
+  );
+  sl.registerLazySingleton<CheckInWithStrategyUseCase>(
+    () => CheckInWithStrategyUseCase(sl<CheckInStrategyRegistry>()),
+  );
+  sl.registerLazySingleton<CheckInWithNfcUseCase>(
+    () => CheckInWithNfcUseCase(sl<NfcCheckInStrategy>()),
+  );
+  sl.registerLazySingleton<CheckInUseCase>(
+    () => CheckInUseCase(sl<CheckinRepository>()),
+  );
+  sl.registerFactory<CheckinBloc>(
+    () => CheckinBloc(
+      checkInWithStrategyUseCase: sl<CheckInWithStrategyUseCase>(),
+      getEligibilityUseCase: sl<GetCheckinEligibilityUseCase>(),
+    ),
+  );
 }

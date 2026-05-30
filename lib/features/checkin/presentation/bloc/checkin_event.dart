@@ -4,10 +4,12 @@ abstract class CheckinEvent extends BaseBlocEvent {
   const CheckinEvent();
 
   const factory CheckinEvent.started() = CheckinStarted;
-  const factory CheckinEvent.qrCheckinRequested() = QrCheckinRequested;
+  const factory CheckinEvent.qrCheckinRequested({String? matchId}) =
+      QrCheckinRequested;
   const factory CheckinEvent.qrRetryRequested() = QrRetryRequested;
   const factory CheckinEvent.qrCodeDetected(String value) = QrCodeDetected;
-  const factory CheckinEvent.nfcCheckinRequested() = NfcCheckinRequested;
+  const factory CheckinEvent.nfcCheckinRequested({String? matchId}) =
+      NfcCheckinRequested;
   const factory CheckinEvent.nfcRetryRequested() = NfcRetryRequested;
   const factory CheckinEvent.nfcTagDetected(String value) = NfcTagDetected;
   const factory CheckinEvent.nfcScanStopped() = NfcScanStopped;
@@ -18,7 +20,9 @@ class CheckinStarted extends CheckinEvent {
 }
 
 class QrCheckinRequested extends CheckinEvent {
-  const QrCheckinRequested();
+  const QrCheckinRequested({this.matchId});
+
+  final String? matchId;
 }
 
 class QrRetryRequested extends CheckinEvent {
@@ -32,7 +36,9 @@ class QrCodeDetected extends CheckinEvent {
 }
 
 class NfcCheckinRequested extends CheckinEvent {
-  const NfcCheckinRequested();
+  const NfcCheckinRequested({this.matchId});
+
+  final String? matchId;
 }
 
 class NfcRetryRequested extends CheckinEvent {

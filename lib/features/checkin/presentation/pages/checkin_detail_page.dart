@@ -7,6 +7,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../checkin_session.dart';
 import '../mock/checkin_mock_data.dart';
+import '../models/checkin_event_details.dart';
 import '../widgets/checkin_scaffold.dart';
 import '../widgets/event_hero_card.dart';
 import '../widgets/glass_card.dart';
@@ -17,11 +18,16 @@ import 'checkin_method_page.dart';
 
 @RoutePage()
 class CheckinDetailPage extends StatelessWidget {
-  const CheckinDetailPage({super.key});
+  const CheckinDetailPage({super.key, this.matchId, this.eventDetails});
+
+  final String? matchId;
+  final CheckinEventDetails? eventDetails;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final details =
+        eventDetails ?? CheckinEventDetails.fallback(matchId: matchId);
 
     return CheckinScaffold(
       title: 'Meetup Verified',
@@ -39,21 +45,32 @@ class CheckinDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const EventHeroCard(),
+            EventHeroCard(details: details),
             const SizedBox(height: AppSpacing.lg),
             LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 720;
-                final location = const LocationPreviewCard();
-                final actions = ValueListenableBuilder<bool>(
-                  valueListenable: CheckinSession.checkedIn,
-                  builder: (context, checkedIn, _) {
+                final location = LocationPreviewCard(details: details);
+                final actions = ValueListenableBuilder<Set<String>>(
+                  valueListenable: CheckinSession.checkedInMatchIds,
+                  builder: (context, _, _) {
                     return _CheckinActionPanel(
-                      checkedIn: checkedIn,
+                      checkedIn: CheckinSession.isCheckedIn(details.matchId),
                       onCheckin: () {
+                        if (!details.hasMatchContext) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'This check-in is missing meetup context.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) => const CheckinMethodPage(),
+                            builder: (_) =>
+                                CheckinMethodPage(eventDetails: details),
                           ),
                         );
                       },
@@ -113,10 +130,7 @@ class CheckinDetailPage extends StatelessWidget {
 }
 
 class _CheckinActionPanel extends StatelessWidget {
-  const _CheckinActionPanel({
-    required this.checkedIn,
-    required this.onCheckin,
-  });
+  const _CheckinActionPanel({required this.checkedIn, required this.onCheckin});
 
   final bool checkedIn;
   final VoidCallback onCheckin;
@@ -215,11 +229,14 @@ class _CheckinActionPanel extends StatelessWidget {
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: AppColors.success),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'GPS and time window will be checked automatically.',
+                      'NFC tag and time window will be checked automatically.',
                       style: AppTextStyles.captionMedium.copyWith(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
