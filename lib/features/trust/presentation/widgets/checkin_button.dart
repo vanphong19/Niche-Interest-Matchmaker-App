@@ -131,14 +131,14 @@ class _CheckInButtonState extends State<CheckInButton>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Check-in thành công!',
+                      'Check-in successfully!',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 14,
                       ),
                     ),
                     Text(
-                      '+$delta điểm uy tín 🎉',
+                      '+$delta points of trust 🎉',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ],
@@ -182,13 +182,12 @@ class _CheckInButtonState extends State<CheckInButton>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.schedule_rounded, color: Colors.white, size: 18),
-              const SizedBox(width: 10),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Mở check-in lúc bắt đầu, còn',
+                    'Check-in opens at start time, time remaining:',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -235,7 +234,7 @@ class _CheckInButtonState extends State<CheckInButton>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Check-in ngay!',
+                      'Check-in now!',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -243,7 +242,7 @@ class _CheckInButtonState extends State<CheckInButton>
                       ),
                     ),
                     Text(
-                      'Còn ${_formatDuration(_timeUntilClose)} để check-in',
+                      'Time remaining: ${_formatDuration(_timeUntilClose)}',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 11,
@@ -266,7 +265,7 @@ class _CheckInButtonState extends State<CheckInButton>
               Icon(Icons.timer_off_rounded, color: Color(0xFFEF4444), size: 18),
               SizedBox(width: 10),
               Text(
-                'Đã hết giờ check-in',
+                'Time for check-in has passed',
                 style: TextStyle(
                   color: Color(0xFFEF4444),
                   fontSize: 15,
@@ -291,7 +290,7 @@ class _CheckInButtonState extends State<CheckInButton>
               ),
               SizedBox(width: 10),
               Text(
-                'Đã check-in thành công ✓',
+                'Check-in successfully',
                 style: TextStyle(
                   color: Color(0xFF22C55E),
                   fontSize: 15,

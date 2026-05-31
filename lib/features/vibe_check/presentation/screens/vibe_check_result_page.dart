@@ -208,6 +208,8 @@ class _SuccessView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
+          _VerdictSection(result: result),
+          const SizedBox(height: AppSpacing.lg),
           _BreakdownSection(breakdown: result.breakdown),
           const SizedBox(height: AppSpacing.lg),
           if (result.commonInterests.isNotEmpty) ...[
@@ -230,7 +232,7 @@ class _SuccessView extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           if (result.conversationStarters.isNotEmpty) ...[
             _SectionCard(
-              title: 'Mở đầu cuộc trò chuyện',
+              title: 'Gợi ý nhắn cho ${result.targetUserName}',
               icon: Icons.chat_bubble_outline_rounded,
               items: result.conversationStarters,
             ),
@@ -238,33 +240,144 @@ class _SuccessView extends StatelessWidget {
           ],
           if (result.suggestedDateIdeas.isNotEmpty) ...[
             _SectionCard(
-              title: 'Gợi ý đi chơi',
+              title: 'Kèo có thể rủ ${result.targetUserName}',
               icon: Icons.event_rounded,
               items: result.suggestedDateIdeas,
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  label: const Text('Đóng'),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.event_rounded),
-                  label: const Text('Mời đi chơi'),
-                ),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close),
+              label: const Text('Đóng'),
+            ),
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
+      ),
+    );
+  }
+}
+
+class _VerdictSection extends StatelessWidget {
+  const _VerdictSection({required this.result});
+
+  final VibeCheckResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final score = result.overallScore;
+    final verdictColor = score >= 0.75
+        ? Colors.green
+        : score >= 0.50
+            ? Colors.orange
+            : colorScheme.error;
+    final verdictLabel = score >= 0.75
+        ? 'Rất đáng lên kèo'
+        : score >= 0.50
+            ? 'Có thể thử nhẹ'
+            : 'Nên tìm hiểu thêm';
+
+    final rows = [
+      (Icons.person_search_rounded, 'Người này như nào', result.personalityTake),
+      (Icons.favorite_border_rounded, 'Kết luận độ hợp', result.compatibilityConclusion),
+      (Icons.event_available_rounded, 'Có nên mời đi chơi?', result.dateRecommendation),
+      (Icons.arrow_forward_rounded, 'Bước tiếp theo', result.nextStep),
+    ].where((row) => row.$3.trim().isNotEmpty).toList();
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: verdictColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.psychology_alt_rounded,
+                    size: 20,
+                    color: verdictColor,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Kết luận',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: verdictColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  ),
+                  child: Text(
+                    verdictLabel,
+                    style: AppTextStyles.captionMedium.copyWith(
+                      color: verdictColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ...rows.map(
+              (row) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(row.$1, size: 19, color: colorScheme.primary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            row.$2,
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            row.$3,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

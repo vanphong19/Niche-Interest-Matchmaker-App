@@ -679,20 +679,20 @@ class _EventDetailPageState extends State<EventDetailPage>
 
             // The Circle (Members)
             _buildCircleCard(event),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
 
             ValueListenableBuilder<Set<String>>(
               valueListenable: CheckinSession.checkedInMatchIds,
               builder: (context, _, _) {
                 if (_isCheckedIn(event)) {
                   return Padding(
-                    padding: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.only(top: 10, bottom: 10),
                     child: _buildCheckedInCard(event),
                   );
                 }
 
                 return Padding(
-                  padding: const EdgeInsets.only(top: 20),
+                  padding: const EdgeInsets.only(top: 10, bottom: 10),
                   child: CheckInButton(
                     eventStart: event.startDateTime,
                     eventEnd: event.endDateTime,

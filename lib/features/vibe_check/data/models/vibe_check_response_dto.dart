@@ -46,6 +46,10 @@ class VibeCheckDataDTO {
   final VibeScoreBreakdownDTO breakdown;
   final List<String> commonInterests;
   final String summary;
+  final String personalityTake;
+  final String compatibilityConclusion;
+  final String dateRecommendation;
+  final String nextStep;
   final List<String> strengths;
   final List<String> risks;
   final List<String> conversationStarters;
@@ -62,6 +66,10 @@ class VibeCheckDataDTO {
     required this.breakdown,
     required this.commonInterests,
     required this.summary,
+    required this.personalityTake,
+    required this.compatibilityConclusion,
+    required this.dateRecommendation,
+    required this.nextStep,
     required this.strengths,
     required this.risks,
     required this.conversationStarters,
@@ -85,6 +93,11 @@ class VibeCheckDataDTO {
               .toList() ??
           [],
       summary: json['summary'] as String? ?? '',
+      personalityTake: json['personalityTake'] as String? ?? '',
+      compatibilityConclusion:
+          json['compatibilityConclusion'] as String? ?? '',
+      dateRecommendation: json['dateRecommendation'] as String? ?? '',
+      nextStep: json['nextStep'] as String? ?? '',
       strengths: (json['strengths'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -118,6 +131,10 @@ class VibeCheckDataDTO {
       breakdown: breakdown.toEntity(),
       commonInterests: commonInterests,
       summary: summary,
+      personalityTake: personalityTake,
+      compatibilityConclusion: compatibilityConclusion,
+      dateRecommendation: dateRecommendation,
+      nextStep: nextStep,
       strengths: strengths,
       risks: risks,
       conversationStarters: conversationStarters,
