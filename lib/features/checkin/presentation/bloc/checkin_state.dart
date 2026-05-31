@@ -31,6 +31,8 @@ class CheckinState extends BaseBlocState {
     this.qrPayload,
     this.nfcPayload,
     this.matchId,
+    this.startsAt,
+    this.endsAt,
     this.eligibility,
     this.result,
     this.errorMessage,
@@ -41,6 +43,8 @@ class CheckinState extends BaseBlocState {
   final String? qrPayload;
   final String? nfcPayload;
   final String? matchId;
+  final DateTime? startsAt;
+  final DateTime? endsAt;
   final CheckinEligibility? eligibility;
   final CheckinResult? result;
   final String? errorMessage;
@@ -57,6 +61,8 @@ class CheckinState extends BaseBlocState {
     String? qrPayload,
     String? nfcPayload,
     String? matchId,
+    DateTime? startsAt,
+    DateTime? endsAt,
     CheckinEligibility? eligibility,
     CheckinResult? result,
     String? errorMessage,
@@ -70,6 +76,8 @@ class CheckinState extends BaseBlocState {
       qrPayload: qrPayload ?? this.qrPayload,
       nfcPayload: nfcPayload ?? this.nfcPayload,
       matchId: matchId ?? this.matchId,
+      startsAt: startsAt ?? this.startsAt,
+      endsAt: endsAt ?? this.endsAt,
       eligibility: clearEligibility ? null : eligibility ?? this.eligibility,
       result: clearResult ? null : result ?? this.result,
       errorMessage: clearErrorMessage

@@ -85,6 +85,9 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: OtherUserProfileRoute.page, path: '/profile/:id'),
     AutoRoute(page: AllActivityHistoryRoute.page, path: '/profile/history'),
 
+    // ─── Vibe Check ───────────────────────────────────────────
+    AutoRoute(page: VibeCheckResultRoute.page, path: '/vibe-check'),
+
     // Public profile slug, e.g. http://localhost:xxxx/namle
     AutoRoute(page: PublicProfileRoute.page, path: '/:id'),
   ];

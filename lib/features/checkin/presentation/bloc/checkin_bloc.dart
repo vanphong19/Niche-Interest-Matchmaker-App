@@ -38,10 +38,12 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       case CheckinStarted():
         await _stopNfcSession();
         emit(const CheckinState());
-      case QrCheckinRequested(:final matchId):
+      case QrCheckinRequested(:final matchId, :final startsAt, :final endsAt):
         emit(
           state.copyWith(
             matchId: matchId,
+            startsAt: startsAt,
+            endsAt: endsAt,
             clearErrorMessage: true,
             clearResult: true,
             clearEligibility: true,
@@ -52,10 +54,12 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
         await _startQrCheckin(emit);
       case QrCodeDetected(:final value):
         await _handleQrDetected(value, emit);
-      case NfcCheckinRequested(:final matchId):
+      case NfcCheckinRequested(:final matchId, :final startsAt, :final endsAt):
         emit(
           state.copyWith(
             matchId: matchId,
+            startsAt: startsAt,
+            endsAt: endsAt,
             clearErrorMessage: true,
             clearResult: true,
             clearEligibility: true,
@@ -175,6 +179,9 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
     }
 
     if (!eligibility.canCheckIn) {
+      if (_canOverrideOutsideTimeWindow(eligibility.disabledReason)) {
+        return null;
+      }
       return _friendlyDisabledReason(
         eligibility.disabledReason ?? 'Check-in is not available right now.',
       );
@@ -186,6 +193,9 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
     }
 
     if (!availability.enabled) {
+      if (_canOverrideOutsideTimeWindow(availability.disabledReason)) {
+        return null;
+      }
       return _friendlyDisabledReason(
         availability.disabledReason ??
             '${method.toUpperCase()} check-in is currently disabled.',
@@ -193,6 +203,17 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
     }
 
     return null;
+  }
+
+  bool _canOverrideOutsideTimeWindow(String? reason) {
+    if (reason != 'outside_time_window') return false;
+
+    final startsAt = state.startsAt;
+    if (startsAt == null) return false;
+
+    final now = DateTime.now();
+    final endsAt = state.endsAt ?? startsAt.add(const Duration(hours: 1));
+    return !now.isBefore(startsAt) && !now.isAfter(endsAt);
   }
 
   String _friendlyDisabledReason(String reason) {

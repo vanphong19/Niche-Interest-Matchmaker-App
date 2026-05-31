@@ -155,6 +155,7 @@ class _ActivityPageState extends State<ActivityPage>
       itemBuilder: (context, index) {
         final event = events[index];
         return Container(
+          width: double.infinity,
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -189,6 +190,8 @@ class _ActivityPageState extends State<ActivityPage>
                       children: [
                         Text(
                           event.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 16,
@@ -213,61 +216,71 @@ class _ActivityPageState extends State<ActivityPage>
               const Divider(color: AppColors.borderLight, height: 1),
               const SizedBox(height: 12),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    isPast ? 'Ended' : 'Starts in 2 days',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: isPast ? AppColors.textHint : AppColors.info,
-                      fontSize: 13,
+                  Expanded(
+                    child: Text(
+                      isPast ? 'Ended' : 'Starts in 2 days',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: isPast ? AppColors.textHint : AppColors.info,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                  Row(
-                    children: [
-                      if (isHost && !isPast) ...[
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            'Edit',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (isHost && !isPast)
+                          TextButton(
+                            onPressed: () {},
+                            child: const Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
+                          ),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (!isHost && !isPast) {
+                              _openCheckin(event);
+                              return;
+                            }
+
+                            context.router.push(
+                              EventDetailRoute(eventId: event.id),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isPast
+                                ? AppColors.bgSecondary
+                                : AppColors.primary,
+                            foregroundColor: isPast
+                                ? AppColors.secondary
+                                : Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            isPast
+                                ? 'Rate Experience'
+                                : (isHost ? 'Manage' : 'Check In'),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ),
                       ],
-                      ElevatedButton(
-                        onPressed: () {
-                          if (!isHost && !isPast) {
-                            _openCheckin(event);
-                            return;
-                          }
-
-                          context.router.push(
-                            EventDetailRoute(eventId: event.id),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isPast
-                              ? AppColors.bgSecondary
-                              : AppColors.primary,
-                          foregroundColor: isPast
-                              ? AppColors.secondary
-                              : Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          isPast
-                              ? 'Rate Experience'
-                              : (isHost ? 'Manage' : 'Check In'),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),

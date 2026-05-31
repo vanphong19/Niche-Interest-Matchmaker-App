@@ -215,7 +215,9 @@ class DioClient {
 
   // ─── Helper: Map exceptions to Failures ─────────────────────────
   static Failure mapExceptionToFailure(Object e) {
-    if (e is NetworkException) {
+    if (e is DioException) {
+      return _mapDioExceptionToFailure(e);
+    } else if (e is NetworkException) {
       return NetworkFailure(e.message);
     } else if (e is AuthException) {
       return AuthFailure(e.message);
@@ -230,5 +232,87 @@ class DioClient {
     } else {
       return const UnexpectedFailure();
     }
+  }
+
+  static Failure _mapDioExceptionToFailure(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return const TimeoutFailure();
+      case DioExceptionType.connectionError:
+        return const NetworkFailure();
+      case DioExceptionType.badResponse:
+        return _mapResponseFailure(e.response?.statusCode, e.response?.data);
+      case DioExceptionType.cancel:
+        return const ServerFailure('Request cancelled');
+      default:
+        return ServerFailure(e.message ?? 'An error occurred');
+    }
+  }
+
+  static Failure _mapResponseFailure(int? statusCode, dynamic data) {
+    final message = _extractErrorMessage(data);
+    switch (statusCode) {
+      case 400:
+      case 422:
+        return ValidationFailure(message.isNotEmpty ? message : 'Bad request');
+      case 401:
+        return AuthFailure(message.isNotEmpty ? message : 'Unauthorized');
+      case 403:
+        return AuthFailure(message.isNotEmpty ? message : 'Access denied');
+      case 404:
+        return NotFoundFailure(message.isNotEmpty ? message : 'Not found');
+      case 408:
+        return TimeoutFailure(
+          message.isNotEmpty ? message : 'Request timed out. Please try again.',
+        );
+      case 409:
+      case 429:
+      case 500:
+      case 502:
+      case 503:
+        return ServerFailure(
+          message.isNotEmpty ? message : 'Server error',
+          statusCode,
+        );
+      default:
+        return ServerFailure(
+          message.isNotEmpty ? message : 'An error occurred',
+          statusCode,
+        );
+    }
+  }
+
+  static String _extractErrorMessage(dynamic data) {
+    if (data is Map) {
+      final direct =
+          data['message'] ?? data['Message'] ?? data['error'] ?? data['Error'];
+      if (direct != null && direct.toString().trim().isNotEmpty) {
+        return direct.toString();
+      }
+
+      final nested = data['data'] ?? data['Data'];
+      if (nested is String && nested.trim().isNotEmpty) {
+        return nested;
+      }
+      if (nested is Map) {
+        final nestedMessage =
+            nested['message'] ??
+            nested['Message'] ??
+            nested['error'] ??
+            nested['Error'];
+        if (nestedMessage != null &&
+            nestedMessage.toString().trim().isNotEmpty) {
+          return nestedMessage.toString();
+        }
+      }
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+
+    return '';
   }
 }

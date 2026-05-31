@@ -173,7 +173,9 @@ class NfcCheckinResultPage extends StatelessWidget {
                       Navigator.of(context).popUntil((route) {
                         final routeName = route.settings.name;
                         return routeName == 'CheckinDetailRoute' ||
+                            routeName == 'EventDetailRoute' ||
                             (routeName?.contains('CheckinDetail') ?? false) ||
+                            (routeName?.contains('EventDetail') ?? false) ||
                             route.isFirst;
                       });
                     },
