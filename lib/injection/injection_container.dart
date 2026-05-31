@@ -25,6 +25,9 @@ import '../features/event/presentation/bloc/event_detail_cubit.dart'
     as import_event_detail;
 import '../features/profile/data/services/user_api_service.dart'
     as import_user_api;
+import '../features/chat/data/services/chat_api_service.dart';
+import '../features/chat/data/services/signalr_chat_service.dart';
+import '../features/chat/presentation/cubit/chat_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -88,4 +91,16 @@ Future<void> configureDependencies() async {
 
   // Check-in Feature
   sl.registerFactory<CheckinBloc>(() => CheckinBloc());
+
+  // ─── Chat Feature ───────────────────────────────────────────────
+  sl.registerLazySingleton<ChatApiService>(
+    () => ChatApiService(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<SignalRChatService>(
+    () => SignalRChatService(sl<FlutterSecureStorage>()),
+  );
+  // ChatCubit: registerFactory vì mỗi phòng chat cần instance riêng
+  sl.registerFactory<ChatCubit>(
+    () => ChatCubit(sl<ChatApiService>(), sl<SignalRChatService>()),
+  );
 }
