@@ -11,6 +11,10 @@ import '../features/auth/domain/repositories/auth_repository.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/settings/presentation/bloc/settings_bloc.dart';
 import '../features/vibe_check/presentation/bloc/vibe_match_bloc.dart';
+import '../features/vibe_check/presentation/bloc/vibe_check_bloc.dart';
+import '../features/vibe_check/data/datasources/vibe_check_remote_data_source.dart';
+import '../features/vibe_check/data/repositories/vibe_check_repository_impl.dart';
+import '../features/vibe_check/domain/repositories/vibe_check_repository.dart';
 import '../router/app_router.dart';
 import '../core/services/signalr_service.dart';
 
@@ -71,6 +75,17 @@ Future<void> configureDependencies() async {
 
   // ─── Vibe Match Feature ───────────────────────────────────────
   sl.registerFactory<VibeMatchBloc>(() => VibeMatchBloc());
+
+  // ─── Vibe Check Feature ───────────────────────────────────────
+  sl.registerLazySingleton<VibeCheckRemoteDataSource>(
+    () => VibeCheckRemoteDataSource(sl<DioClient>()),
+  );
+  sl.registerLazySingleton<VibeCheckRepository>(
+    () => VibeCheckRepositoryImpl(sl<VibeCheckRemoteDataSource>()),
+  );
+  sl.registerFactory<VibeCheckBloc>(
+    () => VibeCheckBloc(sl<VibeCheckRepository>()),
+  );
 
   // ─── Event Feature ────────────────────────────────────────────
   sl.registerLazySingleton<import_event_api.EventApiService>(

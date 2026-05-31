@@ -10,6 +10,8 @@ class CheckinEventDetails {
     required this.locationAddress,
     required this.eventTime,
     this.imageUrl,
+    this.startsAt,
+    this.endsAt,
   });
 
   final String? matchId;
@@ -18,6 +20,8 @@ class CheckinEventDetails {
   final String locationAddress;
   final String eventTime;
   final String? imageUrl;
+  final DateTime? startsAt;
+  final DateTime? endsAt;
 
   bool get hasMatchContext => matchId != null && matchId!.trim().isNotEmpty;
 
@@ -36,6 +40,8 @@ class CheckinEventDetails {
       locationAddress: event.location.address,
       eventTime: time,
       imageUrl: event.photoUrls.isNotEmpty ? event.photoUrls.first : null,
+      startsAt: event.startDateTime,
+      endsAt: event.endDateTime,
     );
   }
 

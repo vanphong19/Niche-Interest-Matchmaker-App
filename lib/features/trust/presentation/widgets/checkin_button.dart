@@ -13,11 +13,17 @@ class CheckInButton extends StatefulWidget {
     super.key,
     required this.eventStart,
     required this.eventName,
+    this.eventEnd,
+    this.checkedIn = false,
+    this.onCheckInPressed,
     this.onCheckedIn,
   });
 
   final DateTime eventStart;
   final String eventName;
+  final DateTime? eventEnd;
+  final bool checkedIn;
+  final FutureOr<void> Function()? onCheckInPressed;
   final void Function(int delta)? onCheckedIn;
 
   @override
@@ -29,11 +35,11 @@ class _CheckInButtonState extends State<CheckInButton>
   _CheckInState _state = _CheckInState.tooEarly;
   Timer? _timer;
   Duration _timeUntilOpen = Duration.zero;
+  Duration _timeUntilClose = Duration.zero;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
-  static const _openBefore = Duration(minutes: 30);
-  static const _closedAfter = Duration(hours: 1);
+  static const _fallbackCheckinWindow = Duration(hours: 1);
 
   @override
   void initState() {
@@ -42,9 +48,10 @@ class _CheckInButtonState extends State<CheckInButton>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.95, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 0.95,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
     _updateState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateState());
   }
@@ -58,9 +65,17 @@ class _CheckInButtonState extends State<CheckInButton>
 
   void _updateState() {
     if (!mounted) return;
+    if (widget.checkedIn) {
+      if (_state != _CheckInState.done) {
+        setState(() => _state = _CheckInState.done);
+      }
+      return;
+    }
+
     final now = DateTime.now();
-    final openAt = widget.eventStart.subtract(_openBefore);
-    final closeAt = widget.eventStart.add(_closedAfter);
+    final openAt = widget.eventStart;
+    final closeAt =
+        widget.eventEnd ?? widget.eventStart.add(_fallbackCheckinWindow);
 
     _CheckInState newState;
     if (now.isBefore(openAt)) {
@@ -70,19 +85,30 @@ class _CheckInButtonState extends State<CheckInButton>
       newState = _CheckInState.tooLate;
     } else {
       newState = _CheckInState.canCheckIn;
+      _timeUntilClose = closeAt.difference(now);
     }
 
     if (_state == _CheckInState.done) return; // Already checked in
     if (newState != _state) {
       setState(() => _state = newState);
-    } else if (_state == _CheckInState.tooEarly) {
-      setState(() => _timeUntilOpen = openAt.difference(now));
+    } else if (_state == _CheckInState.tooEarly ||
+        _state == _CheckInState.canCheckIn) {
+      setState(() {
+        _timeUntilOpen = openAt.difference(now);
+        _timeUntilClose = closeAt.difference(now);
+      });
     }
   }
 
   void _checkIn() {
     if (_state != _CheckInState.canCheckIn) return;
     HapticFeedback.heavyImpact();
+
+    final customAction = widget.onCheckInPressed;
+    if (customAction != null) {
+      customAction();
+      return;
+    }
 
     final now = DateTime.now();
     final (delta, _) = ReputationService.calculateCheckinDelta(
@@ -155,18 +181,14 @@ class _CheckInButtonState extends State<CheckInButton>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.schedule_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
+              const Icon(Icons.schedule_rounded, color: Colors.white, size: 18),
               const SizedBox(width: 10),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Mở check-in trong',
+                    'Mở check-in lúc bắt đầu, còn',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -211,8 +233,8 @@ class _CheckInButtonState extends State<CheckInButton>
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'Check-in ngay!',
                       style: TextStyle(
                         color: Colors.white,
@@ -221,8 +243,8 @@ class _CheckInButtonState extends State<CheckInButton>
                       ),
                     ),
                     Text(
-                      'Nhận +5 điểm uy tín 🎯',
-                      style: TextStyle(
+                      'Còn ${_formatDuration(_timeUntilClose)} để check-in',
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 11,
                       ),
@@ -241,11 +263,7 @@ class _CheckInButtonState extends State<CheckInButton>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
-              Icon(
-                Icons.timer_off_rounded,
-                color: Color(0xFFEF4444),
-                size: 18,
-              ),
+              Icon(Icons.timer_off_rounded, color: Color(0xFFEF4444), size: 18),
               SizedBox(width: 10),
               Text(
                 'Đã hết giờ check-in',

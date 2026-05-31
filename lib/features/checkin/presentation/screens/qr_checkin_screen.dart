@@ -25,9 +25,14 @@ class QrCheckinScreen extends StatelessWidget {
     final details =
         eventDetails ?? CheckinEventDetails.fallback(matchId: matchId);
     return BlocProvider(
-      create: (_) =>
-          sl<CheckinBloc>()
-            ..add(CheckinEvent.qrCheckinRequested(matchId: details.matchId)),
+      create: (_) => sl<CheckinBloc>()
+        ..add(
+          CheckinEvent.qrCheckinRequested(
+            matchId: details.matchId,
+            startsAt: details.startsAt,
+            endsAt: details.endsAt,
+          ),
+        ),
       child: _QrCheckinView(details: details),
     );
   }
