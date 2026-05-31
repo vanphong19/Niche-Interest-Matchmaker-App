@@ -1,3 +1,4 @@
+import '../../domain/entities/group_vibe_check_result.dart';
 import '../../domain/entities/vibe_check_result.dart';
 import '../../domain/repositories/vibe_check_repository.dart';
 import '../datasources/vibe_check_remote_data_source.dart';
@@ -13,6 +14,22 @@ class VibeCheckRepositoryImpl implements VibeCheckRepository {
     final entity = dto.toEntity();
     if (entity == null) {
       throw Exception(dto.error ?? 'Vibe check failed');
+    }
+    return entity;
+  }
+
+  @override
+  Future<GroupVibeCheckResult> checkGroupVibe(
+    String matchId, {
+    int? maxMembers,
+  }) async {
+    final dto = await _remoteDataSource.checkGroupVibe(
+      matchId,
+      maxMembers: maxMembers,
+    );
+    final entity = dto.toEntity();
+    if (entity == null) {
+      throw Exception(dto.error ?? dto.message ?? 'Group vibe check failed');
     }
     return entity;
   }

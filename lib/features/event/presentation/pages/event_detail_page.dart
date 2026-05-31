@@ -26,6 +26,7 @@ import '../../../checkin/presentation/checkin_session.dart';
 import '../../../checkin/presentation/models/checkin_event_details.dart';
 import '../../../trust/presentation/widgets/commitment_modal.dart';
 import '../../../trust/presentation/widgets/checkin_button.dart';
+import '../../../vibe_check/presentation/screens/group_vibe_check_result_page.dart';
 import 'event_members_page.dart';
 import '../bloc/event_detail_cubit.dart';
 
@@ -241,6 +242,27 @@ class _EventDetailPageState extends State<EventDetailPage>
       unawaited(_syncCheckinStatus(event));
       _cubit.loadEvent(widget.eventId, showLoading: false);
     }
+  }
+
+  bool _canUseGroupVibeCheck(Event event) => _isHost(event) || event.isJoined;
+
+  Future<void> _openGroupVibeCheck(Event event) async {
+    if (!_canUseGroupVibeCheck(event)) {
+      VibeSnackBar.info(
+        context,
+        event.isPending
+            ? 'Hoàn tất tham gia event trước khi xem vibe nhóm.'
+            : 'Bạn cần được duyệt vào event trước khi xem vibe nhóm.',
+      );
+      return;
+    }
+
+    HapticFeedback.selectionClick();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GroupVibeCheckResultPage(matchId: event.id),
+      ),
+    );
   }
 
   Future<void> _deleteEvent(Event event) async {
@@ -681,6 +703,11 @@ class _EventDetailPageState extends State<EventDetailPage>
             _buildCircleCard(event),
             const SizedBox(height: 10),
 
+            if (_canUseGroupVibeCheck(event) || event.isPending) ...[
+              _buildGroupVibeCheckCard(event),
+              const SizedBox(height: 10),
+            ],
+
             ValueListenableBuilder<Set<String>>(
               valueListenable: CheckinSession.checkedInMatchIds,
               builder: (context, _, _) {
@@ -804,6 +831,104 @@ class _EventDetailPageState extends State<EventDetailPage>
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupVibeCheckCard(Event event) {
+    final enabled = _canUseGroupVibeCheck(event);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: enabled
+              ? AppColors.primary.withValues(alpha: 0.14)
+              : AppColors.borderLight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: enabled ? 0.08 : 0.03),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: enabled
+                      ? AppColors.primarySurface
+                      : AppColors.bgSecondary,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  Icons.groups_2_rounded,
+                  color: enabled ? AppColors.primary : AppColors.textHint,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Group Vibe Check',
+                      style: TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      enabled
+                          ? 'Xem nhóm này hợp với bạn bao nhiêu và nên bắt chuyện với ai.'
+                          : 'Hoàn tất tham gia event để xem insight nội bộ của nhóm.',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: enabled ? () => _openGroupVibeCheck(event) : null,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              label: Text(enabled ? 'Check group vibe' : 'Chờ được duyệt'),
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.bgSecondary,
+                disabledForegroundColor: AppColors.textHint,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
             ),
           ),
         ],
