@@ -245,8 +245,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _MapBackButton(isDark: isDark),
-                      const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: _searchCtrl,
@@ -704,7 +702,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   padding: const EdgeInsets.all(8),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                      color: (isDark
+                          ? Colors.white10
+                          : Colors.black.withValues(alpha: 0.05)),
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
@@ -722,7 +722,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: 80,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -732,7 +734,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: double.infinity,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -742,7 +746,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: 120,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -752,7 +758,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: 100,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
@@ -765,49 +773,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
           ),
         );
       },
-    );
-  }
-}
-
-class _MapBackButton extends StatelessWidget {
-  const _MapBackButton({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        HapticFeedback.selectionClick();
-        context.router.maybePop();
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.72)
-                  : Colors.white.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.08),
-              ),
-            ),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: 18,
-              color: isDark ? Colors.white : AppColors.secondary,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
