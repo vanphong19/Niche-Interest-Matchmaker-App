@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "458525270618",
+    "project_id": "niche-interest-matchmaker",
+    "storage_bucket": "niche-interest-matchmaker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:458525270618:android:54b3f13dc900b847826e63",
+        "android_client_info": {
+          "package_name": "com.example.niche_interest_matchmaker_app.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQOqVXs76yiTMkLL-E-GwOEnSmnVK3UIo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

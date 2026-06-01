@@ -21,6 +21,8 @@ import '../../../../injection/injection_container.dart';
 import '../../../../core/widgets/vibe_header.dart';
 import '../../../event/data/services/event_api_service.dart';
 import '../../../event/domain/entities/event.dart';
+import '../../../chat/data/services/chat_api_service.dart';
+import '../../../chat/presentation/pages/chat_detail_page.dart';
 
 @RoutePage()
 class OtherUserProfilePage extends StatefulWidget {
@@ -322,7 +324,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                 isDark: isDark,
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  VibeSnackBar.info(context, 'Opening chat...');
+                  _openDirectMessage(profile);
                 },
               ),
             ),
@@ -369,6 +371,27 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         ),
       ],
     );
+  }
+
+  Future<void> _openDirectMessage(ProfileData profile) async {
+    final chatApi = sl<ChatApiService>();
+    try {
+      final room = await chatApi.openDirectMessage(profile.id);
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ChatDetailPage(room: room),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().contains('403') ||
+              e.toString().contains('Forbid') ||
+              e.toString().contains('friend')
+          ? 'Chỉ có thể nhắn tin cho bạn bè.'
+          : 'Không thể mở tin nhắn: ${e.toString().replaceAll('Exception:', '').trim()}';
+      VibeSnackBar.error(context, msg);
+    }
   }
 
   Widget _buildProfileHeader(

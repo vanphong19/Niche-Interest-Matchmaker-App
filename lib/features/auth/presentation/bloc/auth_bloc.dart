@@ -5,6 +5,8 @@ import 'auth_event.dart';
 import 'auth_state.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/auth_user.dart';
+import '../../../../core/services/push_notification_service.dart';
+import '../../../../injection/injection_container.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
@@ -38,6 +40,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.email,
         event.password,
       );
+      sl<PushNotificationService>().registerCurrentDeviceToken();
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -56,6 +59,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.displayName,
         event.providerId,
       );
+      sl<PushNotificationService>().registerCurrentDeviceToken();
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -74,6 +78,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.name,
         event.verificationCode,
       );
+      sl<PushNotificationService>().registerCurrentDeviceToken();
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -99,6 +104,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
+    await sl<PushNotificationService>().unregisterCurrentDeviceToken();
     await _authRepository.logout();
     emit(AuthUnauthenticated());
   }

@@ -17,6 +17,9 @@ import '../../../event/domain/entities/event.dart';
 import '../../../event/presentation/bloc/event_bloc.dart';
 import '../../../../core/widgets/vibe_header.dart';
 import '../../../../core/widgets/avatar_widget.dart';
+import '../../../chat/data/models/chat_room_model.dart';
+import '../../../chat/data/services/chat_api_service.dart';
+import '../../../chat/data/services/signalr_chat_service.dart';
 import '../../../chat/presentation/pages/chat_inbox_page.dart';
 
 @RoutePage()
@@ -33,7 +36,9 @@ class _HomePageState extends State<HomePage>
   late final PageController _heroPageController;
   late AnimationController _pulseCtrl;
   final List<StreamSubscription<Map<String, dynamic>>> _subscriptions = [];
+  StreamSubscription<ChatMessageModel>? _chatMessageSub;
   Timer? _reloadDebounce;
+  int _chatUnreadCount = 0;
   bool _hasResolvedFirstHeroLoad = false;
 
   @override
@@ -43,6 +48,8 @@ class _HomePageState extends State<HomePage>
     _heroPageController = PageController(viewportFraction: 0.92);
     _eventBloc.add(LoadEvents(category: _eventBloc.state.selectedCategory));
     _loadProfile();
+    _loadChatUnread();
+    _connectChatRealtime();
     final signalR = sl<SignalRService>();
     _subscriptions.addAll([
       signalR.eventStatusStream.listen((_) => _reload()),
@@ -59,6 +66,7 @@ class _HomePageState extends State<HomePage>
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }
+    _chatMessageSub?.cancel();
     _reloadDebounce?.cancel();
     _heroPageController.dispose();
     _pulseCtrl.dispose();
@@ -70,6 +78,31 @@ class _HomePageState extends State<HomePage>
       final profile = await sl<UserApiService>().getProfile();
       ProfileState.updateProfile(profile);
     } catch (_) {}
+  }
+
+  Future<void> _loadChatUnread() async {
+    try {
+      final rooms = await sl<ChatApiService>().getMyRooms();
+      if (!mounted) return;
+      setState(() {
+        _chatUnreadCount = rooms.fold(0, (sum, room) => sum + room.unreadCount);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _connectChatRealtime() async {
+    final chatSignalR = sl<SignalRChatService>();
+    await chatSignalR.connect();
+    await _chatMessageSub?.cancel();
+    _chatMessageSub = chatSignalR.onMessageReceived.listen((message) {
+      if (!mounted) return;
+      final currentUserId = ProfileState.notifier.value.id;
+      if (message.senderId.toLowerCase() == currentUserId.toLowerCase()) {
+        return;
+      }
+
+      setState(() => _chatUnreadCount += 1);
+    });
   }
 
   void _reload() {
@@ -1029,14 +1062,18 @@ class _HomePageState extends State<HomePage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     void openChat() {
       HapticFeedback.selectionClick();
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const ChatInboxPage()));
+      Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => const ChatInboxPage()))
+          .then((_) => _loadChatUnread());
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: _ChatBanner(onTap: openChat, isDark: isDark),
+      child: _ChatBanner(
+        onTap: openChat,
+        isDark: isDark,
+        unreadCount: _chatUnreadCount,
+      ),
     );
   }
 }
@@ -1046,9 +1083,14 @@ class _HomePageState extends State<HomePage>
 // ─── Chat Banner ──────────────────────────────────────────────────────────────
 
 class _ChatBanner extends StatefulWidget {
-  const _ChatBanner({required this.onTap, required this.isDark});
+  const _ChatBanner({
+    required this.onTap,
+    required this.isDark,
+    required this.unreadCount,
+  });
   final VoidCallback onTap;
   final bool isDark;
+  final int unreadCount;
 
   @override
   State<_ChatBanner> createState() => _ChatBannerState();
@@ -1185,32 +1227,33 @@ class _ChatBannerState extends State<_ChatBanner>
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              // Unread badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.error,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  '11 chưa đọc',
-                                  style: TextStyle(
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.3,
-                                    color: Colors.white,
+                              if (widget.unreadCount > 0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.error,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${widget.unreadCount} unread',
+                                    style: const TextStyle(
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.3,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Nhóm Chat & Tin nhắn',
+                            'Group Chat & Messages',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
@@ -1220,7 +1263,7 @@ class _ChatBannerState extends State<_ChatBanner>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Chat nhóm sự kiện & nhắn tin riêng',
+                            'Event group chat & direct messages',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -1253,7 +1296,7 @@ class _ChatBannerState extends State<_ChatBanner>
                           ),
                           SizedBox(width: 6),
                           Text(
-                            'Mở',
+                            'Open',
                             style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w800,
