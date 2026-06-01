@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_app_bar.dart';
 import '../../../../injection/injection_container.dart';
 import '../../domain/entities/vibe_check_result.dart';
@@ -29,17 +30,14 @@ class VibeCheckResultPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final userId = targetUserId ?? '';
     return BlocProvider(
-      create: (_) => sl<VibeCheckBloc>()
-        ..add(PerformVibeCheck(userId)),
-      child: _VibeCheckResultBody(userId: userId),
+      create: (_) => sl<VibeCheckBloc>()..add(PerformVibeCheck(userId)),
+      child: const _VibeCheckResultBody(),
     );
   }
 }
 
 class _VibeCheckResultBody extends StatelessWidget {
-  const _VibeCheckResultBody({required this.userId});
-
-  final String userId;
+  const _VibeCheckResultBody();
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +45,7 @@ class _VibeCheckResultBody extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLow,
-      appBar: VibeAppBar(
+      appBar: const VibeAppBar(
         title: 'Vibe Check',
         showBack: true,
         translucent: true,
@@ -57,7 +55,7 @@ class _VibeCheckResultBody extends StatelessWidget {
           builder: (context, state) {
             if (state is VibeCheckLoading) return const _LoadingView();
             if (state is VibeCheckError) {
-              return _ErrorView(message: state.message, colorScheme: colorScheme);
+              return _ErrorView(message: state.message);
             }
             if (state is VibeCheckSuccess) {
               return _SuccessView(result: state.result);
@@ -78,58 +76,62 @@ class _LoadingView extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: colorScheme.primary),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            'AI đang phân tích vibe...',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: colorScheme.onSurfaceVariant,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: colorScheme.primary),
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              'AI dang phan tich vibe...',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'So sánh sở thích, bio và hơn thế nữa',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: colorScheme.outline,
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Dang so sanh so thich, bio va cac tin hieu khac.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: colorScheme.outline,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.colorScheme});
+  const _ErrorView({required this.message});
+
   final String message;
-  final ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 64, color: colorScheme.error),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Oops!',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              'Chua xem duoc vibe',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              message,
+              message.replaceFirst('Exception: ', ''),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: colorScheme.onSurfaceVariant,
@@ -138,7 +140,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Quay lại'),
+              child: const Text('Quay lai'),
             ),
           ],
         ),
@@ -149,6 +151,7 @@ class _ErrorView extends StatelessWidget {
 
 class _SuccessView extends StatelessWidget {
   const _SuccessView({required this.result});
+
   final VibeCheckResult result;
 
   @override
@@ -160,27 +163,16 @@ class _SuccessView extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 48,
-            backgroundImage: result.targetUserAvatar.isNotEmpty
-                ? NetworkImage(result.targetUserAvatar)
-                : null,
-            backgroundColor: colorScheme.surfaceContainerHighest,
-            child: result.targetUserAvatar.isEmpty
-                ? Text(
-                    result.targetUserName.isNotEmpty
-                        ? result.targetUserName[0]
-                        : '?',
-                    style: TextStyle(
-                      fontSize: 36,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                : null,
+          VibeAvatar(
+            imageUrl: result.targetUserAvatar,
+            name: result.targetUserName,
+            size: 96,
+            showBorder: true,
+            borderColor: colorScheme.primary,
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Vibe với ${result.targetUserName}',
+            'Vibe voi ${result.targetUserName}',
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -189,82 +181,222 @@ class _SuccessView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           _VibeScoreGauge(score: result.overallScore, level: result.vibeLevel),
           const SizedBox(height: AppSpacing.lg),
-          Card(
-            elevation: 0,
-            color: colorScheme.surfaceContainerHigh,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Text(
-                result.summary,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: colorScheme.onSurface,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ),
+          _SummaryCard(summary: result.summary),
+          const SizedBox(height: AppSpacing.lg),
+          _VerdictSection(result: result),
           const SizedBox(height: AppSpacing.lg),
           _BreakdownSection(breakdown: result.breakdown),
-          const SizedBox(height: AppSpacing.lg),
           if (result.commonInterests.isNotEmpty) ...[
-            _CommonInterestsSection(interests: result.commonInterests),
             const SizedBox(height: AppSpacing.lg),
+            _CommonInterestsSection(interests: result.commonInterests),
           ],
+          const SizedBox(height: AppSpacing.lg),
           _InsightSection(
-            title: 'Điểm mạnh',
+            title: 'Diem manh',
             icon: Icons.thumb_up_rounded,
             iconColor: Colors.green,
             items: result.strengths,
           ),
           const SizedBox(height: AppSpacing.md),
           _InsightSection(
-            title: 'Cần lưu ý',
+            title: 'Can luu y',
             icon: Icons.info_rounded,
             iconColor: Colors.orange,
             items: result.risks,
           ),
-          const SizedBox(height: AppSpacing.lg),
           if (result.conversationStarters.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
             _SectionCard(
-              title: 'Mở đầu cuộc trò chuyện',
+              title: 'Goi y bat chuyen',
               icon: Icons.chat_bubble_outline_rounded,
               items: result.conversationStarters,
             ),
-            const SizedBox(height: AppSpacing.md),
           ],
           if (result.suggestedDateIdeas.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
             _SectionCard(
-              title: 'Gợi ý đi chơi',
+              title: 'Keo co the ru',
               icon: Icons.event_rounded,
               items: result.suggestedDateIdeas,
             ),
-            const SizedBox(height: AppSpacing.lg),
           ],
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  label: const Text('Đóng'),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.event_rounded),
-                  label: const Text('Mời đi chơi'),
-                ),
-              ),
-            ],
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close),
+              label: const Text('Dong'),
+            ),
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
+      ),
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.summary});
+
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Text(
+          summary,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: colorScheme.onSurface,
+            height: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VerdictSection extends StatelessWidget {
+  const _VerdictSection({required this.result});
+
+  final VibeCheckResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final score = result.overallScore;
+    final verdictColor = score >= 0.75
+        ? Colors.green
+        : score >= 0.50
+        ? Colors.orange
+        : colorScheme.error;
+    final verdictLabel = score >= 0.75
+        ? 'Rat dang thu'
+        : score >= 0.50
+        ? 'Co the thu nhe'
+        : 'Nen tim hieu them';
+
+    final rows = [
+      (
+        Icons.person_search_rounded,
+        'Nguoi nay nhu the nao',
+        result.personalityTake,
+      ),
+      (
+        Icons.favorite_border_rounded,
+        'Ket luan do hop',
+        result.compatibilityConclusion,
+      ),
+      (
+        Icons.event_available_rounded,
+        'Co nen moi di choi?',
+        result.dateRecommendation,
+      ),
+      (Icons.arrow_forward_rounded, 'Buoc tiep theo', result.nextStep),
+    ].where((row) => row.$3.trim().isNotEmpty).toList();
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: verdictColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.psychology_alt_rounded,
+                    size: 20,
+                    color: verdictColor,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Ket luan',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: verdictColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  ),
+                  child: Text(
+                    verdictLabel,
+                    style: AppTextStyles.captionMedium.copyWith(
+                      color: verdictColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ...rows.map(
+              (row) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(row.$1, size: 19, color: colorScheme.primary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            row.$2,
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            row.$3,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -282,8 +414,8 @@ class _VibeScoreGauge extends StatelessWidget {
     final gaugeColor = score >= 0.75
         ? colorScheme.primary
         : score >= 0.50
-            ? Colors.orange
-            : colorScheme.error;
+        ? Colors.orange
+        : colorScheme.error;
 
     return SizedBox(
       width: 160,
@@ -295,7 +427,7 @@ class _VibeScoreGauge extends StatelessWidget {
             width: 160,
             height: 160,
             child: CircularProgressIndicator(
-              value: score,
+              value: score.clamp(0.0, 1.0).toDouble(),
               strokeWidth: 10,
               backgroundColor: colorScheme.surfaceContainerHighest,
               color: gaugeColor,
@@ -314,7 +446,10 @@ class _VibeScoreGauge extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: gaugeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
@@ -338,6 +473,7 @@ class _VibeScoreGauge extends StatelessWidget {
 
 class _BreakdownSection extends StatelessWidget {
   const _BreakdownSection({required this.breakdown});
+
   final VibeScoreBreakdown breakdown;
 
   @override
@@ -346,12 +482,12 @@ class _BreakdownSection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final items = [
-      ('Sở thích', breakdown.interests, Icons.interests_rounded),
+      ('So thich', breakdown.interests, Icons.interests_rounded),
       ('Bio', breakdown.bio, Icons.person_outline_rounded),
       ('Lifestyle', breakdown.lifestyle, Icons.home_rounded),
       ('Event', breakdown.eventPreference, Icons.event_rounded),
-      ('Địa điểm', breakdown.location, Icons.location_on_rounded),
-      ('Uy tín', breakdown.reputation, Icons.verified_rounded),
+      ('Dia diem', breakdown.location, Icons.location_on_rounded),
+      ('Uy tin', breakdown.reputation, Icons.verified_rounded),
     ];
 
     return Card(
@@ -366,17 +502,16 @@ class _BreakdownSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Chi tiết điểm số',
+              'Chi tiet diem so',
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            ...items.map((item) => _BreakdownBar(
-                  label: item.$1,
-                  value: item.$2,
-                  icon: item.$3,
-                )),
+            ...items.map(
+              (item) =>
+                  _BreakdownBar(label: item.$1, value: item.$2, icon: item.$3),
+            ),
           ],
         ),
       ),
@@ -401,8 +536,8 @@ class _BreakdownBar extends StatelessWidget {
     final barColor = value >= 0.75
         ? colorScheme.primary
         : value >= 0.50
-            ? Colors.orange
-            : colorScheme.error;
+        ? Colors.orange
+        : colorScheme.error;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -428,7 +563,7 @@ class _BreakdownBar extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                   child: LinearProgressIndicator(
-                    value: value,
+                    value: value.clamp(0.0, 1.0).toDouble(),
                     backgroundColor: colorScheme.surfaceContainerHighest,
                     color: barColor,
                     minHeight: 6,
@@ -445,6 +580,7 @@ class _BreakdownBar extends StatelessWidget {
 
 class _CommonInterestsSection extends StatelessWidget {
   const _CommonInterestsSection({required this.interests});
+
   final List<String> interests;
 
   @override
@@ -456,7 +592,7 @@ class _CommonInterestsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Sở thích chung',
+          'So thich chung',
           style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -464,12 +600,14 @@ class _CommonInterestsSection extends StatelessWidget {
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: interests
-              .map((interest) => Chip(
-                    label: Text(interest),
-                    backgroundColor: colorScheme.primaryContainer,
-                    labelStyle: TextStyle(color: colorScheme.onPrimaryContainer),
-                    side: BorderSide.none,
-                  ))
+              .map(
+                (interest) => Chip(
+                  label: Text(interest),
+                  backgroundColor: colorScheme.primaryContainer,
+                  labelStyle: TextStyle(color: colorScheme.onPrimaryContainer),
+                  side: BorderSide.none,
+                ),
+              )
               .toList(),
         ),
       ],
@@ -492,6 +630,8 @@ class _InsightSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -526,32 +666,34 @@ class _InsightSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            ...items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: iconColor,
-                          shape: BoxShape.circle,
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: iconColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -572,6 +714,8 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -599,23 +743,25 @@ class _SectionCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            ...items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(width: 26),
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: 26),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

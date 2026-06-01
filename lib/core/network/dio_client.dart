@@ -168,7 +168,7 @@ class DioClient {
   }
 
   Exception _mapStatusCode(int? statusCode, dynamic data) {
-    final message = data is Map ? (data['message'] as String?) ?? '' : '';
+    final message = _extractErrorMessage(data);
     switch (statusCode) {
       case 400:
         return ValidationException(

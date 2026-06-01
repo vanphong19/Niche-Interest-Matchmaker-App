@@ -1,5 +1,5 @@
 // Vibe check response DTO - parse API wrapper.
-// Entity chỉ nhận data thuần, không parse wrapper.
+// Entity chi nhan data thuan, khong parse wrapper.
 import '../../domain/entities/vibe_check_result.dart';
 import '../../domain/entities/vibe_score_breakdown.dart';
 
@@ -46,6 +46,10 @@ class VibeCheckDataDTO {
   final VibeScoreBreakdownDTO breakdown;
   final List<String> commonInterests;
   final String summary;
+  final String personalityTake;
+  final String compatibilityConclusion;
+  final String dateRecommendation;
+  final String nextStep;
   final List<String> strengths;
   final List<String> risks;
   final List<String> conversationStarters;
@@ -62,6 +66,10 @@ class VibeCheckDataDTO {
     required this.breakdown,
     required this.commonInterests,
     required this.summary,
+    required this.personalityTake,
+    required this.compatibilityConclusion,
+    required this.dateRecommendation,
+    required this.nextStep,
     required this.strengths,
     required this.risks,
     required this.conversationStarters,
@@ -78,29 +86,20 @@ class VibeCheckDataDTO {
       compatibilityPercentage: json['compatibilityPercentage'] as int? ?? 0,
       vibeLevel: json['vibeLevel'] as String? ?? 'Low',
       breakdown: json['breakdown'] != null
-          ? VibeScoreBreakdownDTO.fromJson(json['breakdown'] as Map<String, dynamic>)
+          ? VibeScoreBreakdownDTO.fromJson(
+              json['breakdown'] as Map<String, dynamic>,
+            )
           : const VibeScoreBreakdownDTO.empty(),
-      commonInterests: (json['commonInterests'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      commonInterests: _readStringList(json['commonInterests']),
       summary: json['summary'] as String? ?? '',
-      strengths: (json['strengths'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      risks: (json['risks'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      conversationStarters: (json['conversationStarters'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      suggestedDateIdeas: (json['suggestedDateIdeas'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      personalityTake: json['personalityTake'] as String? ?? '',
+      compatibilityConclusion: json['compatibilityConclusion'] as String? ?? '',
+      dateRecommendation: json['dateRecommendation'] as String? ?? '',
+      nextStep: json['nextStep'] as String? ?? '',
+      strengths: _readStringList(json['strengths']),
+      risks: _readStringList(json['risks']),
+      conversationStarters: _readStringList(json['conversationStarters']),
+      suggestedDateIdeas: _readStringList(json['suggestedDateIdeas']),
       checkedAtUtc: json['checkedAtUtc'] != null
           ? DateTime.parse(json['checkedAtUtc'] as String)
           : DateTime.now(),
@@ -118,12 +117,20 @@ class VibeCheckDataDTO {
       breakdown: breakdown.toEntity(),
       commonInterests: commonInterests,
       summary: summary,
+      personalityTake: personalityTake,
+      compatibilityConclusion: compatibilityConclusion,
+      dateRecommendation: dateRecommendation,
+      nextStep: nextStep,
       strengths: strengths,
       risks: risks,
       conversationStarters: conversationStarters,
       suggestedDateIdeas: suggestedDateIdeas,
       checkedAt: checkedAtUtc,
     );
+  }
+
+  static List<String> _readStringList(dynamic value) {
+    return (value as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
   }
 }
 
@@ -151,8 +158,7 @@ class VibeScoreBreakdownDTO {
       interests: (json['interests'] as num?)?.toDouble() ?? 0.0,
       bio: (json['bio'] as num?)?.toDouble() ?? 0.0,
       lifestyle: (json['lifestyle'] as num?)?.toDouble() ?? 0.0,
-      eventPreference:
-          (json['eventPreference'] as num?)?.toDouble() ?? 0.0,
+      eventPreference: (json['eventPreference'] as num?)?.toDouble() ?? 0.0,
       availability: (json['availability'] as num?)?.toDouble() ?? 0.0,
       location: (json['location'] as num?)?.toDouble() ?? 0.0,
       reputation: (json['reputation'] as num?)?.toDouble() ?? 0.0,
@@ -160,13 +166,13 @@ class VibeScoreBreakdownDTO {
   }
 
   const VibeScoreBreakdownDTO.empty()
-      : interests = 0.0,
-        bio = 0.0,
-        lifestyle = 0.0,
-        eventPreference = 0.0,
-        availability = 0.0,
-        location = 0.0,
-        reputation = 0.0;
+    : interests = 0.0,
+      bio = 0.0,
+      lifestyle = 0.0,
+      eventPreference = 0.0,
+      availability = 0.0,
+      location = 0.0,
+      reputation = 0.0;
 
   VibeScoreBreakdown toEntity() {
     return VibeScoreBreakdown(

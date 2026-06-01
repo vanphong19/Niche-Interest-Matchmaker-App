@@ -4,7 +4,7 @@ class ApiConstants {
 
   // Tự động chọn URL: localhost cho Web, IP mạng LAN cho điện thoại thật/máy ảo
   static String get baseUrl {
-    return 'https://niche-interest-matchmaker.onrender.com';
+    return 'http://192.168.207.193:5230';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────

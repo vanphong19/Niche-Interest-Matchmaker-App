@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+
 import 'vibe_score_breakdown.dart';
 
 class VibeCheckResult extends Equatable {
@@ -11,6 +12,10 @@ class VibeCheckResult extends Equatable {
   final VibeScoreBreakdown breakdown;
   final List<String> commonInterests;
   final String summary;
+  final String personalityTake;
+  final String compatibilityConclusion;
+  final String dateRecommendation;
+  final String nextStep;
   final List<String> strengths;
   final List<String> risks;
   final List<String> conversationStarters;
@@ -27,6 +32,10 @@ class VibeCheckResult extends Equatable {
     required this.breakdown,
     required this.commonInterests,
     required this.summary,
+    required this.personalityTake,
+    required this.compatibilityConclusion,
+    required this.dateRecommendation,
+    required this.nextStep,
     required this.strengths,
     required this.risks,
     required this.conversationStarters,
@@ -36,9 +45,13 @@ class VibeCheckResult extends Equatable {
 
   @override
   List<Object?> get props => [
-        targetUserId,
-        overallScore,
-        vibeLevel,
-        compatibilityPercentage,
-      ];
+    targetUserId,
+    overallScore,
+    vibeLevel,
+    compatibilityPercentage,
+    personalityTake,
+    compatibilityConclusion,
+    dateRecommendation,
+    nextStep,
+  ];
 }

@@ -12,6 +12,7 @@ import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/settings/presentation/bloc/settings_bloc.dart';
 import '../features/vibe_check/presentation/bloc/vibe_match_bloc.dart';
 import '../features/vibe_check/presentation/bloc/vibe_check_bloc.dart';
+import '../features/vibe_check/presentation/bloc/group_vibe_check_bloc.dart';
 import '../features/vibe_check/data/datasources/vibe_check_remote_data_source.dart';
 import '../features/vibe_check/data/repositories/vibe_check_repository_impl.dart';
 import '../features/vibe_check/domain/repositories/vibe_check_repository.dart';
@@ -85,6 +86,9 @@ Future<void> configureDependencies() async {
   );
   sl.registerFactory<VibeCheckBloc>(
     () => VibeCheckBloc(sl<VibeCheckRepository>()),
+  );
+  sl.registerFactory<GroupVibeCheckBloc>(
+    () => GroupVibeCheckBloc(sl<VibeCheckRepository>()),
   );
 
   // ─── Event Feature ────────────────────────────────────────────
