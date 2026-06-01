@@ -116,16 +116,12 @@ class _HomePageState extends State<HomePage>
                   _buildChatBanner(),
                   const SizedBox(height: 16),
                   _buildExploreMapBanner(),
-                  const SizedBox(height: 12),
-                  _buildFindInCrowdBanner(),
                   const SizedBox(height: 16),
                   _buildEventStatsSection(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-            // Removed nearby list as requested
-            const SliverPadding(padding: EdgeInsets.only(bottom: 110)),
           ],
         ),
       ),
@@ -1025,7 +1021,7 @@ class _HomePageState extends State<HomePage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: _InteractiveMapBanner(onTap: _openMapDiscovery, isDark: isDark),
+      child: _InteractiveMapBanner(onTap: _openFindInCrowd, isDark: isDark),
     );
   }
 
@@ -1033,100 +1029,14 @@ class _HomePageState extends State<HomePage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     void openChat() {
       HapticFeedback.selectionClick();
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const ChatInboxPage()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const ChatInboxPage()));
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: _ChatBanner(onTap: openChat, isDark: isDark),
-    );
-  }
-
-  Widget _buildFindInCrowdBanner() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GestureDetector(
-        onTap: _openFindInCrowd,
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF10233A), const Color(0xFF0F172A)]
-                  : [Colors.white, const Color(0xFFEAF6FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppColors.primary.withValues(alpha: 0.16),
-            ),
-            boxShadow: [
-              if (!isDark)
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(
-                  Icons.radar_rounded,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Find In Crowd',
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.secondary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Open GPS finder flow and locate your meetup partner',
-                      style: TextStyle(
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: isDark ? Colors.white70 : AppColors.primary,
-                size: 18,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1156,9 +1066,10 @@ class _ChatBannerState extends State<_ChatBanner>
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _pressCtrl, curve: Curves.easeInOut),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -1193,7 +1104,11 @@ class _ChatBannerState extends State<_ChatBanner>
                     end: Alignment.bottomRight,
                   )
                 : const LinearGradient(
-                    colors: [Color(0xFF1565C0), Color(0xFF1E88E5), Color(0xFF42A5F5)],
+                    colors: [
+                      Color(0xFF1565C0),
+                      Color(0xFF1E88E5),
+                      Color(0xFF42A5F5),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1205,7 +1120,9 @@ class _ChatBannerState extends State<_ChatBanner>
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: widget.isDark ? 0.2 : 0.3),
+                color: AppColors.primary.withValues(
+                  alpha: widget.isDark ? 0.2 : 0.3,
+                ),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -1225,7 +1142,10 @@ class _ChatBannerState extends State<_ChatBanner>
               ),
               // Content
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -1237,7 +1157,9 @@ class _ChatBannerState extends State<_ChatBanner>
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(8),
@@ -1267,7 +1189,9 @@ class _ChatBannerState extends State<_ChatBanner>
                               // Unread badge
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 3),
+                                  horizontal: 7,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.error,
                                   borderRadius: BorderRadius.circular(8),
@@ -1309,7 +1233,9 @@ class _ChatBannerState extends State<_ChatBanner>
                     // Open button
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(16),
@@ -1369,13 +1295,19 @@ class _ChatBgPainter extends CustomPainter {
       Rect.fromLTWH(size.width * 0.32, size.height * 0.42, 70, 28),
       const Radius.circular(14),
     );
-    canvas.drawRRect(rRect2, paint..color = Colors.white.withValues(alpha: 0.06));
+    canvas.drawRRect(
+      rRect2,
+      paint..color = Colors.white.withValues(alpha: 0.06),
+    );
 
     final rRect3 = RRect.fromRectAndRadius(
       Rect.fromLTWH(size.width * 0.08, size.height * 0.62, 100, 32),
       const Radius.circular(16),
     );
-    canvas.drawRRect(rRect3, paint..color = Colors.white.withValues(alpha: 0.05));
+    canvas.drawRRect(
+      rRect3,
+      paint..color = Colors.white.withValues(alpha: 0.05),
+    );
 
     // Dot indicators (like message dots)
     final dotPaint = Paint()
@@ -1398,6 +1330,7 @@ class _ChatBgPainter extends CustomPainter {
 
 class _InteractiveMapBanner extends StatefulWidget {
   const _InteractiveMapBanner({required this.onTap, required this.isDark});
+
   final VoidCallback onTap;
   final bool isDark;
 
@@ -1488,7 +1421,7 @@ class _InteractiveMapBannerState extends State<_InteractiveMapBanner>
                 ),
               ),
 
-              // Text Content & Action Button
+              // Text content and actions.
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -1506,7 +1439,7 @@ class _InteractiveMapBannerState extends State<_InteractiveMapBanner>
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
-                                  vertical: 3,
+                                  vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.primary.withValues(
@@ -1518,13 +1451,13 @@ class _InteractiveMapBannerState extends State<_InteractiveMapBanner>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      Icons.explore_rounded,
+                                      Icons.radar_rounded,
                                       size: 11,
                                       color: AppColors.primary,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'DISCOVER',
+                                      'FINDER',
                                       style: TextStyle(
                                         fontSize: 8.5,
                                         fontWeight: FontWeight.w900,
@@ -1539,7 +1472,7 @@ class _InteractiveMapBannerState extends State<_InteractiveMapBanner>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Explore Nearby Vibes',
+                            'Find In Crowd',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
@@ -1551,7 +1484,9 @@ class _InteractiveMapBannerState extends State<_InteractiveMapBanner>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Find public events & activities on an interactive map',
+                            'Open GPS finder flow and locate your meetup partner',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -1564,55 +1499,60 @@ class _InteractiveMapBannerState extends State<_InteractiveMapBanner>
                       ),
                     ),
 
-                    // Glassmorphic Map Pill on the right
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: widget.isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : const Color(0xFFCBD5E1),
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          if (!widget.isDark)
-                            BoxShadow(
-                              color: const Color(
-                                0xFF1C2C58,
-                              ).withValues(alpha: 0.06),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.map_rounded,
-                            size: 15,
-                            color: AppColors.primary,
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Map',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
+                          decoration: BoxDecoration(
+                            color: widget.isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
                               color: widget.isDark
-                                  ? Colors.white
-                                  : AppColors.secondary,
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : const Color.fromARGB(255, 132, 179, 237),
+                              width: 1,
                             ),
+                            boxShadow: [
+                              if (!widget.isDark)
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF1C2C58,
+                                  ).withValues(alpha: 0.06),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                            ],
                           ),
-                        ],
-                      ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.gps_fixed_rounded,
+                                size: 15,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'GPS',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: widget.isDark
+                                      ? Colors.white
+                                      : AppColors.secondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

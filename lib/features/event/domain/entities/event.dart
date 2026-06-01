@@ -190,9 +190,9 @@ class Event {
           json['isHostFriend'] as bool? ??
           json['IsHostFriend'] as bool? ??
           false,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
-          : DateTime.now(),
+      createdAt:
+          _parseDateTime(json['createdAt'] ?? json['CreatedAt']) ??
+          DateTime.now(),
       price: (json['price'] as num?)?.toDouble(),
     );
   }
@@ -239,17 +239,23 @@ class Event {
     final raw = value.toString().trim();
     if (raw.isEmpty) return null;
 
-    // The event API currently returns local event wall-clock values with a
-    // trailing "Z" (for example 13:30Z should still mean 13:30 in the venue's
-    // local time). Parse those values as local so countdown/check-in rules
-    // match the time the host selected when creating the event.
-    if (raw.endsWith('Z') || raw.endsWith('z')) {
-      final localRaw = raw.substring(0, raw.length - 1);
-      final localTime = DateTime.tryParse(localRaw);
-      if (localTime != null) return localTime;
-    }
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return null;
+    if (parsed.isUtc) return parsed.toLocal();
 
-    return DateTime.tryParse(raw);
+    final hasExplicitOffset = RegExp(r'[+-]\d{2}:?\d{2}$').hasMatch(raw);
+    if (hasExplicitOffset) return parsed.toLocal();
+
+    return DateTime.utc(
+      parsed.year,
+      parsed.month,
+      parsed.day,
+      parsed.hour,
+      parsed.minute,
+      parsed.second,
+      parsed.millisecond,
+      parsed.microsecond,
+    ).toLocal();
   }
 
   static EventStatus _parseStatus(String? str) {

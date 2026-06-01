@@ -52,7 +52,7 @@ class _ScoreCircleState extends State<ScoreCircle>
 
     return AnimatedBuilder(
       animation: _progressAnim,
-      builder: (_, __) {
+      builder: (context, child) {
         return SizedBox(
           width: widget.size,
           height: widget.size,
