@@ -17,6 +17,7 @@ import '../features/vibe_check/data/datasources/vibe_check_remote_data_source.da
 import '../features/vibe_check/data/repositories/vibe_check_repository_impl.dart';
 import '../features/vibe_check/domain/repositories/vibe_check_repository.dart';
 import '../router/app_router.dart';
+import '../core/services/push_notification_service.dart';
 import '../core/services/signalr_service.dart';
 
 import '../features/event/data/services/event_api_service.dart'
@@ -39,6 +40,9 @@ import '../features/event/presentation/bloc/event_detail_cubit.dart'
     as import_event_detail;
 import '../features/profile/data/services/user_api_service.dart'
     as import_user_api;
+import '../features/chat/data/services/chat_api_service.dart';
+import '../features/chat/data/services/signalr_chat_service.dart';
+import '../features/chat/presentation/cubit/chat_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -113,6 +117,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<import_user_api.UserApiService>(
     () => import_user_api.UserApiService(sl<DioClient>().dio),
   );
+  sl.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(sl<import_user_api.UserApiService>()),
+  );
 
   // Check-in Feature
   sl.registerLazySingleton<NfcPayloadParser>(() => NfcPayloadParser());
@@ -154,5 +161,16 @@ Future<void> configureDependencies() async {
       checkInWithStrategyUseCase: sl<CheckInWithStrategyUseCase>(),
       getEligibilityUseCase: sl<GetCheckinEligibilityUseCase>(),
     ),
+  );
+
+  // Chat Feature
+  sl.registerLazySingleton<ChatApiService>(
+    () => ChatApiService(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<SignalRChatService>(
+    () => SignalRChatService(sl<FlutterSecureStorage>()),
+  );
+  sl.registerFactory<ChatCubit>(
+    () => ChatCubit(sl<ChatApiService>(), sl<SignalRChatService>()),
   );
 }

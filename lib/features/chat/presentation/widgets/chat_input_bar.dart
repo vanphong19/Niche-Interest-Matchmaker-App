@@ -1,6 +1,7 @@
 // lib/features/chat/presentation/widgets/chat_input_bar.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -8,10 +9,12 @@ class ChatInputBar extends StatefulWidget {
   const ChatInputBar({
     super.key,
     required this.onSend,
+    this.onSendImage,
     this.hintText = 'Nhắn tin...',
   });
 
   final void Function(String message) onSend;
+  final Future<void> Function(String imagePath)? onSendImage;
   final String hintText;
 
   @override
@@ -21,6 +24,7 @@ class ChatInputBar extends StatefulWidget {
 class _ChatInputBarState extends State<ChatInputBar> {
   final _controller = TextEditingController();
   bool _hasText = false;
+  bool _isPickingImage = false;
 
   @override
   void initState() {
@@ -42,6 +46,22 @@ class _ChatInputBarState extends State<ChatInputBar> {
     if (text.isEmpty) return;
     widget.onSend(text);
     _controller.clear();
+  }
+
+  Future<void> _pickImage() async {
+    if (_isPickingImage || widget.onSendImage == null) return;
+
+    try {
+      setState(() => _isPickingImage = true);
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+      await widget.onSendImage!(image.path);
+    } finally {
+      if (mounted) setState(() => _isPickingImage = false);
+    }
   }
 
   @override
@@ -74,11 +94,14 @@ class _ChatInputBarState extends State<ChatInputBar> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Emoji button
+              // Image button
               _IconBtn(
-                icon: Icons.emoji_emotions_outlined,
-                color: AppColors.textHint,
-                onTap: () {},
+                icon: Icons.photo_library_rounded,
+                color: widget.onSendImage == null
+                    ? AppColors.textHint
+                    : AppColors.primary,
+                onTap: _pickImage,
+                loading: _isPickingImage,
               ),
               const SizedBox(width: 8),
 
@@ -151,11 +174,13 @@ class _IconBtn extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onTap,
+    this.loading = false,
   });
 
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +188,16 @@ class _IconBtn extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(4),
-        child: Icon(icon, color: color, size: 24),
+        child: loading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              )
+            : Icon(icon, color: color, size: 24),
       ),
     );
   }
@@ -189,9 +223,10 @@ class _SendButtonState extends State<_SendButton>
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.88).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.88,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -231,11 +266,7 @@ class _SendButtonState extends State<_SendButton>
               ),
             ],
           ),
-          child: const Icon(
-            Icons.send_rounded,
-            color: Colors.white,
-            size: 20,
-          ),
+          child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
         ),
       ),
     );

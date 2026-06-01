@@ -1,10 +1,12 @@
-// lib/core/constants/api_constants.dart
 class ApiConstants {
   ApiConstants._();
 
-  // Tự động chọn URL: localhost cho Web, IP mạng LAN cho điện thoại thật/máy ảo
+  /// Tự động chọn URL phù hợp theo platform:
+  /// - Android Emulator : http://10.0.2.2:5230
+  /// - Web / Desktop    : http://localhost:5230
+  /// - Thiết bị thật   : đổi thành IP LAN của máy chạy backend
   static String get baseUrl {
-    return 'http://192.168.1.11:5230/';
+    return 'https://niche-interest-matchmaker-admin.onrender.com/';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────
@@ -53,4 +55,25 @@ class ApiConstants {
   // ─── Settings ─────────────────────────────────────────────────────
   static const String settings = '/settings';
   static const String deleteAccount = '/settings/delete-account';
+
+  // ─── Chat ─────────────────────────────────────────────────────────────────
+  // GET /api/events/{eventId}/chat-rooms
+  // POST /api/events/{eventId}/chat-room
+  // POST /api/events/{eventId}/private-chat
+  // GET /api/chat-rooms/{chatRoomId}/messages
+  // POST /api/chat-rooms/{chatRoomId}/read
+  static String eventChatRooms(String eventId) =>
+      '/api/events/$eventId/chat-rooms';
+  static String createEventChatRoom(String eventId) =>
+      '/api/events/$eventId/chat-room';
+  static String privateChat(String eventId) =>
+      '/api/events/$eventId/private-chat';
+  static String chatMessages(String chatRoomId) =>
+      '/api/chat-rooms/$chatRoomId/messages';
+  static String markChatRead(String chatRoomId) =>
+      '/api/chat-rooms/$chatRoomId/read';
+
+  // ─── SignalR ──────────────────────────────────────────────────────────────
+  static String get chatHubUrl => '$baseUrl/hubs/chat';
+  static String get eventHubUrl => '$baseUrl/hubs/event';
 }
