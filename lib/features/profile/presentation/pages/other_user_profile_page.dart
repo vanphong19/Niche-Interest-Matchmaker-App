@@ -312,38 +312,61 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     final isPending = status == 'requested' || status == 'pending';
     final isFriend = status == 'accepted' || status == 'friend';
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
+        Row(
+          children: [
+            Expanded(
+              child: _ProfileActionButton(
+                label: AppLocalizations.tr('message'),
+                icon: Icons.message_rounded,
+                isPrimary: false,
+                isDark: isDark,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _openDirectMessage(profile);
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ProfileActionButton(
+                label: isFriend
+                    ? 'Friends'
+                    : isPending
+                    ? 'Cancel'
+                    : 'Add friend',
+                icon: isFriend
+                    ? Icons.check_rounded
+                    : isPending
+                    ? Icons.close_rounded
+                    : Icons.person_add_rounded,
+                isPrimary: !isFriend && !isPending,
+                isDestructive: false,
+                isDark: isDark,
+                isLoading: _friendActionLoading,
+                onTap: isFriend || isPending ? _removeFriendship : _requestFriend,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Vibe Check button
+        SizedBox(
+          width: double.infinity,
           child: _ProfileActionButton(
-            label: AppLocalizations.tr('message'),
-            icon: Icons.message_rounded,
-            isPrimary: false,
+            label: 'Vibe Check',
+            icon: Icons.auto_awesome_rounded,
+            isPrimary: true,
             isDark: isDark,
+            customColor: AppColors.primary,
             onTap: () {
               HapticFeedback.selectionClick();
-              _openDirectMessage(profile);
+              context.router.push(VibeCheckResultRoute(
+                targetUserId: profile.id,
+                targetUserName: profile.name,
+              ));
             },
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _ProfileActionButton(
-            label: isFriend
-                ? 'Friends'
-                : isPending
-                ? 'Cancel'
-                : 'Add friend',
-            icon: isFriend
-                ? Icons.check_rounded
-                : isPending
-                ? Icons.close_rounded
-                : Icons.person_add_rounded,
-            isPrimary: !isFriend && !isPending,
-            isDestructive: false,
-            isDark: isDark,
-            isLoading: _friendActionLoading,
-            onTap: isFriend || isPending ? _removeFriendship : _requestFriend,
           ),
         ),
       ],
@@ -1533,6 +1556,7 @@ class _ProfileActionButton extends StatefulWidget {
     this.isPrimary = false,
     this.isDestructive = false,
     this.isLoading = false,
+    this.customColor,
   });
 
   final String label;
@@ -1542,6 +1566,7 @@ class _ProfileActionButton extends StatefulWidget {
   final bool isPrimary;
   final bool isDestructive;
   final bool isLoading;
+  final Color? customColor;
 
   @override
   State<_ProfileActionButton> createState() => _ProfileActionButtonState();
@@ -1555,7 +1580,7 @@ class _ProfileActionButtonState extends State<_ProfileActionButton> {
   @override
   Widget build(BuildContext context) {
     final bgColor = widget.isPrimary
-        ? AppColors.secondary
+        ? (widget.customColor ?? AppColors.secondary)
         : widget.isDestructive
         ? AppColors.error.withValues(alpha: widget.isDark ? 0.22 : 0.1)
         : widget.label == 'Friends'
@@ -1605,9 +1630,7 @@ class _ProfileActionButtonState extends State<_ProfileActionButton> {
             boxShadow: [
               if (!widget.isDark)
                 BoxShadow(
-                  color: widget.isPrimary
-                      ? AppColors.secondary.withValues(alpha: 0.16)
-                      : const Color(0xFF1C2C58).withValues(alpha: 0.08),
+                  color: (widget.customColor ?? AppColors.secondary).withValues(alpha: 0.16),
                   blurRadius: 22,
                   offset: const Offset(0, 12),
                 ),

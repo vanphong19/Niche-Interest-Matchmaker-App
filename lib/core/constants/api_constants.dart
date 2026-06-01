@@ -61,6 +61,10 @@ class ApiConstants {
   static const String badgeById = '/badges'; // /badges/:id
   static const String myBadges = '/badges/me';
 
+  // ─── Vibe Check ─────────────────────────────────────────────────
+  static const String vibeCheck = '/api/vibe-check';
+  static const String vibeCheckHistory = '/api/vibe-check/history';
+
   // ─── Settings ─────────────────────────────────────────────────────
   static const String settings = '/settings';
   static const String deleteAccount = '/settings/delete-account';

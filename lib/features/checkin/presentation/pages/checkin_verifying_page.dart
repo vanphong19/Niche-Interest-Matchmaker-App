@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../mock/checkin_mock_data.dart';
+import '../models/checkin_event_details.dart';
+import '../../domain/entities/checkin_result.dart';
 import '../widgets/checkin_scaffold.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/verification_loading_overlay.dart';
@@ -16,9 +18,13 @@ class CheckinVerifyingPage extends StatefulWidget {
   const CheckinVerifyingPage({
     super.key,
     this.method = 'QR Check-in',
+    this.result,
+    this.eventDetails,
   });
 
   final String method;
+  final CheckinResult? result;
+  final CheckinEventDetails? eventDetails;
 
   @override
   State<CheckinVerifyingPage> createState() => _CheckinVerifyingPageState();
@@ -37,7 +43,11 @@ class _CheckinVerifyingPageState extends State<CheckinVerifyingPage> {
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => NfcCheckinResultPage(method: widget.method),
+          builder: (_) => NfcCheckinResultPage(
+            method: widget.method,
+            result: widget.result,
+            eventDetails: widget.eventDetails,
+          ),
         ),
       );
     });
@@ -52,6 +62,7 @@ class _CheckinVerifyingPageState extends State<CheckinVerifyingPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final details = widget.eventDetails;
 
     return CheckinScaffold(
       title: 'Verifying Check-in',
@@ -73,7 +84,7 @@ class _CheckinVerifyingPageState extends State<CheckinVerifyingPage> {
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
-                          CheckinMockData.eventImage,
+                          details?.imageUrl ?? CheckinMockData.eventImage,
                           fit: BoxFit.cover,
                           color: colorScheme.onSurface.withValues(alpha: 0.18),
                           colorBlendMode: BlendMode.darken,
@@ -105,14 +116,15 @@ class _CheckinVerifyingPageState extends State<CheckinVerifyingPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                CheckinMockData.eventTitle,
+                                details?.title ?? CheckinMockData.eventTitle,
                                 style: AppTextStyles.bodyMediumSemiBold
                                     .copyWith(color: colorScheme.onSurface),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                '${CheckinMockData.eventTime} - ${CheckinMockData.locationName}',
+                                '${details?.eventTime ?? CheckinMockData.eventTime} - '
+                                '${details?.locationName ?? CheckinMockData.locationName}',
                                 style: AppTextStyles.captionMedium.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
