@@ -90,7 +90,6 @@ class _AdaptiveMatchList extends StatelessWidget {
     }
 
     return CustomScrollView(
-      cacheExtent: info.isLarge ? 1200 : 900,
       slivers: [
         SliverPadding(
           padding: EdgeInsets.fromLTRB(
