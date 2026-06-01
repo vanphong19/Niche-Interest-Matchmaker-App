@@ -19,7 +19,7 @@ class ApiConstants {
     // Android Emulator trỏ tới host machine qua 10.0.2.2
     // iOS Simulator  trỏ tới host machine qua localhost
     // Thiết bị thật: thay bằng IP LAN, ví dụ 'http://192.168.1.x:5230'
-    return 'http://192.168.2.66:5230';
+    return 'http://192.168.1.13:5230';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────

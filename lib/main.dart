@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'core/utils/app_localizations.dart';
 import 'core/utils/profile_state.dart';
 import 'core/utils/settings_service.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/services/signalr_service.dart';
 import 'injection/injection_container.dart';
 
@@ -50,6 +51,7 @@ Future<void> main() async {
   // Start SignalR
   sl<SignalRService>().init();
   sl<SignalRService>().dataChangeStream.listen((_) => ProfileState.init());
+  sl<PushNotificationService>().initialize();
 
   runApp(const VibeApp());
 }

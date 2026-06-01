@@ -74,14 +74,17 @@ class ChatCubit extends Cubit<ChatState> {
 
   // ─── Gửi tin nhắn ────────────────────────────────────────────────────────
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(
+    String content, {
+    String messageType = 'Text',
+  }) async {
     final s = state;
     if (s is! ChatMessagesLoaded) return;
     if (content.trim().isEmpty) return;
 
     emit(s.copyWith(isSending: true));
     try {
-      await _signalR.sendMessage(s.room.id, content);
+      await _signalR.sendMessage(s.room.id, content, messageType: messageType);
       // Tin nhắn sẽ được append khi nhận ReceiveMessage từ hub
     } catch (e) {
       emit(s.copyWith(isSending: false));

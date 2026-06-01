@@ -229,6 +229,28 @@ class UserApiService {
     );
   }
 
+  Future<void> registerDeviceToken({
+    required String token,
+    required String platform,
+    String? deviceId,
+  }) async {
+    await _dio.post(
+      '/api/app/profile/device-token',
+      data: {'token': token, 'platform': platform, 'deviceId': deviceId},
+    );
+  }
+
+  Future<void> unregisterDeviceToken({
+    required String token,
+    required String platform,
+    String? deviceId,
+  }) async {
+    await _dio.delete(
+      '/api/app/profile/device-token',
+      data: {'token': token, 'platform': platform, 'deviceId': deviceId},
+    );
+  }
+
   Future<void> deleteAccount() async {
     await _dio.delete('/api/app/profile/account');
   }

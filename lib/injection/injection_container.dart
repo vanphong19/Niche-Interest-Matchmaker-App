@@ -12,6 +12,7 @@ import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/settings/presentation/bloc/settings_bloc.dart';
 import '../features/vibe_check/presentation/bloc/vibe_match_bloc.dart';
 import '../router/app_router.dart';
+import '../core/services/push_notification_service.dart';
 import '../core/services/signalr_service.dart';
 
 import '../features/event/data/services/event_api_service.dart'
@@ -87,6 +88,9 @@ Future<void> configureDependencies() async {
   // ─── Profile Feature ──────────────────────────────────────────
   sl.registerLazySingleton<import_user_api.UserApiService>(
     () => import_user_api.UserApiService(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(sl<import_user_api.UserApiService>()),
   );
 
   // Check-in Feature

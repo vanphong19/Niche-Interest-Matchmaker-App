@@ -18,13 +18,15 @@ class SignalRChatService {
 
   // ─── Streams ──────────────────────────────────────────────────────────────
 
-  final _messageController =
-      StreamController<ChatMessageModel>.broadcast();
+  final _messageController = StreamController<ChatMessageModel>.broadcast();
   Stream<ChatMessageModel> get onMessageReceived => _messageController.stream;
 
-  final _typingController =
-      StreamController<TypingEventModel>.broadcast();
+  final _typingController = StreamController<TypingEventModel>.broadcast();
   Stream<TypingEventModel> get onUserTyping => _typingController.stream;
+
+  final _presenceController = StreamController<PresenceEventModel>.broadcast();
+  Stream<PresenceEventModel> get onPresenceChanged =>
+      _presenceController.stream;
 
   final _connectionStateController = StreamController<String>.broadcast();
   Stream<String> get connectionState => _connectionStateController.stream;
@@ -70,7 +72,9 @@ class SignalRChatService {
         // Dùng senderId trực tiếp, ChatDetailPage sẽ set isMine sau khi nhận
         final msg = ChatMessageModel.fromSignalR(raw, '');
         _messageController.add(msg);
-        debugPrint('SignalRChat: ReceiveMessage [${msg.chatRoomId}] ${msg.senderName}: ${msg.content}');
+        debugPrint(
+          'SignalRChat: ReceiveMessage [${msg.chatRoomId}] ${msg.senderName}: ${msg.content}',
+        );
       } catch (e) {
         debugPrint('SignalRChat: Error parsing ReceiveMessage: $e');
       }
@@ -88,9 +92,22 @@ class SignalRChatService {
       }
     });
 
+    _connection!.on('UserPresenceChanged', (arguments) {
+      try {
+        final raw = _normalize(arguments);
+        if (raw.isEmpty) return;
+        final event = PresenceEventModel.fromJson(raw);
+        _presenceController.add(event);
+      } catch (e) {
+        debugPrint('SignalRChat: Error parsing UserPresenceChanged: $e');
+      }
+    });
+
     // ─── Trạng thái connection ────────────────────────────────────────────
     _connection!.onclose(({Exception? error}) {
-      debugPrint('SignalRChat: Disconnected${error != null ? " — $error" : ""}');
+      debugPrint(
+        'SignalRChat: Disconnected${error != null ? " — $error" : ""}',
+      );
       _connectionStateController.add('Disconnected');
     });
 
@@ -130,13 +147,26 @@ class SignalRChatService {
 
   // ─── SendMessage ──────────────────────────────────────────────────────────
 
-  Future<void> sendMessage(String chatRoomId, String content) async {
+  Future<void> sendMessage(
+    String chatRoomId,
+    String content, {
+    String messageType = 'Text',
+  }) async {
     if (_connection?.state != HubConnectionState.Connected) {
       throw Exception('Không thể gửi tin nhắn: chưa kết nối chat server.');
     }
     if (content.trim().isEmpty) return;
-    await _connection!.invoke('SendMessage', args: [chatRoomId, content.trim()]);
-    debugPrint('SignalRChat: SendMessage [$chatRoomId] $content');
+    await _connection!.invoke(
+      'SendMessage',
+      args: [
+        {
+          'chatRoomId': chatRoomId,
+          'content': content.trim(),
+          'messageType': messageType,
+        },
+      ],
+    );
+    debugPrint('SignalRChat: SendMessage [$chatRoomId][$messageType] $content');
   }
 
   // ─── Typing ───────────────────────────────────────────────────────────────
@@ -164,6 +194,7 @@ class SignalRChatService {
     _connection?.stop();
     _messageController.close();
     _typingController.close();
+    _presenceController.close();
     _connectionStateController.close();
   }
 
