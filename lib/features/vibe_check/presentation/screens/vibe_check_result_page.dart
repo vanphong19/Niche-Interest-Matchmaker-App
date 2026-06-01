@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_app_bar.dart';
 import '../../../../injection/injection_container.dart';
 import '../../domain/entities/vibe_check_result.dart';
@@ -162,23 +163,12 @@ class _SuccessView extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 48,
-            backgroundImage: result.targetUserAvatar.isNotEmpty
-                ? NetworkImage(result.targetUserAvatar)
-                : null,
-            backgroundColor: colorScheme.surfaceContainerHighest,
-            child: result.targetUserAvatar.isEmpty
-                ? Text(
-                    result.targetUserName.isNotEmpty
-                        ? result.targetUserName[0]
-                        : '?',
-                    style: TextStyle(
-                      fontSize: 36,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                : null,
+          VibeAvatar(
+            imageUrl: result.targetUserAvatar,
+            name: result.targetUserName,
+            size: 96,
+            showBorder: true,
+            borderColor: colorScheme.primary,
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
