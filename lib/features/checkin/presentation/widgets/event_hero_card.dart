@@ -4,11 +4,14 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../mock/checkin_mock_data.dart';
+import '../models/checkin_event_details.dart';
 import '../models/checkin_ui_model.dart';
 import 'status_pill.dart';
 
 class EventHeroCard extends StatelessWidget {
-  const EventHeroCard({super.key});
+  const EventHeroCard({super.key, this.details});
+
+  final CheckinEventDetails? details;
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +41,10 @@ class EventHeroCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               Image.network(
-                CheckinMockData.eventImage,
+                details?.imageUrl ?? CheckinMockData.eventImage,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: colorScheme.primaryContainer,
-                ),
+                errorBuilder: (_, _, _) =>
+                    Container(color: colorScheme.primaryContainer),
               ),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -110,7 +112,7 @@ class EventHeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      CheckinMockData.eventTitle,
+                      details?.title ?? CheckinMockData.eventTitle,
                       style: AppTextStyles.headingLarge.copyWith(
                         color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w900,
@@ -120,7 +122,8 @@ class EventHeroCard extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      '${CheckinMockData.eventTime} - ${CheckinMockData.locationName}',
+                      '${details?.eventTime ?? CheckinMockData.eventTime} - '
+                      '${details?.locationName ?? CheckinMockData.locationName}',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: colorScheme.onPrimary.withValues(alpha: 0.86),
                         fontWeight: FontWeight.w700,

@@ -4,7 +4,7 @@ class ApiConstants {
 
   // Tự động chọn URL: localhost cho Web, IP mạng LAN cho điện thoại thật/máy ảo
   static String get baseUrl {
-    return 'https://niche-interest-matchmaker.onrender.com';
+    return 'http://192.168.207.193:5230';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────
@@ -45,6 +45,10 @@ class ApiConstants {
   static const String badges = '/badges';
   static const String badgeById = '/badges'; // /badges/:id
   static const String myBadges = '/badges/me';
+
+  // ─── Vibe Check ─────────────────────────────────────────────────
+  static const String vibeCheck = '/api/vibe-check';
+  static const String vibeCheckHistory = '/api/vibe-check/history';
 
   // ─── Settings ─────────────────────────────────────────────────────
   static const String settings = '/settings';

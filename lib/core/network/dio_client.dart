@@ -1,5 +1,6 @@
 // lib/core/network/dio_client.dart
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../constants/app_constants.dart';
@@ -12,9 +13,8 @@ class DioClient {
   late final Dio _dio;
   final FlutterSecureStorage _secureStorage;
 
-  DioClient({
-    FlutterSecureStorage? secureStorage,
-  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage() {
+  DioClient({FlutterSecureStorage? secureStorage})
+    : _secureStorage = secureStorage ?? const FlutterSecureStorage() {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
@@ -23,24 +23,25 @@ class DioClient {
         sendTimeout: AppConstants.sendTimeout,
         responseType: ResponseType.json,
         contentType: Headers.jsonContentType,
-        headers: {
-          Headers.acceptHeader: Headers.jsonContentType,
-        },
+        headers: {Headers.acceptHeader: Headers.jsonContentType},
       ),
     );
 
-    _dio.interceptors.addAll([
-      AuthInterceptor(
-        secureStorage: _secureStorage,
-        dio: _dio,
-      ),
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        requestHeader: true,
-        error: true,
-      ),
-    ]);
+    _dio.interceptors.add(
+      AuthInterceptor(secureStorage: _secureStorage, dio: _dio),
+    );
+
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          requestHeader: false,
+          responseHeader: false,
+          error: true,
+        ),
+      );
+    }
   }
 
   Dio get dio => _dio;
@@ -167,34 +168,56 @@ class DioClient {
   }
 
   Exception _mapStatusCode(int? statusCode, dynamic data) {
-    final message = data is Map ? (data['message'] as String?) ?? '' : '';
+    final message = _extractErrorMessage(data);
     switch (statusCode) {
       case 400:
-        return ValidationException(message: message.isNotEmpty ? message : 'Bad request');
+        return ValidationException(
+          message: message.isNotEmpty ? message : 'Bad request',
+        );
       case 401:
-        return AuthException(message: message.isNotEmpty ? message : 'Unauthorized');
+        return AuthException(
+          message: message.isNotEmpty ? message : 'Unauthorized',
+        );
       case 403:
         return const AuthException(message: 'Access denied');
       case 404:
-        return NotFoundException(message: message.isNotEmpty ? message : 'Not found');
+        return NotFoundException(
+          message: message.isNotEmpty ? message : 'Not found',
+        );
       case 409:
-        return ServerException(message: message.isNotEmpty ? message : 'Conflict', statusCode: 409);
+        return ServerException(
+          message: message.isNotEmpty ? message : 'Conflict',
+          statusCode: 409,
+        );
       case 422:
-        return ValidationException(message: message.isNotEmpty ? message : 'Unprocessable entity');
+        return ValidationException(
+          message: message.isNotEmpty ? message : 'Unprocessable entity',
+        );
       case 429:
-        return const ServerException(message: 'Too many requests. Please slow down.', statusCode: 429);
+        return const ServerException(
+          message: 'Too many requests. Please slow down.',
+          statusCode: 429,
+        );
       case 500:
       case 502:
       case 503:
-        return ServerException(message: message.isNotEmpty ? message : 'Server error', statusCode: statusCode);
+        return ServerException(
+          message: message.isNotEmpty ? message : 'Server error',
+          statusCode: statusCode,
+        );
       default:
-        return ServerException(message: message.isNotEmpty ? message : 'An error occurred', statusCode: statusCode);
+        return ServerException(
+          message: message.isNotEmpty ? message : 'An error occurred',
+          statusCode: statusCode,
+        );
     }
   }
 
   // ─── Helper: Map exceptions to Failures ─────────────────────────
   static Failure mapExceptionToFailure(Object e) {
-    if (e is NetworkException) {
+    if (e is DioException) {
+      return _mapDioExceptionToFailure(e);
+    } else if (e is NetworkException) {
       return NetworkFailure(e.message);
     } else if (e is AuthException) {
       return AuthFailure(e.message);
@@ -209,5 +232,87 @@ class DioClient {
     } else {
       return const UnexpectedFailure();
     }
+  }
+
+  static Failure _mapDioExceptionToFailure(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return const TimeoutFailure();
+      case DioExceptionType.connectionError:
+        return const NetworkFailure();
+      case DioExceptionType.badResponse:
+        return _mapResponseFailure(e.response?.statusCode, e.response?.data);
+      case DioExceptionType.cancel:
+        return const ServerFailure('Request cancelled');
+      default:
+        return ServerFailure(e.message ?? 'An error occurred');
+    }
+  }
+
+  static Failure _mapResponseFailure(int? statusCode, dynamic data) {
+    final message = _extractErrorMessage(data);
+    switch (statusCode) {
+      case 400:
+      case 422:
+        return ValidationFailure(message.isNotEmpty ? message : 'Bad request');
+      case 401:
+        return AuthFailure(message.isNotEmpty ? message : 'Unauthorized');
+      case 403:
+        return AuthFailure(message.isNotEmpty ? message : 'Access denied');
+      case 404:
+        return NotFoundFailure(message.isNotEmpty ? message : 'Not found');
+      case 408:
+        return TimeoutFailure(
+          message.isNotEmpty ? message : 'Request timed out. Please try again.',
+        );
+      case 409:
+      case 429:
+      case 500:
+      case 502:
+      case 503:
+        return ServerFailure(
+          message.isNotEmpty ? message : 'Server error',
+          statusCode,
+        );
+      default:
+        return ServerFailure(
+          message.isNotEmpty ? message : 'An error occurred',
+          statusCode,
+        );
+    }
+  }
+
+  static String _extractErrorMessage(dynamic data) {
+    if (data is Map) {
+      final direct =
+          data['message'] ?? data['Message'] ?? data['error'] ?? data['Error'];
+      if (direct != null && direct.toString().trim().isNotEmpty) {
+        return direct.toString();
+      }
+
+      final nested = data['data'] ?? data['Data'];
+      if (nested is String && nested.trim().isNotEmpty) {
+        return nested;
+      }
+      if (nested is Map) {
+        final nestedMessage =
+            nested['message'] ??
+            nested['Message'] ??
+            nested['error'] ??
+            nested['Error'];
+        if (nestedMessage != null &&
+            nestedMessage.toString().trim().isNotEmpty) {
+          return nestedMessage.toString();
+        }
+      }
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+
+    return '';
   }
 }

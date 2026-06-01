@@ -146,17 +146,28 @@ class Event {
               longitude:
                   (json['longitude'] ?? json['lng'] as num?)?.toDouble() ?? 0,
             ),
-      startDateTime: json['dateTime'] != null
-          ? DateTime.parse(json['dateTime'] as String)
-          : DateTime.now(),
-      endDateTime:
-          (json['endDateTime'] ?? json['EndDateTime'] ?? json['endTime']) !=
-              null
-          ? DateTime.parse(
-              (json['endDateTime'] ?? json['EndDateTime'] ?? json['endTime'])
-                  as String,
-            )
-          : null,
+      startDateTime:
+          _parseDateTime(
+            json['dateTime'] ??
+                json['DateTime'] ??
+                json['startDateTime'] ??
+                json['StartDateTime'] ??
+                json['startTime'] ??
+                json['StartTime'] ??
+                json['startTimeUtc'] ??
+                json['StartTimeUtc'] ??
+                json['start_time_utc'],
+          ) ??
+          DateTime.now(),
+      endDateTime: _parseDateTime(
+        json['endDateTime'] ??
+            json['EndDateTime'] ??
+            json['endTime'] ??
+            json['EndTime'] ??
+            json['endTimeUtc'] ??
+            json['EndTimeUtc'] ??
+            json['end_time_utc'],
+      ),
       maxParticipants: json['maxParticipants'] as int? ?? 20,
       currentParticipants: json['currentParticipants'] as int? ?? 0,
       participantIds:
@@ -220,6 +231,25 @@ class Event {
     if (tags is String) return tags;
     if (tags is List) return tags.map((e) => e.toString()).join(', ');
     return tags.toString();
+  }
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    final raw = value.toString().trim();
+    if (raw.isEmpty) return null;
+
+    // The event API currently returns local event wall-clock values with a
+    // trailing "Z" (for example 13:30Z should still mean 13:30 in the venue's
+    // local time). Parse those values as local so countdown/check-in rules
+    // match the time the host selected when creating the event.
+    if (raw.endsWith('Z') || raw.endsWith('z')) {
+      final localRaw = raw.substring(0, raw.length - 1);
+      final localTime = DateTime.tryParse(localRaw);
+      if (localTime != null) return localTime;
+    }
+
+    return DateTime.tryParse(raw);
   }
 
   static EventStatus _parseStatus(String? str) {

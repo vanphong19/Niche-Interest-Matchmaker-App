@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../mock/checkin_mock_data.dart';
+import '../models/checkin_event_details.dart';
 
 class CheckinEventSummaryCard extends StatelessWidget {
-  const CheckinEventSummaryCard({super.key});
+  const CheckinEventSummaryCard({super.key, this.details});
+
+  final CheckinEventDetails? details;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,7 @@ class CheckinEventSummaryCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 Image.network(
-                  CheckinMockData.eventImage,
+                  details?.imageUrl ?? CheckinMockData.eventImage,
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => ColoredBox(
                     color: colorScheme.primaryContainer,
@@ -60,7 +63,7 @@ class CheckinEventSummaryCard extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        CheckinMockData.eventTitle,
+                        details?.title ?? CheckinMockData.eventTitle,
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: colorScheme.onPrimary,
                           fontWeight: FontWeight.w900,
@@ -82,7 +85,7 @@ class CheckinEventSummaryCard extends StatelessWidget {
                   child: _EventMetaItem(
                     icon: Icons.schedule_rounded,
                     label: 'Time',
-                    value: CheckinMockData.eventTime,
+                    value: details?.eventTime ?? CheckinMockData.eventTime,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -90,7 +93,8 @@ class CheckinEventSummaryCard extends StatelessWidget {
                   child: _EventMetaItem(
                     icon: Icons.location_on_rounded,
                     label: 'Location',
-                    value: CheckinMockData.locationName,
+                    value:
+                        details?.locationName ?? CheckinMockData.locationName,
                   ),
                 ),
               ],
@@ -327,9 +331,9 @@ class _CheckinBadge extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: foreground,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
         ),

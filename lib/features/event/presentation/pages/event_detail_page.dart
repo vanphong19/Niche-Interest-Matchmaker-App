@@ -20,6 +20,13 @@ import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_header.dart';
 import '../../../../core/widgets/vibe_confirm_dialog.dart';
+import '../../../checkin/domain/entities/checkin_eligibility.dart';
+import '../../../checkin/domain/usecases/get_checkin_eligibility_usecase.dart';
+import '../../../checkin/presentation/checkin_session.dart';
+import '../../../checkin/presentation/models/checkin_event_details.dart';
+import '../../../trust/presentation/widgets/commitment_modal.dart';
+import '../../../trust/presentation/widgets/checkin_button.dart';
+import '../../../vibe_check/presentation/screens/group_vibe_check_result_page.dart';
 import 'event_members_page.dart';
 import '../bloc/event_detail_cubit.dart';
 
@@ -39,6 +46,9 @@ class _EventDetailPageState extends State<EventDetailPage>
   late final AnimationController _fabAnim;
   StreamSubscription? _statusSubscription;
   final Set<String> _requestedFriendIds = {};
+  final Set<String> _checkinStatusRequestedIds = {};
+  final Set<String> _serverCheckedInEventIds = {};
+  final Map<String, ExistingCheckin> _existingCheckinsByEventId = {};
   int _currentImageIndex = 0;
 
   late final ScrollController _scrollController;
@@ -86,6 +96,17 @@ class _EventDetailPageState extends State<EventDetailPage>
   }
 
   @override
+  void didUpdateWidget(covariant EventDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.eventId != widget.eventId) {
+      _checkinStatusRequestedIds.clear();
+      _serverCheckedInEventIds.clear();
+      _existingCheckinsByEventId.clear();
+      _cubit.loadEvent(widget.eventId);
+    }
+  }
+
+  @override
   void dispose() {
     _statusSubscription?.cancel();
     _cubit.close();
@@ -106,6 +127,40 @@ class _EventDetailPageState extends State<EventDetailPage>
         !ended &&
         event.status != EventStatus.completed &&
         event.status != EventStatus.cancelled;
+  }
+
+  bool _isCheckedIn(Event event) {
+    final id = event.id.trim().toLowerCase();
+    return _serverCheckedInEventIds.contains(id) ||
+        CheckinSession.isCheckedIn(event.id);
+  }
+
+  Future<void> _syncCheckinStatus(Event event) async {
+    final id = event.id.trim();
+    if (id.isEmpty || (!event.isJoined && !_isHost(event))) return;
+
+    final key = id.toLowerCase();
+    if (_checkinStatusRequestedIds.contains(key)) return;
+    _checkinStatusRequestedIds.add(key);
+
+    final result = await sl<GetCheckinEligibilityUseCase>()(id);
+    if (!mounted) return;
+
+    result.fold((_) {}, (eligibility) {
+      final existingStatus = eligibility.existingCheckIn?.status
+          .trim()
+          .toLowerCase();
+      if (eligibility.alreadyCheckedIn || existingStatus == 'valid') {
+        CheckinSession.markCheckedIn(id);
+        setState(() {
+          _serverCheckedInEventIds.add(key);
+          final existing = eligibility.existingCheckIn;
+          if (existing != null) {
+            _existingCheckinsByEventId[key] = existing;
+          }
+        });
+      }
+    });
   }
 
   Future<void> _sendFriendRequest(String userId) async {
@@ -160,11 +215,62 @@ class _EventDetailPageState extends State<EventDetailPage>
     if (mounted) _cubit.loadEvent(widget.eventId, showLoading: false);
   }
 
+  Future<void> _openCheckinFlow(Event event) async {
+    if (!event.isJoined && !_isHost(event)) {
+      VibeSnackBar.info(context, 'Join this vibe before checking in.');
+      return;
+    }
+
+    final now = DateTime.now();
+    if (now.isBefore(event.startDateTime)) {
+      VibeSnackBar.info(context, 'Check-in opens when the event starts.');
+      return;
+    }
+    final endAt = event.endDateTime;
+    if (endAt != null && now.isAfter(endAt)) {
+      VibeSnackBar.info(context, 'Check-in time has ended.');
+      return;
+    }
+
+    final details = CheckinEventDetails.fromEvent(event);
+    await context.router.push(
+      CheckinMethodRoute(matchId: event.id, eventDetails: details),
+    );
+
+    if (mounted) {
+      _checkinStatusRequestedIds.remove(event.id.trim().toLowerCase());
+      unawaited(_syncCheckinStatus(event));
+      _cubit.loadEvent(widget.eventId, showLoading: false);
+    }
+  }
+
+  bool _canUseGroupVibeCheck(Event event) => _isHost(event) || event.isJoined;
+
+  Future<void> _openGroupVibeCheck(Event event) async {
+    if (!_canUseGroupVibeCheck(event)) {
+      VibeSnackBar.info(
+        context,
+        event.isPending
+            ? 'Hoàn tất tham gia event trước khi xem vibe nhóm.'
+            : 'Bạn cần được duyệt vào event trước khi xem vibe nhóm.',
+      );
+      return;
+    }
+
+    HapticFeedback.selectionClick();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GroupVibeCheckResultPage(matchId: event.id),
+      ),
+    );
+  }
+
   Future<void> _deleteEvent(Event event) async {
     final confirmed = await showVibeConfirmDialog(
       context: context,
       title: 'Delete Vibe?',
-      message: 'This action cannot be undone. All participants will be notified.',
+      message:
+          'This action cannot be undone. All participants will be notified.',
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       icon: Icons.delete_forever_rounded,
@@ -201,6 +307,16 @@ class _EventDetailPageState extends State<EventDetailPage>
     }
 
     if (!event.isJoined) {
+      // Show CommitmentModal before joining
+      final confirmed = await showCommitmentModal(
+        context,
+        eventName: event.title,
+        eventStart: event.startDateTime,
+        location: event.location.address.isNotEmpty
+            ? event.location.address
+            : event.location.name,
+      );
+      if (!confirmed) return;
       await _cubit.toggleJoinLeave();
       sl<SignalRService>().emitLocalChange('event', {'eventId': event.id});
       return;
@@ -240,6 +356,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                   return _buildError(state.message);
                 } else if (state is EventDetailLoaded) {
                   final event = state.event;
+                  unawaited(_syncCheckinStatus(event));
                   final userId = profile.id.toLowerCase();
                   final isParticipant = event.participantIds.any(
                     (id) => id.toLowerCase() == userId,
@@ -584,12 +701,237 @@ class _EventDetailPageState extends State<EventDetailPage>
 
             // The Circle (Members)
             _buildCircleCard(event),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
+
+            if (_canUseGroupVibeCheck(event) || event.isPending) ...[
+              _buildGroupVibeCheckCard(event),
+              const SizedBox(height: 10),
+            ],
+
+            ValueListenableBuilder<Set<String>>(
+              valueListenable: CheckinSession.checkedInMatchIds,
+              builder: (context, _, _) {
+                if (_isCheckedIn(event)) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 10),
+                    child: _buildCheckedInCard(event),
+                  );
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 10),
+                  child: CheckInButton(
+                    eventStart: event.startDateTime,
+                    eventEnd: event.endDateTime,
+                    eventName: event.title,
+                    onCheckInPressed: () => _openCheckinFlow(event),
+                  ),
+                );
+              },
+            ),
 
             // About Section (Description)
             _buildAboutSection(event),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCheckedInCard(Event event) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final checkin = _existingCheckinsByEventId[event.id.trim().toLowerCase()];
+    final method = checkin?.method.trim().toUpperCase();
+    final checkedAt = checkin?.checkedInAtUtc.toLocal();
+    final subtitle = checkedAt == null
+        ? 'Your arrival has been verified for this vibe.'
+        : 'Verified at ${_formatFullDateTime(checkedAt)}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F2A1E) : const Color(0xFFEFFDF5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.22)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.success.withValues(alpha: 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.verified_rounded,
+              color: AppColors.success,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Already checked in',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : AppColors.secondary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                    if (method != null && method.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(
+                            alpha: isDark ? 0.10 : 0.90,
+                          ),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          method,
+                          style: const TextStyle(
+                            color: AppColors.success,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.72)
+                        : AppColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupVibeCheckCard(Event event) {
+    final enabled = _canUseGroupVibeCheck(event);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: enabled
+              ? AppColors.primary.withValues(alpha: 0.14)
+              : AppColors.borderLight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: enabled ? 0.08 : 0.03),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: enabled
+                      ? AppColors.primarySurface
+                      : AppColors.bgSecondary,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  Icons.groups_2_rounded,
+                  color: enabled ? AppColors.primary : AppColors.textHint,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Group Vibe Check',
+                      style: TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      enabled
+                          ? 'Xem nhóm này hợp với bạn bao nhiêu và nên bắt chuyện với ai.'
+                          : 'Hoàn tất tham gia event để xem insight nội bộ của nhóm.',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: enabled ? () => _openGroupVibeCheck(event) : null,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              label: Text(enabled ? 'Check group vibe' : 'Chờ được duyệt'),
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.bgSecondary,
+                disabledForegroundColor: AppColors.textHint,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1472,6 +1814,7 @@ class _EventDetailPageState extends State<EventDetailPage>
                     ],
                   ),
                   const SizedBox(width: 20),
+
                   Expanded(
                     child: AnimatedBuilder(
                       animation: _fabAnim,

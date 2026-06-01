@@ -4,10 +4,13 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../mock/checkin_mock_data.dart';
+import '../models/checkin_event_details.dart';
 import 'glass_card.dart';
 
 class LocationPreviewCard extends StatelessWidget {
-  const LocationPreviewCard({super.key});
+  const LocationPreviewCard({super.key, this.details});
+
+  final CheckinEventDetails? details;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +102,8 @@ class LocationPreviewCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            CheckinMockData.locationName,
+                            details?.locationName ??
+                                CheckinMockData.locationName,
                             style: AppTextStyles.bodySmall.copyWith(
                               color: colorScheme.onSurface,
                               fontWeight: FontWeight.w700,
@@ -113,8 +117,9 @@ class LocationPreviewCard extends StatelessWidget {
                     IconButton(
                       onPressed: () {},
                       style: IconButton.styleFrom(
-                        backgroundColor:
-                            colorScheme.primary.withValues(alpha: 0.10),
+                        backgroundColor: colorScheme.primary.withValues(
+                          alpha: 0.10,
+                        ),
                       ),
                       icon: Icon(
                         Icons.directions_rounded,
