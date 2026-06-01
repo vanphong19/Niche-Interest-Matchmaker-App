@@ -245,8 +245,6 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _MapBackButton(isDark: isDark),
-                      const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: _searchCtrl,
@@ -704,7 +702,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                   padding: const EdgeInsets.all(8),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                      color: (isDark
+                          ? Colors.white10
+                          : Colors.black.withValues(alpha: 0.05)),
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
@@ -722,7 +722,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: 80,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -732,7 +734,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: double.infinity,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -742,7 +746,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: 120,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -752,7 +758,9 @@ class _MapDiscoveryPageState extends State<MapDiscoveryPage> {
                           width: 100,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            color: (isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
