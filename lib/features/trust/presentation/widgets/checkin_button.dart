@@ -1,5 +1,6 @@
 // lib/features/trust/presentation/widgets/checkin_button.dart
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -7,7 +8,6 @@ import '../../domain/services/reputation_service.dart';
 
 enum _CheckInState { tooEarly, canCheckIn, tooLate, done }
 
-/// Nút check-in sự kiện với countdown timer và 4 trạng thái
 class CheckInButton extends StatefulWidget {
   const CheckInButton({
     super.key,
@@ -88,7 +88,7 @@ class _CheckInButtonState extends State<CheckInButton>
       _timeUntilClose = closeAt.difference(now);
     }
 
-    if (_state == _CheckInState.done) return; // Already checked in
+    if (_state == _CheckInState.done) return;
     if (newState != _state) {
       setState(() => _state = newState);
     } else if (_state == _CheckInState.tooEarly ||
@@ -124,7 +124,7 @@ class _CheckInButtonState extends State<CheckInButton>
         SnackBar(
           content: Row(
             children: [
-              const Text('✅ ', style: TextStyle(fontSize: 18)),
+              const Text('OK ', style: TextStyle(fontSize: 18)),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -138,7 +138,7 @@ class _CheckInButtonState extends State<CheckInButton>
                       ),
                     ),
                     Text(
-                      '+$delta points of trust 🎉',
+                      '+$delta points of trust',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ],
@@ -182,12 +182,13 @@ class _CheckInButtonState extends State<CheckInButton>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.schedule_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 10),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Check-in opens at start time, time remaining:',
+                    'Check-in opens at start time',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -311,6 +312,7 @@ class _ButtonShell extends StatelessWidget {
     required this.gradient,
     this.onTap,
   });
+
   final Widget child;
   final Color? color;
   final Gradient? gradient;
