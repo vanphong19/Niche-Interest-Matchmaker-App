@@ -4,7 +4,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/signalr_service.dart';
 import '../../../../core/utils/profile_state.dart';
+import '../../../../injection/injection_container.dart';
 import '../../data/models/chat_room_model.dart';
 import '../../data/services/chat_api_service.dart';
 import '../../data/services/signalr_chat_service.dart';
@@ -66,7 +68,7 @@ class ChatCubit extends Cubit<ChatState> {
       _typingSub = _signalR.onUserTyping.listen(_onUserTyping);
 
       // 6. Mark as read
-      _api.markAsRead(room.id).ignore();
+      await _markRoomRead(room.id);
     } catch (e) {
       emit(ChatError(_friendlyError(e)));
     }
@@ -130,11 +132,16 @@ class ChatCubit extends Cubit<ChatState> {
     emit(s.copyWith(messages: updated, isSending: false));
 
     // Mark as read khi đang trong room
-    _api.markAsRead(s.room.id).ignore();
+    unawaited(_markRoomRead(s.room.id));
     debugPrint('ChatCubit: New message from ${msg.senderName}');
   }
 
   // ─── Xử lý UserTyping ────────────────────────────────────────────────────
+
+  Future<void> _markRoomRead(String roomId) async {
+    await _api.markAsRead(roomId);
+    sl<SignalRService>().emitLocalChange('chat', {'roomId': roomId});
+  }
 
   void _onUserTyping(TypingEventModel event) {
     final s = state;

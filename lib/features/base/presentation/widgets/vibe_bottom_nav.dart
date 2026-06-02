@@ -12,13 +12,13 @@ class VibeBottomNav extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
     this.onCreateTap,
-    this.notificationCount = 0,
+    this.messageUnreadCount = 0,
   });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
   final VoidCallback? onCreateTap;
-  final int notificationCount;
+  final int messageUnreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -62,12 +62,12 @@ class VibeBottomNav extends StatelessWidget {
                   ),
                   const SizedBox(width: 60), // Space for centered CreateButton
                   _NavItem(
-                    icon: Icons.notifications_none_rounded,
-                    activeIcon: Icons.notifications_rounded,
-                    label: 'Activity',
+                    icon: Icons.chat_bubble_outline_rounded,
+                    activeIcon: Icons.chat_bubble_rounded,
+                    label: 'Messages',
                     isSelected: currentIndex == 3,
                     onTap: () => _handleTap(3),
-                    badgeCount: notificationCount,
+                    badgeCount: messageUnreadCount,
                   ),
                   _NavItem(
                     icon: Icons.person_outline_rounded,

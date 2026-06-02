@@ -18,6 +18,8 @@ import '../../../event/data/services/event_api_service.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../data/services/user_api_service.dart';
 import '../../../../core/widgets/vibe_header.dart';
+import '../../../trust/data/services/reputation_api_service.dart';
+import '../../../trust/domain/entities/user_trust.dart';
 import '../../../trust/domain/services/reputation_service.dart';
 import '../../../trust/presentation/pages/trust_dashboard_page.dart';
 import 'all_activity_history_page.dart';
@@ -38,6 +40,7 @@ class _ProfilePageState extends State<ProfilePage>
   late Animation<double> _sectionsFade;
   List<Event> _joinedEvents = const [];
   List<Event> _pastEvents = const [];
+  UserTrust? _trustSummary;
   bool _historyLoading = true;
   StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
 
@@ -80,6 +83,12 @@ class _ProfilePageState extends State<ProfilePage>
     try {
       final profile = await sl<UserApiService>().getProfile();
       ProfileState.updateProfile(profile);
+      final trust = await sl<ReputationApiService>().getMyTrust(
+        userName: profile.name,
+        avatarUrl: profile.avatarUrl,
+      );
+      if (!mounted) return;
+      setState(() => _trustSummary = trust);
     } catch (_) {}
   }
 
@@ -176,7 +185,7 @@ class _ProfilePageState extends State<ProfilePage>
                               const SizedBox(height: 24),
                               FadeTransition(
                                 opacity: _sectionsFade,
-                                child: _buildInterestsSection(
+                                child: _buildTrustSummarySection(
                                   isDark,
                                   profileData,
                                 ),
@@ -184,12 +193,10 @@ class _ProfilePageState extends State<ProfilePage>
                               const SizedBox(height: 24),
                               FadeTransition(
                                 opacity: _sectionsFade,
-                                child: _buildBadgesSection(isDark, profileData),
-                              ),
-                              const SizedBox(height: 24),
-                              FadeTransition(
-                                opacity: _sectionsFade,
-                                child: _buildTrustPassportBanner(isDark, profileData.reputationScore),
+                                child: _buildInterestsSection(
+                                  isDark,
+                                  profileData,
+                                ),
                               ),
                               const SizedBox(height: 24),
                               FadeTransition(
@@ -213,6 +220,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   // ─── Profile header ─────────────────────────────────
   Widget _buildProfileHeader(bool isDark, ProfileData profile) {
+    final reputationScore = _trustSummary?.score ?? profile.reputationScore;
     final textPrimary = isDark
         ? AppColors.darkTextPrimary
         : const Color(0xFF1C2C58);
@@ -303,7 +311,7 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         const SizedBox(height: 14),
         // Reputation pill – premium gold
-        _ReputationBadge(score: profile.reputationScore),
+        _ReputationBadge(score: reputationScore),
       ],
     );
   }
@@ -373,6 +381,249 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   // ─── Interests section ──────────────────────────────
+  Widget _buildTrustSummarySection(bool isDark, ProfileData profile) {
+    final trust = _trustSummary ?? _trustFromProfile(profile);
+    final score = trust.score;
+    final checkIns = trust.onTimeCheckins;
+    final noShows = trust.noShows;
+    final totalCommitted = trust.eventsJoined;
+    final attendanceRate = totalCommitted == 0
+        ? 100
+        : ((checkIns / totalCommitted) * 100).round().clamp(0, 100);
+    final levelData = ReputationService.getLevel(score);
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : const Color(0xFF1C2C58);
+    final progress = (score.clamp(0, 100)) / 100;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => TrustDashboardPage(
+              userTrust: trust,
+              userName: profile.name,
+              userAvatar: profile.avatarUrl,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF151B28) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: levelData.color.withValues(alpha: isDark ? 0.28 : 0.2),
+            width: 1.2,
+          ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: const Color(0xFF1C2C58).withValues(alpha: 0.06),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: levelData.gradientColors),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.verified_user_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Trust & Check-in',
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        levelData.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: levelData.color,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.bgSecondary,
+                valueColor: AlwaysStoppedAnimation<Color>(levelData.color),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _TrustMetric(
+                    icon: Icons.how_to_reg_rounded,
+                    label: 'Check-ins',
+                    value: '$checkIns',
+                    color: const Color(0xFF10B981),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _TrustMetric(
+                    icon: Icons.percent_rounded,
+                    label: 'Attendance',
+                    value: totalCommitted == 0 ? '--' : '$attendanceRate%',
+                    color: const Color(0xFF3B82F6),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _TrustMetric(
+                    icon: Icons.warning_amber_rounded,
+                    label: 'No-show',
+                    value: '$noShows',
+                    color: const Color(0xFFF59E0B),
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: levelData.color,
+                  size: 14,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Review point history, check-in records, and recovery missions.',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                      fontSize: 12,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  UserTrust _trustFromProfile(ProfileData profile) {
+    return UserTrust(
+      userId: profile.id,
+      userName: profile.name,
+      userAvatar: profile.avatarUrl,
+      score: profile.reputationScore.clamp(0, 100).toInt(),
+      eventsJoined: profile.pastCount,
+      eventsHosted: profile.hostedCount,
+      onTimeCheckins: profile.pastCount,
+      lastMinuteCancels: 0,
+      noShows: 0,
+      avgHostRating: 0,
+      earnedBadges: const [],
+      history: const [],
+    );
+  }
+
+  Widget buildPersonalInfoSection(bool isDark, ProfileData profile) {
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : const Color(0xFF1C2C58);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Personal info',
+          style: AppTextStyles.headingSmall.copyWith(
+            color: textPrimary,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.borderLight.withValues(alpha: 0.8),
+            ),
+          ),
+          child: Column(
+            children: [
+              InfoRow(
+                icon: Icons.alternate_email_rounded,
+                label: 'Username',
+                value: profile.username.isEmpty ? 'Not set' : profile.username,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
+              InfoRow(
+                icon: Icons.location_on_rounded,
+                label: 'Location',
+                value: profile.location.isEmpty ? 'Not set' : profile.location,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
+              InfoRow(
+                icon: Icons.mail_outline_rounded,
+                label: 'Email',
+                value: profile.email.isEmpty ? 'Not set' : profile.email,
+                isDark: isDark,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildInterestsSection(bool isDark, ProfileData profile) {
     final selected = profile.interests
         .where((i) => i['selected'] == true)
@@ -475,71 +726,6 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   // ─── Badges section ─────────────────────────────────
-  Widget _buildBadgesSection(bool isDark, ProfileData profile) {
-    final textPrimary = isDark
-        ? AppColors.darkTextPrimary
-        : const Color(0xFF1C2C58);
-
-    final List<_BadgeData> badges = profile.badges.map((b) {
-      return _BadgeData(
-        icon: _getBadgeIcon(b['icon'] ?? ''),
-        name: b['name'] ?? 'Unknown Badge',
-        gradient: _getBadgeGradient(b['color'] ?? 'blue'),
-        isUnlocked: b['isUnlocked'] ?? true,
-        desc: b['description'] ?? '',
-      );
-    }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              AppLocalizations.tr('badges_gallery'),
-              style: AppTextStyles.headingSmall.copyWith(
-                color: textPrimary,
-                fontSize: 18,
-              ),
-            ),
-            if (badges.isNotEmpty)
-              Text(
-                '${badges.where((b) => b.isUnlocked).length} unlocked',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (badges.isEmpty)
-          const VibeEmptyState(
-            title: 'No badges yet',
-            message: 'Join and host events to unlock profile badges.',
-            icon: Icons.military_tech_rounded,
-          )
-        else
-          SizedBox(
-            height: 155,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              clipBehavior: Clip.none,
-              physics: const BouncingScrollPhysics(),
-              itemCount: badges.length,
-              separatorBuilder: (e, s) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                return _BadgeCard(data: badges[index]);
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
   // ─── Activity section ───────────────────────────────
   Widget _buildActivitySection(bool isDark) {
     final textPrimary = isDark
@@ -666,15 +852,33 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   // ─── Trust Passport Banner ──────────────────────────
-  Widget _buildTrustPassportBanner(bool isDark, int score) {
+  Widget buildTrustPassportBanner(bool isDark, int score) {
     final levelData = ReputationService.getLevel(score);
 
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
+        final profile = ProfileState.notifier.value;
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => const TrustDashboardPage(),
+            builder: (_) => TrustDashboardPage(
+              userTrust: UserTrust(
+                userId: profile.id,
+                userName: profile.name,
+                userAvatar: profile.avatarUrl,
+                score: score.clamp(0, 100).toInt(),
+                eventsJoined: profile.pastCount,
+                eventsHosted: profile.hostedCount,
+                onTimeCheckins: profile.pastCount,
+                lastMinuteCancels: 0,
+                noShows: 0,
+                avgHostRating: 0,
+                earnedBadges: const [],
+                history: const [],
+              ),
+              userName: profile.name,
+              userAvatar: profile.avatarUrl,
+            ),
           ),
         );
       },
@@ -752,7 +956,9 @@ class _ProfilePageState extends State<ProfilePage>
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: levelData.color.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
@@ -1063,51 +1269,129 @@ class _ProfilePageState extends State<ProfilePage>
         return Icons.local_activity;
     }
   }
-
-  IconData _getBadgeIcon(String key) {
-    switch (key.toLowerCase()) {
-      case 'host':
-        return Icons.military_tech_rounded;
-      case 'time':
-        return Icons.bolt_rounded;
-      case 'social':
-        return Icons.people_alt_rounded;
-      case 'explorer':
-        return Icons.explore_rounded;
-      case 'champion':
-        return Icons.emoji_events_rounded;
-      case 'streak':
-        return Icons.local_fire_department_rounded;
-      case 'growth':
-        return Icons.auto_graph_rounded;
-      default:
-        return Icons.military_tech_rounded;
-    }
-  }
-
-  List<Color> _getBadgeGradient(String color) {
-    switch (color.toLowerCase()) {
-      case 'blue':
-        return const [Color(0xFF4884C9), Color(0xFF306DB9)];
-      case 'yellow':
-        return const [Color(0xFFF3B541), Color(0xFFFAA320)];
-      case 'green':
-        return const [Color(0xFF4CB098), Color(0xFF1DA187)];
-      case 'purple':
-        return const [Color(0xFF6D48BD), Color(0xFF4E2D95)];
-      case 'red':
-        return const [Color(0xFFC65050), Color(0xFFB02D2D)];
-      case 'gray':
-        return const [Color(0xFF444444), Color(0xFF222222)];
-      case 'cyan':
-        return const [Color(0xFF5197E0), Color(0xFF356FDB)];
-      default:
-        return const [Color(0xFF4884C9), Color(0xFF306DB9)];
-    }
-  }
 }
 
 // ─── Reputation Badge ─────────────────────────────────────────────────────────
+class _TrustMetric extends StatelessWidget {
+  const _TrustMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 7),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextPrimary : AppColors.secondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class InfoRow extends StatelessWidget {
+  const InfoRow({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.14 : 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textHint,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.secondary,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ReputationBadge extends StatelessWidget {
   const _ReputationBadge({required this.score});
   final int score;
@@ -1182,8 +1466,8 @@ class _ReputationBadge extends StatelessWidget {
 // ─── Interest Pill (Unused, removed for minimal luxury) ───
 
 // ─── Badge Data ────────────────────────────────────────────────────────────────
-class _BadgeData {
-  const _BadgeData({
+class BadgeData {
+  const BadgeData({
     required this.icon,
     required this.name,
     required this.gradient,
@@ -1198,9 +1482,9 @@ class _BadgeData {
 }
 
 // ─── Badge Card ───────────────────────────────────────────────────────────────
-class _BadgeCard extends StatelessWidget {
-  const _BadgeCard({required this.data});
-  final _BadgeData data;
+class BadgeCard extends StatelessWidget {
+  const BadgeCard({super.key, required this.data});
+  final BadgeData data;
 
   @override
   Widget build(BuildContext context) {

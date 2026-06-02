@@ -13,6 +13,7 @@ import 'package:niche_interest_matchmaker_app/injection/injection_container.dart
 import 'package:niche_interest_matchmaker_app/router/app_router.gr.dart';
 import 'package:niche_interest_matchmaker_app/features/event/presentation/bloc/event_bloc.dart';
 import 'package:niche_interest_matchmaker_app/core/services/signalr_service.dart';
+import 'package:niche_interest_matchmaker_app/core/services/push_notification_service.dart';
 
 @RoutePage()
 class SplashPage extends StatefulWidget {
@@ -62,7 +63,9 @@ class _SplashPageState extends State<SplashPage> {
       }
 
       await Future.delayed(const Duration(seconds: 2));
-      if (mounted) AutoRouter.of(context).replaceAll([const LoginRoute()]);
+      if (mounted && !_isOpeningChatFromNotification) {
+        AutoRouter.of(context).replaceAll([const LoginRoute()]);
+      }
       return;
     }
 
@@ -108,12 +111,19 @@ class _SplashPageState extends State<SplashPage> {
       });
 
       await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) AutoRouter.of(context).replaceAll([const BaseRoute()]);
+      if (mounted && !_isOpeningChatFromNotification) {
+        AutoRouter.of(context).replaceAll([const BaseRoute()]);
+      }
     } catch (e) {
       debugPrint('Pre-loading error: $e');
-      if (mounted) AutoRouter.of(context).replaceAll([const BaseRoute()]);
+      if (mounted && !_isOpeningChatFromNotification) {
+        AutoRouter.of(context).replaceAll([const BaseRoute()]);
+      }
     }
   }
+
+  bool get _isOpeningChatFromNotification =>
+      sl<PushNotificationService>().isOpeningChatFromNotification;
 
   @override
   Widget build(BuildContext context) {

@@ -23,6 +23,10 @@ import '../../../event/data/services/event_api_service.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../../chat/data/services/chat_api_service.dart';
 import '../../../chat/presentation/pages/chat_detail_page.dart';
+import '../../../trust/data/services/reputation_api_service.dart';
+import '../../../trust/domain/entities/user_trust.dart';
+import '../../../trust/domain/services/reputation_service.dart';
+import '../../../trust/presentation/pages/trust_dashboard_page.dart';
 
 @RoutePage()
 class OtherUserProfilePage extends StatefulWidget {
@@ -42,6 +46,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
   bool _isLoading = true;
   bool _historyLoading = true;
   bool _friendActionLoading = false;
+  UserTrust? _trustSummary;
   List<Event> _profileEvents = const [];
   StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
 
@@ -88,9 +93,18 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     try {
       final profile = await sl<UserApiService>().getOtherProfile(widget.userId);
       final events = await _loadProfileEvents(profile);
+      UserTrust? trust;
+      try {
+        trust = await sl<ReputationApiService>().getUserTrust(
+          profile.id,
+          userName: profile.name,
+          avatarUrl: profile.avatarUrl,
+        );
+      } catch (_) {}
       if (mounted) {
         setState(() {
           _otherProfile = profile;
+          _trustSummary = trust;
           _profileEvents = events;
           _isLoading = false;
           _historyLoading = false;
@@ -271,6 +285,11 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                             _buildProfileActions(isDark, profile),
                           ],
                           const SizedBox(height: 28),
+                          FadeTransition(
+                            opacity: _sectionsFade,
+                            child: _buildTrustSummarySection(isDark, profile),
+                          ),
+                          const SizedBox(height: 28),
                           // Interests
                           FadeTransition(
                             opacity: _sectionsFade,
@@ -278,12 +297,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                               isDark,
                               profile,
                             ),
-                          ),
-                          const SizedBox(height: 28),
-                          // Badges Gallery
-                          FadeTransition(
-                            opacity: _sectionsFade,
-                            child: _buildProfileBadgesSection(isDark, profile),
                           ),
                           const SizedBox(height: 28),
                           // Activity History
@@ -345,7 +358,9 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                 isDestructive: false,
                 isDark: isDark,
                 isLoading: _friendActionLoading,
-                onTap: isFriend || isPending ? _removeFriendship : _requestFriend,
+                onTap: isFriend || isPending
+                    ? _removeFriendship
+                    : _requestFriend,
               ),
             ),
           ],
@@ -362,10 +377,12 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
             customColor: AppColors.primary,
             onTap: () {
               HapticFeedback.selectionClick();
-              context.router.push(VibeCheckResultRoute(
-                targetUserId: profile.id,
-                targetUserName: profile.name,
-              ));
+              context.router.push(
+                VibeCheckResultRoute(
+                  targetUserId: profile.id,
+                  targetUserName: profile.name,
+                ),
+              );
             },
           ),
         ),
@@ -379,13 +396,12 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
       final room = await chatApi.openDirectMessage(profile.id);
       if (!mounted) return;
       await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (_) => ChatDetailPage(room: room),
-        ),
+        MaterialPageRoute(builder: (_) => ChatDetailPage(room: room)),
       );
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString().contains('403') ||
+      final msg =
+          e.toString().contains('403') ||
               e.toString().contains('Forbid') ||
               e.toString().contains('friend')
           ? 'Chỉ có thể nhắn tin cho bạn bè.'
@@ -399,6 +415,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     Color textPrimary,
     ProfileData profile,
   ) {
+    final reputationScore = _trustSummary?.score ?? profile.reputationScore;
     return Column(
       children: [
         Stack(
@@ -478,7 +495,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
           ),
         ),
         const SizedBox(height: 14),
-        _ReputationBadge(score: profile.reputationScore),
+        _ReputationBadge(score: reputationScore),
       ],
     );
   }
@@ -543,6 +560,193 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTrustSummarySection(bool isDark, ProfileData profile) {
+    final trust = _trustSummary ?? _trustFromProfile(profile);
+    final score = trust.score;
+    final checkIns = trust.onTimeCheckins;
+    final noShows = trust.noShows;
+    final totalCommitted = trust.eventsJoined;
+    final attendanceRate = totalCommitted == 0
+        ? 100
+        : ((checkIns / totalCommitted) * 100).round().clamp(0, 100);
+    final levelData = ReputationService.getLevel(score);
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : const Color(0xFF1C2C58);
+    final progress = (score.clamp(0, 100)) / 100;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => TrustDashboardPage(
+              userTrust: trust,
+              userName: profile.name,
+              userAvatar: profile.avatarUrl,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF151B28) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: levelData.color.withValues(alpha: isDark ? 0.28 : 0.2),
+            width: 1.2,
+          ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: const Color(0xFF1C2C58).withValues(alpha: 0.06),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: levelData.gradientColors),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.verified_user_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Trust & Check-in',
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        levelData.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: levelData.color,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.bgSecondary,
+                valueColor: AlwaysStoppedAnimation<Color>(levelData.color),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _TrustMetric(
+                    icon: Icons.how_to_reg_rounded,
+                    label: 'Check-ins',
+                    value: '$checkIns',
+                    color: const Color(0xFF10B981),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _TrustMetric(
+                    icon: Icons.percent_rounded,
+                    label: 'Attendance',
+                    value: totalCommitted == 0 ? '--' : '$attendanceRate%',
+                    color: const Color(0xFF3B82F6),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _TrustMetric(
+                    icon: Icons.warning_amber_rounded,
+                    label: 'No-show',
+                    value: '$noShows',
+                    color: const Color(0xFFF59E0B),
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: levelData.color,
+                  size: 14,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Review point history, check-in records, and attendance reliability.',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                      fontSize: 12,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  UserTrust _trustFromProfile(ProfileData profile) {
+    return UserTrust(
+      userId: profile.id,
+      userName: profile.name,
+      userAvatar: profile.avatarUrl,
+      score: profile.reputationScore.clamp(0, 100).toInt(),
+      eventsJoined: profile.pastCount,
+      eventsHosted: profile.hostedCount,
+      onTimeCheckins: profile.pastCount,
+      lastMinuteCancels: 0,
+      noShows: 0,
+      avgHostRating: 0,
+      earnedBadges: const [],
+      history: const [],
     );
   }
 
@@ -646,7 +850,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     );
   }
 
-  Widget _buildProfileBadgesSection(bool isDark, ProfileData profile) {
+  Widget buildProfileBadgesSection(bool isDark, ProfileData profile) {
     final textPrimary = isDark
         ? AppColors.darkTextPrimary
         : const Color(0xFF1C2C58);
@@ -1495,6 +1699,63 @@ class _OtherProfileSkeleton extends StatelessWidget {
   }
 }
 
+class _TrustMetric extends StatelessWidget {
+  const _TrustMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 7),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextPrimary : AppColors.secondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatItem extends StatelessWidget {
   const _StatItem({
     required this.value,
@@ -1630,7 +1891,9 @@ class _ProfileActionButtonState extends State<_ProfileActionButton> {
             boxShadow: [
               if (!widget.isDark)
                 BoxShadow(
-                  color: (widget.customColor ?? AppColors.secondary).withValues(alpha: 0.16),
+                  color: (widget.customColor ?? AppColors.secondary).withValues(
+                    alpha: 0.16,
+                  ),
                   blurRadius: 22,
                   offset: const Offset(0, 12),
                 ),
