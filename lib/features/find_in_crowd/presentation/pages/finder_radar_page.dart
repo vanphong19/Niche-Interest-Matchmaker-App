@@ -1,16 +1,18 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
-import '../finder_location_session.dart';
-import '../mock/finder_mock_data.dart';
+import '../bloc/finder_cubit.dart';
+import '../bloc/finder_state.dart';
+import '../models/finder_ui_mappers.dart';
 import '../widgets/finder_action_button.dart';
 import '../widgets/finder_current_location_card.dart';
 import '../widgets/finder_glass_panel.dart';
-import '../widgets/finder_location_auto_updater.dart';
 import '../widgets/finder_radar_canvas.dart';
 import '../widgets/finder_scaffold.dart';
 import '../widgets/finder_signal_card.dart';
@@ -18,122 +20,139 @@ import '../widgets/finder_status_pill.dart';
 
 @RoutePage()
 class FinderRadarPage extends StatelessWidget {
-  const FinderRadarPage({super.key});
+  const FinderRadarPage({super.key, required this.sessionId});
+
+  final String sessionId;
 
   @override
   Widget build(BuildContext context) {
-    final session = FinderMockData.session;
-    final participant = session.partner;
-    final colorScheme = Theme.of(context).colorScheme;
+    return BlocProvider(
+      create: (_) => sl<FinderCubit>()..startSession(sessionId),
+      child: BlocBuilder<FinderCubit, FinderState>(
+        builder: (context, state) {
+          final partner = state.partner;
+          final participant = partner == null
+              ? null
+              : participantToUi(
+                  partner,
+                  distanceLabel: state.navigation?.distanceLabel ?? '--',
+                  directionLabel: state.navigation?.directionLabel ?? 'Waiting',
+                );
+          final colorScheme = Theme.of(context).colorScheme;
 
-    return FinderLocationAutoUpdater(
-      child: FinderScaffold(
-        title: 'Searching for ${participant.name}',
-        subtitle:
-            '${participant.distanceLabel} - ${participant.directionLabel}',
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          child: Column(
-            children: [
-              ValueListenableBuilder(
-                valueListenable: FinderLocationSession.currentLocation,
-                builder: (context, location, _) {
-                  final navigation = FinderLocationSession.navigationFrom(
-                    location,
-                  );
-                  return FinderStatusPill(
-                    label:
-                        '${navigation?.distanceLabel ?? participant.distanceLabel} away',
+          return FinderScaffold(
+            title: partner == null ? 'Finding' : 'Finding ${partner.firstName}',
+            subtitle:
+                '${state.navigation?.distanceLabel ?? 'Live'} - ${state.navigation?.directionLabel ?? 'Waiting'}',
+            body: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              child: Column(
+                children: [
+                  FinderStatusPill(
+                    label: state.navigation == null
+                        ? 'Waiting for shared location'
+                        : '${state.navigation!.distanceLabel} away',
                     icon: Icons.navigation_rounded,
-                    color: navigation?.isVeryClose == true
+                    color: state.isVeryClose
                         ? AppColors.success
                         : colorScheme.primary,
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ValueListenableBuilder(
-                valueListenable: FinderLocationSession.currentLocation,
-                builder: (context, location, _) {
-                  final navigation = FinderLocationSession.navigationFrom(
-                    location,
-                  );
-                  return FinderRadarCanvas(
-                    participant: participant,
-                    currentUserAvatarUrl: FinderMockData.currentUserAvatar,
-                    navigation: navigation,
-                    size: 310,
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ValueListenableBuilder(
-                valueListenable: FinderLocationSession.currentLocation,
-                builder: (context, location, _) {
-                  final navigation = FinderLocationSession.navigationFrom(
-                    location,
-                  );
-                  return FinderSignalCard(
-                    participant: participant,
-                    signalLabel: navigation?.isVeryClose == true
-                        ? 'Very close'
-                        : session.signalLabel,
-                    accuracyLabel:
-                        location?.accuracyLabel ?? session.accuracyLabel,
-                    distanceLabel: navigation?.distanceLabel,
-                    directionLabel: navigation?.directionLabel,
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ValueListenableBuilder(
-                valueListenable: FinderLocationSession.currentLocation,
-                builder: (context, location, _) {
-                  return FinderCurrentLocationCard(
-                    location: location,
-                    isLoading: false,
-                    onRequestLocation: () {},
-                    showAction: false,
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.md),
-              FinderGlassPanel(
-                child: Row(
-                  children: [
-                    const Icon(Icons.shield_rounded, color: AppColors.success),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        'GPS updates automatically while this finder screen is open. Sharing ends when you stop finding.',
-                        style: AppTextStyles.captionMedium.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  if (participant != null)
+                    FinderRadarCanvas(
+                      participant: participant,
+                      currentUserAvatarUrl: '',
+                      navigation: state.navigation,
+                      size: 310,
                     ),
-                  ],
-                ),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (participant != null)
+                    FinderSignalCard(
+                      participant: participant,
+                      signalLabel: state.hasStalePartnerLocation
+                          ? 'Reconnecting'
+                          : (state.weakGps ? 'Weak GPS' : 'Live signal'),
+                      accuracyLabel:
+                          state.currentLocation?.accuracyLabel ?? 'Waiting',
+                      distanceLabel: state.navigation?.distanceLabel,
+                      directionLabel: state.navigation?.directionLabel,
+                    ),
+                  const SizedBox(height: AppSpacing.md),
+                  FinderCurrentLocationCard(
+                    location: state.currentLocation,
+                    isLoading: false,
+                    errorMessage: state.errorMessage,
+                    onRequestLocation: () =>
+                        context.read<FinderCubit>().refreshCurrentLocation(),
+                    showAction: false,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  FinderGlassPanel(
+                    child: Row(
+                      children: [
+                        Icon(
+                          state.canOpenArFinder
+                              ? Icons.view_in_ar_rounded
+                              : Icons.gps_fixed_rounded,
+                          color: state.canOpenArFinder
+                              ? AppColors.success
+                              : colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            state.isNearby && !state.canOpenArFinder
+                                ? state.arReadinessMessage
+                                : state.hasStalePartnerLocation
+                                ? 'Waiting for the latest partner location. Sharing resumes when both apps are active.'
+                                : 'Live location sharing is active for this finder session only.',
+                            style: AppTextStyles.captionMedium.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  FinderActionButton(
+                    label: state.canOpenArFinder
+                        ? 'Open AR-style Finder'
+                        : state.isNearby
+                        ? 'Improving GPS Accuracy'
+                        : 'Move Closer',
+                    icon: state.canOpenArFinder
+                        ? Icons.view_in_ar_rounded
+                        : state.isNearby
+                        ? Icons.gps_fixed_rounded
+                        : Icons.social_distance_rounded,
+                    onPressed: state.canOpenArFinder
+                        ? () => context.router.push(
+                            FinderCameraRoute(sessionId: sessionId),
+                          )
+                        : state.isNearby
+                        ? null
+                        : () => context.router.push(
+                            FinderNearbyRoute(sessionId: sessionId),
+                          ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  FinderActionButton(
+                    label: 'Stop Sharing',
+                    icon: Icons.stop_circle_rounded,
+                    secondary: true,
+                    destructive: true,
+                    onPressed: () => context.router.push(
+                      FinderStopConfirmationRoute(sessionId: sessionId),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-              FinderActionButton(
-                label: 'Move Closer',
-                icon: Icons.social_distance_rounded,
-                onPressed: () => context.router.push(const FinderNearbyRoute()),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              FinderActionButton(
-                label: 'Stop',
-                icon: Icons.stop_circle_rounded,
-                secondary: true,
-                destructive: true,
-                onPressed: () =>
-                    context.router.push(const FinderStopConfirmationRoute()),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -110,6 +110,32 @@ class SignalRService {
       _matchController,
       'match',
     );
+    bindMany(
+      const [
+        'finder.requested',
+        'finder.request.accepted',
+        'finder.request.declined',
+        'finder.request.cancelled',
+        'finder.request.expired',
+        'finder.session.started',
+        'finder.location.updated',
+        'finder.session.stopped',
+        'finder.session.expired',
+        'finder.member.availability.updated',
+        'OnFinderRequested',
+        'OnFinderRequestAccepted',
+        'OnFinderRequestDeclined',
+        'OnFinderRequestCancelled',
+        'OnFinderRequestExpired',
+        'OnFinderSessionStarted',
+        'OnFinderLocationUpdated',
+        'OnFinderSessionStopped',
+        'OnFinderSessionExpired',
+        'OnFinderMemberAvailabilityUpdated',
+      ],
+      _eventStatusController,
+      'finder',
+    );
 
     try {
       await _hubConnection?.start();

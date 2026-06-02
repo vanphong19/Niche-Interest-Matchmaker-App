@@ -122,7 +122,7 @@ class _HomePageState extends State<HomePage>
 
   void _openFindInCrowd() {
     HapticFeedback.selectionClick();
-    context.router.push(const FindInCrowdMeetingRoute());
+    context.router.push(FindInCrowdMeetingRoute());
   }
 
   @override

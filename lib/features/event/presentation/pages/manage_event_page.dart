@@ -14,6 +14,9 @@ import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../../injection/injection_container.dart';
+import '../../../../router/app_router.gr.dart';
+import '../../../find_in_crowd/data/services/find_in_crowd_api_service.dart';
+import '../../../find_in_crowd/domain/entities/finder_models.dart';
 import '../../../trust/domain/services/reputation_service.dart';
 import '../../../trust/presentation/widgets/user_trust_card.dart';
 import '../../../trust/presentation/widgets/host_review_form.dart';
@@ -35,7 +38,7 @@ class _ManageEventPageState extends State<ManageEventPage>
   late final TabController _tabController;
 
   late Future<List<Map<String, String>>> _requestsFuture;
-  late Future<List<Map<String, String>>> _participantsFuture;
+  late Future<List<EventFinderMember>> _participantsFuture;
   bool _isReadOnly = false;
   StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
 
@@ -66,7 +69,7 @@ class _ManageEventPageState extends State<ManageEventPage>
     _requestsFuture = sl<EventApiService>().getPendingJoinRequests(
       widget.eventId,
     );
-    _participantsFuture = sl<EventApiService>().getEventParticipants(
+    _participantsFuture = sl<FindInCrowdApiService>().getEventMembers(
       widget.eventId,
     );
   }
@@ -210,7 +213,7 @@ class _ManageEventPageState extends State<ManageEventPage>
   }
 
   Widget _buildParticipantsTab() {
-    return FutureBuilder<List<Map<String, String>>>(
+    return FutureBuilder<List<EventFinderMember>>(
       future: _participantsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -285,11 +288,24 @@ class _ManageEventPageState extends State<ManageEventPage>
     );
   }
 
-  Widget _buildMemberCard(Map<String, String> member) {
+  void _openFinder(EventFinderMember member) {
+    HapticFeedback.selectionClick();
+    if (member.canResume) {
+      context.router.push(
+        FinderRadarRoute(sessionId: member.activeFinderSessionId!),
+      );
+      return;
+    }
+    context.router.push(
+      FinderStartRoute(eventId: widget.eventId, partnerId: member.userId),
+    );
+  }
+
+  Widget _buildMemberCard(EventFinderMember member) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isHost = member['role'] == 'Host';
+    final isHost = member.role == 'Host';
     // Build a mock trust for this member (keyed by userId for variety)
-    final mockScore = (member['id']?.hashCode ?? 0).abs() % 60 + 40;
+    final mockScore = member.userId.hashCode.abs() % 60 + 40;
     final memberTrust = mockUserTrust.copyWith(score: mockScore);
 
     return Container(
@@ -309,8 +325,8 @@ class _ManageEventPageState extends State<ManageEventPage>
           Row(
             children: [
               VibeAvatar(
-                imageUrl: member['avatarUrl'],
-                name: member['name'],
+                imageUrl: member.avatarUrl,
+                name: member.fullName,
                 size: 48,
                 showBorder: false,
               ),
@@ -320,7 +336,7 @@ class _ManageEventPageState extends State<ManageEventPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      member['name'] ?? 'Member',
+                      member.fullName,
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
@@ -328,7 +344,7 @@ class _ManageEventPageState extends State<ManageEventPage>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      member['role'] ?? 'Participant',
+                      '${member.statusLabel} - ${member.role ?? 'Participant'}',
                       style: const TextStyle(
                         color: AppColors.textHint,
                         fontSize: 12,
@@ -338,15 +354,49 @@ class _ManageEventPageState extends State<ManageEventPage>
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 104,
+                height: 36,
+                child: ElevatedButton.icon(
+                  onPressed: member.canFind || member.canResume
+                      ? () => _openFinder(member)
+                      : null,
+                  icon: Icon(
+                    member.canResume
+                        ? Icons.navigation_rounded
+                        : Icons.my_location_rounded,
+                    size: 16,
+                  ),
+                  label: Text(
+                    member.actionLabel,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0xFFE2E8F0),
+                    disabledForegroundColor: AppColors.textHint,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
               if (!isHost) ...[
                 // Review button
                 if (!_isReadOnly)
                   IconButton(
                     onPressed: () => showHostReviewForm(
                       context,
-                      userId: member['id'] ?? '',
-                      userName: member['name'] ?? 'Member',
-                      userAvatarUrl: member['avatarUrl'],
+                      userId: member.userId,
+                      userName: member.fullName,
+                      userAvatarUrl: member.avatarUrl,
                       onSubmit: (stars, attended) {
                         // In real app: call API to update trust score
                       },
@@ -359,7 +409,7 @@ class _ManageEventPageState extends State<ManageEventPage>
                     ),
                   ),
                 IconButton(
-                  onPressed: () => _removeMember(member['id'] ?? ''),
+                  onPressed: () => _removeMember(member.userId),
                   icon: const Icon(
                     Icons.person_remove_rounded,
                     color: AppColors.error,

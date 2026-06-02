@@ -3,37 +3,37 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../router/app_router.gr.dart';
-import '../mock/finder_mock_data.dart';
 import '../widgets/finder_map_background.dart';
 import '../widgets/finder_panels.dart';
 import '../widgets/finder_scaffold.dart';
 
 @RoutePage()
 class FinderEndedPage extends StatelessWidget {
-  const FinderEndedPage({super.key});
+  const FinderEndedPage({super.key, required this.sessionId, this.reason});
+
+  final String sessionId;
+  final String? reason;
 
   @override
   Widget build(BuildContext context) {
-    final participant = FinderMockData.session.partner;
+    final isExpired = reason == 'expired';
     return FinderScaffold(
       title: 'Finder Ended',
-      subtitle: participant.fullName,
+      subtitle: isExpired ? 'Session expired' : 'Location sharing stopped',
       background: const FinderMapBackground(dimmed: true),
       body: Center(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: FinderConfirmationPanel(
-            title: 'Search ended',
+            title: isExpired ? 'Finder session expired' : 'Finder ended',
             message:
-                'Your temporary location is no longer shared with ${participant.name}. Hope you found each other nearby.',
-            primaryLabel: 'Back to Meeting',
-            secondaryLabel: 'Find Again',
+                'Your temporary location is no longer shared for this finder session.',
+            primaryLabel: 'Back',
+            secondaryLabel: 'Close',
             icon: Icons.check_circle_rounded,
-            onPrimary: () =>
-                context.router.replaceAll([const FindInCrowdMeetingRoute()]),
-            onSecondary: () => context.router.replace(const FinderStartRoute()),
+            onPrimary: () => context.router.popUntilRoot(),
+            onSecondary: () => context.router.maybePop(),
           ),
         ),
       ),

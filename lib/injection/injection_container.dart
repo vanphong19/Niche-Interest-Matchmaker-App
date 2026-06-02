@@ -38,6 +38,12 @@ import '../features/event/presentation/bloc/create_event_cubit.dart'
     as import_create_event;
 import '../features/event/presentation/bloc/event_detail_cubit.dart'
     as import_event_detail;
+import '../features/find_in_crowd/data/services/find_in_crowd_api_service.dart';
+import '../features/find_in_crowd/data/repositories/find_in_crowd_repository_impl.dart';
+import '../features/find_in_crowd/data/services/finder_location_service.dart';
+import '../features/find_in_crowd/data/services/finder_realtime_service.dart';
+import '../features/find_in_crowd/domain/repositories/find_in_crowd_repository.dart';
+import '../features/find_in_crowd/presentation/bloc/finder_cubit.dart';
 import '../features/profile/data/services/user_api_service.dart'
     as import_user_api;
 import '../features/chat/data/services/chat_api_service.dart';
@@ -110,6 +116,27 @@ Future<void> configureDependencies() async {
   sl.registerFactory<import_event_detail.EventDetailCubit>(
     () => import_event_detail.EventDetailCubit(
       sl<import_event_api.EventApiService>(),
+    ),
+  );
+
+  // Find in Crowd Feature
+  sl.registerLazySingleton<FindInCrowdApiService>(
+    () => FindInCrowdApiService(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<FindInCrowdRepository>(
+    () => FindInCrowdRepositoryImpl(sl<FindInCrowdApiService>()),
+  );
+  sl.registerLazySingleton<FinderRealtimeService>(
+    () => FinderRealtimeService(sl<SignalRService>()),
+  );
+  sl.registerLazySingleton<FinderLocationService>(
+    () => FinderLocationService(),
+  );
+  sl.registerFactory<FinderCubit>(
+    () => FinderCubit(
+      repository: sl<FindInCrowdRepository>(),
+      realtimeService: sl<FinderRealtimeService>(),
+      locationService: sl<FinderLocationService>(),
     ),
   );
 

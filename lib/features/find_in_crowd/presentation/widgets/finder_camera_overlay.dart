@@ -3,14 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../finder_location_session.dart';
+import '../models/finder_location_ui_model.dart';
 import '../models/finder_participant_ui_model.dart';
 import 'finder_participant_avatar.dart';
 
 class FinderCameraOverlay extends StatelessWidget {
-  const FinderCameraOverlay({super.key, required this.participant});
+  const FinderCameraOverlay({
+    super.key,
+    required this.participant,
+    required this.navigation,
+  });
 
   final FinderParticipantUiModel participant;
+  final FinderNavigationUiModel? navigation;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +38,7 @@ class FinderCameraOverlay extends StatelessWidget {
                   borderRadius: AppSpacing.borderRadiusPill,
                 ),
                 child: Text(
-                  'Fake AR preview - no camera active',
+                  'AR-style Finder',
                   style: AppTextStyles.captionMedium.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w700,
@@ -47,24 +52,22 @@ class FinderCameraOverlay extends StatelessWidget {
           top: 190,
           left: 48,
           right: 48,
-          child: _TargetReticle(participant: participant),
+          child: _TargetReticle(
+            participant: participant,
+            navigation: navigation,
+          ),
         ),
         Positioned(
           top: 386,
           left: 24,
           right: 24,
-          child: ValueListenableBuilder(
-            valueListenable: FinderLocationSession.currentLocation,
-            builder: (context, location, _) {
-              final navigation = FinderLocationSession.navigationFrom(location);
-              return _DirectionArrow(
-                directionLabel:
-                    navigation?.guidanceLabel ?? 'Waiting for shared location',
-                compassLabel: navigation?.directionLabel,
-                distanceLabel: navigation?.distanceLabel,
-                arrowTurns: navigation?.arrowTurns,
-              );
-            },
+          child: _DirectionArrow(
+            directionLabel:
+                navigation?.guidanceLabel ?? 'Waiting for shared location',
+            compassLabel: navigation?.directionLabel,
+            distanceLabel: navigation?.distanceLabel,
+            detailLabel: navigation?.turnDetailLabel,
+            arrowTurns: navigation?.arrowTurns,
           ),
         ),
         Positioned(
@@ -86,7 +89,7 @@ class FinderCameraOverlay extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    'Follow the arrow after ${participant.name} shares a live position.',
+                    'GPS-based approximate direction to ${participant.name}. Keep scanning visually when you get close.',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
@@ -107,12 +110,14 @@ class _DirectionArrow extends StatelessWidget {
     required this.directionLabel,
     required this.compassLabel,
     required this.distanceLabel,
+    required this.detailLabel,
     required this.arrowTurns,
   });
 
   final String directionLabel;
   final String? compassLabel;
   final String? distanceLabel;
+  final String? detailLabel;
   final double? arrowTurns;
 
   @override
@@ -170,6 +175,16 @@ class _DirectionArrow extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (detailLabel != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    detailLabel!,
+                    style: AppTextStyles.captionMedium.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -180,9 +195,10 @@ class _DirectionArrow extends StatelessWidget {
 }
 
 class _TargetReticle extends StatelessWidget {
-  const _TargetReticle({required this.participant});
+  const _TargetReticle({required this.participant, required this.navigation});
 
   final FinderParticipantUiModel participant;
+  final FinderNavigationUiModel? navigation;
 
   @override
   Widget build(BuildContext context) {
@@ -240,20 +256,12 @@ class _TargetReticle extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              ValueListenableBuilder(
-                valueListenable: FinderLocationSession.currentLocation,
-                builder: (context, location, _) {
-                  final navigation = FinderLocationSession.navigationFrom(
-                    location,
-                  );
-                  return Text(
-                    navigation?.distanceLabel ?? 'waiting',
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  );
-                },
+              Text(
+                navigation?.distanceLabel ?? 'waiting',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
