@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:niche_interest_matchmaker_app/features/chat/data/models/chat_room_model.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/profile_state.dart';
@@ -17,10 +18,7 @@ import '../../../event/domain/entities/event.dart';
 import '../../../event/presentation/bloc/event_bloc.dart';
 import '../../../../core/widgets/vibe_header.dart';
 import '../../../../core/widgets/avatar_widget.dart';
-import '../../../chat/data/models/chat_room_model.dart';
-import '../../../chat/data/services/chat_api_service.dart';
-import '../../../chat/data/services/signalr_chat_service.dart';
-import '../../../chat/presentation/pages/chat_inbox_page.dart';
+import '../widgets/notifications_panel.dart';
 
 @RoutePage()
 class HomePage extends StatefulWidget {
@@ -38,7 +36,7 @@ class _HomePageState extends State<HomePage>
   final List<StreamSubscription<Map<String, dynamic>>> _subscriptions = [];
   StreamSubscription<ChatMessageModel>? _chatMessageSub;
   Timer? _reloadDebounce;
-  int _chatUnreadCount = 0;
+  int _notificationUnreadCount = 0;
   bool _hasResolvedFirstHeroLoad = false;
 
   @override
@@ -48,12 +46,12 @@ class _HomePageState extends State<HomePage>
     _heroPageController = PageController(viewportFraction: 0.92);
     _eventBloc.add(LoadEvents(category: _eventBloc.state.selectedCategory));
     _loadProfile();
-    _loadChatUnread();
-    _connectChatRealtime();
+    _loadNotificationUnread();
     final signalR = sl<SignalRService>();
     _subscriptions.addAll([
       signalR.eventStatusStream.listen((_) => _reload()),
       signalR.matchStream.listen((_) => _reload()),
+      signalR.notificationStream.listen((_) => _loadNotificationUnread()),
     ]);
     _pulseCtrl = AnimationController(
       vsync: this,
@@ -80,29 +78,18 @@ class _HomePageState extends State<HomePage>
     } catch (_) {}
   }
 
-  Future<void> _loadChatUnread() async {
+  Future<void> _loadNotificationUnread() async {
     try {
-      final rooms = await sl<ChatApiService>().getMyRooms();
+      final notifications = await sl<UserApiService>().getNotifications();
       if (!mounted) return;
       setState(() {
-        _chatUnreadCount = rooms.fold(0, (sum, room) => sum + room.unreadCount);
+        _notificationUnreadCount = notifications.where((n) {
+          final value = n['isRead'] ?? n['IsRead'];
+          if (value is bool) return !value;
+          return value.toString().toLowerCase() != 'true';
+        }).length;
       });
     } catch (_) {}
-  }
-
-  Future<void> _connectChatRealtime() async {
-    final chatSignalR = sl<SignalRChatService>();
-    await chatSignalR.connect();
-    await _chatMessageSub?.cancel();
-    _chatMessageSub = chatSignalR.onMessageReceived.listen((message) {
-      if (!mounted) return;
-      final currentUserId = ProfileState.notifier.value.id;
-      if (message.senderId.toLowerCase() == currentUserId.toLowerCase()) {
-        return;
-      }
-
-      setState(() => _chatUnreadCount += 1);
-    });
   }
 
   void _reload() {
@@ -125,6 +112,17 @@ class _HomePageState extends State<HomePage>
     context.router.push(const FindInCrowdMeetingRoute());
   }
 
+  Future<void> _openNotifications() async {
+    HapticFeedback.selectionClick();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => NotificationsPanel(onChanged: _loadNotificationUnread),
+    );
+    await _loadNotificationUnread();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -145,8 +143,6 @@ class _HomePageState extends State<HomePage>
                 children: [
                   const SizedBox(height: 18),
                   _buildHeroSection(),
-                  const SizedBox(height: 16),
-                  _buildChatBanner(),
                   const SizedBox(height: 16),
                   _buildExploreMapBanner(),
                   const SizedBox(height: 16),
@@ -242,28 +238,46 @@ class _HomePageState extends State<HomePage>
         const SizedBox(width: 8),
         Stack(
           alignment: Alignment.center,
+          clipBehavior: Clip.none,
           children: [
             VibeHeaderButton(
               icon: Icons.notifications_outlined,
-              onTap: () => HapticFeedback.selectionClick(),
+              onTap: _openNotifications,
               isDark: isDark,
             ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF0E121A) : Colors.white,
-                    width: 1.5,
+            if (_notificationUnreadCount > 0)
+              Positioned(
+                right: -2,
+                top: -3,
+                child: IgnorePointer(
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 16),
+                    height: 16,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF0E121A) : Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _notificationUnreadCount > 99
+                            ? '99+'
+                            : '$_notificationUnreadCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(width: 20),
@@ -1058,256 +1072,84 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildChatBanner() {
+  Widget _buildFindInCrowdBanner() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    void openChat() {
-      HapticFeedback.selectionClick();
-      Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => const ChatInboxPage()))
-          .then((_) => _loadChatUnread());
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: _ChatBanner(
-        onTap: openChat,
-        isDark: isDark,
-        unreadCount: _chatUnreadCount,
-      ),
-    );
-  }
-}
-
-// ─── Helper Widgets ───────────────────────────────────────────────────────────
-
-// ─── Chat Banner ──────────────────────────────────────────────────────────────
-
-class _ChatBanner extends StatefulWidget {
-  const _ChatBanner({
-    required this.onTap,
-    required this.isDark,
-    required this.unreadCount,
-  });
-  final VoidCallback onTap;
-  final bool isDark;
-  final int unreadCount;
-
-  @override
-  State<_ChatBanner> createState() => _ChatBannerState();
-}
-
-class _ChatBannerState extends State<_ChatBanner>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pressCtrl;
-  late Animation<double> _scaleAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _pressCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-    );
-    _scaleAnim = Tween<double>(
-      begin: 1.0,
-      end: 0.96,
-    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _pressCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _pressCtrl.forward(),
-      onTapUp: (_) {
-        _pressCtrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _pressCtrl.reverse(),
-      child: ScaleTransition(
-        scale: _scaleAnim,
+      child: GestureDetector(
+        onTap: _openFindInCrowd,
         child: Container(
-          height: 130,
-          clipBehavior: Clip.antiAlias,
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            gradient: widget.isDark
-                ? LinearGradient(
-                    colors: [
-                      const Color(0xFF172554).withValues(alpha: 0.95),
-                      const Color(0xFF0F172A).withValues(alpha: 0.98),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [
-                      Color(0xFF1565C0),
-                      Color(0xFF1E88E5),
-                      Color(0xFF42A5F5),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF10233A), const Color(0xFF0F172A)]
+                  : [Colors.white, const Color(0xFFEAF6FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             border: Border.all(
-              color: widget.isDark
+              color: isDark
                   ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.15),
-              width: 1.2,
+                  : AppColors.primary.withValues(alpha: 0.16),
             ),
             boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(
-                  alpha: widget.isDark ? 0.2 : 0.3,
+              if (!isDark)
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
             ],
           ),
-          child: Stack(
+          child: Row(
             children: [
-              // Abstract chat bubbles background art
-              Positioned(
-                right: -10,
-                bottom: -20,
-                top: -20,
-                width: 160,
-                child: CustomPaint(
-                  painter: _ChatBgPainter(isDark: widget.isDark),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: AppColors.accentGradient,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(
+                  Icons.radar_rounded,
+                  color: Colors.white,
+                  size: 30,
                 ),
               ),
-              // Content
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Row(
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.chat_bubble_rounded,
-                                      size: 10,
-                                      color: Colors.white,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'MESSAGES',
-                                      style: TextStyle(
-                                        fontSize: 8.5,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.0,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (widget.unreadCount > 0) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.error,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    '${widget.unreadCount} unread',
-                                    style: const TextStyle(
-                                      fontSize: 8.5,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.3,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Group Chat & Messages',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Event group chat & direct messages',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withValues(alpha: 0.75),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      'Find In Crowd',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppColors.secondary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    // Open button
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.mark_chat_unread_rounded,
-                            size: 15,
-                            color: Colors.white,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Open',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Open GPS finder flow and locate your meetup partner',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: isDark ? Colors.white70 : AppColors.primary,
+                size: 18,
               ),
             ],
           ),
@@ -1317,57 +1159,9 @@ class _ChatBannerState extends State<_ChatBanner>
   }
 }
 
-class _ChatBgPainter extends CustomPainter {
-  _ChatBgPainter({required this.isDark});
-  final bool isDark;
+// ─── Helper Widgets ───────────────────────────────────────────────────────────
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = Colors.white.withValues(alpha: 0.08);
-
-    // Draw chat bubble shapes
-    final rRect1 = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.15, size.height * 0.1, 90, 36),
-      const Radius.circular(18),
-    );
-    canvas.drawRRect(rRect1, paint);
-
-    final rRect2 = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.32, size.height * 0.42, 70, 28),
-      const Radius.circular(14),
-    );
-    canvas.drawRRect(
-      rRect2,
-      paint..color = Colors.white.withValues(alpha: 0.06),
-    );
-
-    final rRect3 = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.08, size.height * 0.62, 100, 32),
-      const Radius.circular(16),
-    );
-    canvas.drawRRect(
-      rRect3,
-      paint..color = Colors.white.withValues(alpha: 0.05),
-    );
-
-    // Dot indicators (like message dots)
-    final dotPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.15)
-      ..style = PaintingStyle.fill;
-    for (var i = 0; i < 3; i++) {
-      canvas.drawCircle(
-        Offset(size.width * 0.25 + i * 16, size.height * 0.78),
-        5,
-        dotPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
+// ─── Chat Banner ──────────────────────────────────────────────────────────────
 
 // ─── Map Banner ───────────────────────────────────────────────────────────────
 

@@ -12,7 +12,6 @@ import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../../../checkin/presentation/models/checkin_event_details.dart';
 import '../../../checkin/presentation/pages/checkin_detail_page.dart';
-import '../../../profile/data/services/user_api_service.dart';
 import '../../../event/domain/entities/event.dart';
 import '../../../event/presentation/bloc/event_bloc.dart';
 
@@ -35,7 +34,7 @@ class _ActivityPageState extends State<ActivityPage>
     super.initState();
     _eventBloc = sl<EventBloc>();
     _eventBloc.add(LoadMyEvents());
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _realtimeSubscription = sl<SignalRService>().dataChangeStream.listen((_) {
       _eventBloc.add(LoadMyEvents());
     });
@@ -98,7 +97,6 @@ class _ActivityPageState extends State<ActivityPage>
               Tab(text: 'Hosted'),
               Tab(text: 'Joined'),
               Tab(text: 'Past'),
-              Tab(text: 'Notifications'),
             ],
           ),
         ),
@@ -119,9 +117,6 @@ class _ActivityPageState extends State<ActivityPage>
                 _buildEventList(state.hosting, isHost: true),
                 _buildEventList(state.joined, isHost: false),
                 _buildEventList(state.past, isHost: false, isPast: true),
-                _NotificationsTab(
-                  onChanged: () => _eventBloc.add(LoadMyEvents()),
-                ),
               ],
             );
           },
@@ -305,146 +300,6 @@ class _ActivityPageState extends State<ActivityPage>
           eventDetails: CheckinEventDetails.fromEvent(event),
         ),
       ),
-    );
-  }
-}
-
-class _NotificationsTab extends StatefulWidget {
-  const _NotificationsTab({required this.onChanged});
-  final VoidCallback onChanged;
-
-  @override
-  State<_NotificationsTab> createState() => _NotificationsTabState();
-}
-
-class _NotificationsTabState extends State<_NotificationsTab> {
-  late Future<List<Map<String, dynamic>>> _future;
-  StreamSubscription<Map<String, dynamic>>? _subscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = sl<UserApiService>().getNotifications();
-    _subscription = sl<SignalRService>().notificationStream.listen((_) {
-      if (mounted) _refresh();
-    });
-  }
-
-  @override
-  void dispose() {
-    _subscription?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _future = sl<UserApiService>().getNotifications();
-    });
-  }
-
-  Future<void> _act(Map<String, dynamic> notification) async {
-    final id = (notification['id'] ?? notification['Id']).toString();
-    final action = (notification['action'] ?? notification['Action'] ?? '')
-        .toString();
-    final resourceId =
-        (notification['resourceId'] ?? notification['ResourceId'] ?? '')
-            .toString();
-    try {
-      if (action.isNotEmpty) {
-        await sl<UserApiService>().actOnNotification(id, action);
-      }
-      sl<SignalRService>().emitLocalChange('notification', {
-        'resourceId': resourceId,
-      });
-      if (!mounted) return;
-      VibeSnackBar.success(context, 'Updated successfully');
-      widget.onChanged();
-      await _refresh();
-    } catch (e) {
-      if (mounted) VibeFeedback.apiError(context, e);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final notifications = snapshot.data ?? [];
-        if (notifications.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: VibeEmptyState(
-                title: 'No notifications',
-                message: 'Friend requests and event invites will appear here.',
-                icon: Icons.notifications_none_rounded,
-              ),
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
-            itemCount: notifications.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final n = notifications[index];
-              final action = (n['action'] ?? n['Action'] ?? '').toString();
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF171D2A) : Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: isDark ? Colors.white10 : AppColors.borderLight,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.notifications_rounded,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            (n['title'] ?? n['Title'] ?? 'Notification')
-                                .toString(),
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            (n['body'] ?? n['Body'] ?? '').toString(),
-                            style: const TextStyle(
-                              color: AppColors.textHint,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (action.isNotEmpty)
-                      TextButton(
-                        onPressed: () => _act(n),
-                        child: const Text('Accept'),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
     );
   }
 }

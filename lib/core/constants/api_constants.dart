@@ -6,7 +6,7 @@ class ApiConstants {
   /// - Web / Desktop    : http://localhost:5230
   /// - Thiết bị thật   : đổi thành IP LAN của máy chạy backend
   static String get baseUrl {
-    return 'https://niche-interest-matchmaker-admin.onrender.com/';
+    return 'https://niche-interest-matchmaker.onrender.com/';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────

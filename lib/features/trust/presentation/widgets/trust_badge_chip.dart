@@ -27,12 +27,10 @@ class TrustBadgeChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isEarned
-              ? (isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white)
+              ? (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white)
               : (isDark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : const Color(0xFFF1F5F9)),
+                    ? Colors.white.withValues(alpha: 0.03)
+                    : const Color(0xFFF1F5F9)),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isEarned
@@ -51,7 +49,7 @@ class TrustBadgeChip extends StatelessWidget {
               : null,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Emoji + lock overlay
             Stack(
@@ -64,10 +62,26 @@ class TrustBadgeChip extends StatelessWidget {
                           BlendMode.multiply,
                         )
                       : const ColorFilter.matrix([
-                          0.2126, 0.7152, 0.0722, 0, 0,
-                          0.2126, 0.7152, 0.0722, 0, 0,
-                          0.2126, 0.7152, 0.0722, 0, 0,
-                          0,      0,      0,      1, 0,
+                          0.2126,
+                          0.7152,
+                          0.0722,
+                          0,
+                          0,
+                          0.2126,
+                          0.7152,
+                          0.0722,
+                          0,
+                          0,
+                          0.2126,
+                          0.7152,
+                          0.0722,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
                         ]),
                   child: Text(
                     badge.emoji,
@@ -78,17 +92,13 @@ class TrustBadgeChip extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF1E293B)
-                          : Colors.white,
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.lock_rounded,
                       size: 12,
-                      color: isDark
-                          ? Colors.white38
-                          : Colors.black38,
+                      color: isDark ? Colors.white38 : Colors.black38,
                     ),
                   ),
               ],
@@ -103,9 +113,7 @@ class TrustBadgeChip extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: isEarned ? FontWeight.w700 : FontWeight.w500,
                 color: isEarned
-                    ? (isDark
-                        ? Colors.white
-                        : const Color(0xFF1C2C58))
+                    ? (isDark ? Colors.white : const Color(0xFF1C2C58))
                     : (isDark ? Colors.white38 : Colors.black38),
                 height: 1.3,
               ),

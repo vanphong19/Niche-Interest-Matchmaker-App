@@ -26,8 +26,13 @@ class AppRouter extends RootStackRouter {
       path: '/base',
       children: [
         AutoRoute(page: HomeRoute.page, path: 'home', initial: true),
+<<<<<<< HEAD
         AutoRoute(page: MapDiscoveryRoute.page, path: 'map'),
         AutoRoute(page: ActivityRoute.page, path: 'activity'),
+=======
+        AutoRoute(page: VibeMatchRoute.page, path: 'match'),
+        AutoRoute(page: ChatInboxRoute.page, path: 'messages'),
+>>>>>>> realtimechat
         AutoRoute(page: ProfileRoute.page, path: 'profile'),
       ],
     ),

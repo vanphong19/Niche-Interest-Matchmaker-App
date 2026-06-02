@@ -40,6 +40,10 @@ import '../features/event/presentation/bloc/event_detail_cubit.dart'
     as import_event_detail;
 import '../features/profile/data/services/user_api_service.dart'
     as import_user_api;
+<<<<<<< HEAD
+=======
+import '../features/trust/data/services/reputation_api_service.dart';
+>>>>>>> realtimechat
 import '../features/chat/data/services/chat_api_service.dart';
 import '../features/chat/data/services/signalr_chat_service.dart';
 import '../features/chat/presentation/cubit/chat_cubit.dart';
@@ -117,8 +121,19 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<import_user_api.UserApiService>(
     () => import_user_api.UserApiService(sl<DioClient>().dio),
   );
+<<<<<<< HEAD
   sl.registerLazySingleton<PushNotificationService>(
     () => PushNotificationService(sl<import_user_api.UserApiService>()),
+=======
+  sl.registerLazySingleton<ReputationApiService>(
+    () => ReputationApiService(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(
+      sl<import_user_api.UserApiService>(),
+      sl<ChatApiService>(),
+    ),
+>>>>>>> realtimechat
   );
 
   // Check-in Feature
