@@ -75,6 +75,10 @@ class ReputationApiService {
     final validCheckIns = _asInt(
       json['validCheckIns'] ?? json['ValidCheckIns'],
     );
+    final lateCheckIns = _asInt(json['lateCheckIns'] ?? json['LateCheckIns']);
+    final lastMinuteCancels = _asInt(
+      json['lastMinuteCancels'] ?? json['LastMinuteCancels'],
+    );
     final missedEvents = _asInt(json['missedEvents'] ?? json['MissedEvents']);
     final badges = _unwrapList(json['badges'] ?? json['Badges'])
         .whereType<Map>()
@@ -98,7 +102,8 @@ class ReputationApiService {
       eventsJoined: joinedEvents,
       eventsHosted: 0,
       onTimeCheckins: validCheckIns,
-      lastMinuteCancels: 0,
+      lateCheckins: lateCheckIns,
+      lastMinuteCancels: lastMinuteCancels,
       noShows: missedEvents,
       avgHostRating: 0,
       earnedBadges: badges,
@@ -119,15 +124,28 @@ class ReputationApiService {
 
     return TrustEventLog(
       id: (json['id'] ?? json['Id'] ?? '').toString(),
-      reason: type == 'no_show'
-          ? TrustLogReason.noShow
-          : TrustLogReason.onTimeCheckin,
+      reason: _mapReason(type),
       delta: points,
       timestamp: occurredAt,
       eventName:
           (json['matchName'] ?? json['MatchName'] ?? json['title'] ?? 'Event')
               .toString(),
     );
+  }
+
+  TrustLogReason _mapReason(String type) {
+    switch (type.toLowerCase()) {
+      case 'check_in_late':
+        return TrustLogReason.lateCheckin15;
+      case 'last_minute_cancel':
+        return TrustLogReason.lastMinuteCancel;
+      case 'no_show':
+        return TrustLogReason.noShow;
+      case 'check_in':
+      case 'check_in_on_time':
+      default:
+        return TrustLogReason.onTimeCheckin;
+    }
   }
 
   TrustBadgeType? _mapBadgeType(String code) {

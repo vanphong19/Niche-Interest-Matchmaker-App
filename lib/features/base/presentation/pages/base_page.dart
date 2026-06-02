@@ -128,13 +128,8 @@ class _BasePageState extends State<BasePage> {
     return AutoTabsRouter(
       routes: const [
         HomeRoute(),
-<<<<<<< HEAD
         MapDiscoveryRoute(),
-        ActivityRoute(),
-=======
-        VibeMatchRoute(),
         ChatInboxRoute(),
->>>>>>> realtimechat
         ProfileRoute(),
       ],
       builder: (context, child) {

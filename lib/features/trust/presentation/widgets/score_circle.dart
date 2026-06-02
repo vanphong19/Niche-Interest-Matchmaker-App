@@ -52,11 +52,7 @@ class _ScoreCircleState extends State<ScoreCircle>
 
     return AnimatedBuilder(
       animation: _progressAnim,
-<<<<<<< HEAD
       builder: (context, child) {
-=======
-      builder: (_, child) {
->>>>>>> realtimechat
         return SizedBox(
           width: widget.size,
           height: widget.size,

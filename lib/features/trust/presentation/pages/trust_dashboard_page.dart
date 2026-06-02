@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/profile_state.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../injection/injection_container.dart';
 import '../../data/services/reputation_api_service.dart';
@@ -42,9 +43,17 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
   void initState() {
     super.initState();
     _trust = widget.userTrust ?? mockUserTrust;
-    if (widget.userTrust == null) {
+    if (_shouldLoadMyTrust) {
       _loadTrust();
     }
+  }
+
+  bool get _shouldLoadMyTrust {
+    final userTrust = widget.userTrust;
+    if (userTrust == null) return true;
+    final currentUserId = ProfileState.notifier.value.id;
+    if (currentUserId.isEmpty) return true;
+    return userTrust.userId.toLowerCase() == currentUserId.toLowerCase();
   }
 
   Future<void> _loadTrust() async {
@@ -303,9 +312,9 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
           color: const Color(0xFF22C55E),
         ),
         TrustStatCard(
-          icon: Icons.cancel_outlined,
-          value: '${_trust.lastMinuteCancels}',
-          label: 'Hủy\nsát giờ',
+          icon: Icons.schedule_rounded,
+          value: '${_trust.lateCheckins}',
+          label: 'Check-in\ntrễ',
           color: const Color(0xFFF97316),
         ),
         TrustStatCard(
