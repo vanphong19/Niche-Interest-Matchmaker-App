@@ -41,7 +41,7 @@ class SignalRService {
     final token = await _storage.read(key: AppConstants.tokenKey);
     if (token == null) return;
 
-    final url = '${ApiConstants.baseUrl}/hubs/event';
+    final url = ApiConstants.eventHubUrl;
     _isStarting = true;
 
     _hubConnection = HubConnectionBuilder()

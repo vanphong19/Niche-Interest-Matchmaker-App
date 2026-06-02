@@ -13,6 +13,7 @@ class UserTrust {
     required this.eventsJoined,
     required this.eventsHosted,
     required this.onTimeCheckins,
+    required this.lateCheckins,
     required this.lastMinuteCancels,
     required this.noShows,
     required this.avgHostRating,
@@ -31,6 +32,7 @@ class UserTrust {
   final int eventsJoined;
   final int eventsHosted;
   final int onTimeCheckins;
+  final int lateCheckins;
   final int lastMinuteCancels;
 
   /// Số lần leo cây (no-show không báo trước)
@@ -58,6 +60,7 @@ class UserTrust {
     int? score,
     int? eventsJoined,
     int? onTimeCheckins,
+    int? lateCheckins,
     int? lastMinuteCancels,
     int? noShows,
     double? avgHostRating,
@@ -73,6 +76,7 @@ class UserTrust {
       eventsJoined: eventsJoined ?? this.eventsJoined,
       eventsHosted: eventsHosted,
       onTimeCheckins: onTimeCheckins ?? this.onTimeCheckins,
+      lateCheckins: lateCheckins ?? this.lateCheckins,
       lastMinuteCancels: lastMinuteCancels ?? this.lastMinuteCancels,
       noShows: noShows ?? this.noShows,
       avgHostRating: avgHostRating ?? this.avgHostRating,

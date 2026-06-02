@@ -49,7 +49,7 @@ class SignalRChatService {
     }
 
     _isStarting = true;
-    final url = '${ApiConstants.baseUrl}/hubs/chat';
+    final url = ApiConstants.chatHubUrl;
     debugPrint('SignalRChat: Connecting to $url');
 
     _connection = HubConnectionBuilder()
@@ -136,6 +136,9 @@ class SignalRChatService {
   // ─── JoinRoom ─────────────────────────────────────────────────────────────
 
   Future<void> joinRoom(String chatRoomId) async {
+    if (_connection?.state != HubConnectionState.Connected) {
+      await connect();
+    }
     if (_connection?.state != HubConnectionState.Connected) return;
     try {
       await _connection!.invoke('JoinRoom', args: [chatRoomId]);
@@ -152,6 +155,10 @@ class SignalRChatService {
     String content, {
     String messageType = 'Text',
   }) async {
+    if (_connection?.state != HubConnectionState.Connected) {
+      await connect();
+      await joinRoom(chatRoomId);
+    }
     if (_connection?.state != HubConnectionState.Connected) {
       throw Exception('Không thể gửi tin nhắn: chưa kết nối chat server.');
     }

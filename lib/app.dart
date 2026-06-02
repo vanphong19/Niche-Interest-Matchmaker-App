@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/utils/app_localizations.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
@@ -27,10 +28,18 @@ class _VibeAppState extends State<VibeApp> {
       providers: [BlocProvider<AuthBloc>(create: (_) => sl<AuthBloc>())],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
+          if (sl<PushNotificationService>().isOpeningChatFromNotification) {
+            return;
+          }
+
           if (state is AuthAuthenticated) {
-            _appRouter.replaceAll([const BaseRoute()]);
+            if (_isAuthRoute(_appRouter.current.name)) {
+              _appRouter.replaceAll([const BaseRoute()]);
+            }
           } else if (state is AuthUnauthenticated) {
-            _appRouter.replaceAll([const LoginRoute()]);
+            if (!_isAuthRoute(_appRouter.current.name)) {
+              _appRouter.replaceAll([const LoginRoute()]);
+            }
           }
         },
         child: ValueListenableBuilder<String>(
@@ -67,5 +76,12 @@ class _VibeAppState extends State<VibeApp> {
         ),
       ),
     );
+  }
+
+  bool _isAuthRoute(String routeName) {
+    return routeName == SplashRoute.name ||
+        routeName == LoginRoute.name ||
+        routeName == RegisterRoute.name ||
+        routeName == ForgotPasswordRoute.name;
   }
 }

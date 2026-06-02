@@ -4,7 +4,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/signalr_service.dart';
 import '../../../../core/utils/profile_state.dart';
+import '../../../../injection/injection_container.dart';
 import '../../data/models/chat_room_model.dart';
 import '../../data/services/chat_api_service.dart';
 import '../../data/services/signalr_chat_service.dart';
@@ -42,34 +44,31 @@ class ChatCubit extends Cubit<ChatState> {
     emit(ChatRoomOpening());
     _currentRoomId = room.id;
 
-    try {
-      // 1. Load lịch sử
-      final messages = await _api.getMessages(
-        room.id,
-        currentUserId: _currentUserId,
-      );
+    // 1. Load lịch sử
+    final messages = await _api.getMessages(
+      room.id,
+      currentUserId: _currentUserId,
+    );
 
-      emit(ChatMessagesLoaded(room: room, messages: messages));
+    emit(ChatMessagesLoaded(room: room, messages: messages));
 
-      // 2. Kết nối SignalR nếu chưa
-      await _signalR.connect();
+    // 2. Kết nối SignalR nếu chưa
+    await _signalR.connect();
 
-      // 3. Join room
-      await _signalR.joinRoom(room.id);
+    // 3. Join room
+    await _signalR.joinRoom(room.id);
 
-      // 4. Đăng ký stream nhận tin nhắn
-      await _messageSub?.cancel();
-      _messageSub = _signalR.onMessageReceived.listen(_onMessageReceived);
+    // 4. Đăng ký stream nhận tin nhắn
+    await _messageSub?.cancel();
+    _messageSub = _signalR.onMessageReceived.listen(_onMessageReceived);
 
-      // 5. Đăng ký stream typing
-      await _typingSub?.cancel();
-      _typingSub = _signalR.onUserTyping.listen(_onUserTyping);
+    // 5. Đăng ký stream typing
+    await _typingSub?.cancel();
+    _typingSub = _signalR.onUserTyping.listen(_onUserTyping);
 
-      // 6. Mark as read
-      _api.markAsRead(room.id).ignore();
-    } catch (e) {
-      emit(ChatError(_friendlyError(e)));
-    }
+    // 6. Mark as read
+
+    await _markRoomRead(room.id);
   }
 
   // ─── Gửi tin nhắn ────────────────────────────────────────────────────────
@@ -130,11 +129,17 @@ class ChatCubit extends Cubit<ChatState> {
     emit(s.copyWith(messages: updated, isSending: false));
 
     // Mark as read khi đang trong room
-    _api.markAsRead(s.room.id).ignore();
+
+    unawaited(_markRoomRead(s.room.id));
     debugPrint('ChatCubit: New message from ${msg.senderName}');
   }
 
   // ─── Xử lý UserTyping ────────────────────────────────────────────────────
+
+  Future<void> _markRoomRead(String roomId) async {
+    await _api.markAsRead(roomId);
+    sl<SignalRService>().emitLocalChange('chat', {'roomId': roomId});
+  }
 
   void _onUserTyping(TypingEventModel event) {
     final s = state;

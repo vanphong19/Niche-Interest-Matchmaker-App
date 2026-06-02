@@ -6,7 +6,9 @@ import 'package:injectable/injectable.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/nfc_manager_android.dart';
 import 'package:nfc_manager/nfc_manager_ios.dart';
+import 'package:niche_interest_matchmaker_app/core/services/signalr_service.dart';
 import 'package:niche_interest_matchmaker_app/features/base/bloc/base_bloc.dart';
+import 'package:niche_interest_matchmaker_app/injection/injection_container.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../domain/entities/checkin_eligibility.dart';
@@ -316,13 +318,18 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
           errorMessage: failure.message,
         ),
       ),
-      (checkin) => emit(
-        state.copyWith(
-          qrStatus: QrCheckinStatus.success,
-          result: checkin,
-          clearErrorMessage: true,
-        ),
-      ),
+      (checkin) {
+        emit(
+          state.copyWith(
+            qrStatus: QrCheckinStatus.success,
+            result: checkin,
+            clearErrorMessage: true,
+          ),
+        );
+        if (checkin.status == 'valid') {
+          _notifyProfileChangedIfValid();
+        }
+      },
     );
   }
 
@@ -456,8 +463,20 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
             clearErrorMessage: true,
           ),
         );
+        if (checkin.status == 'valid') {
+          _notifyProfileChangedIfValid();
+        }
       },
     );
+  }
+
+  void _notifyProfileChangedIfValid() {
+    final result = state.result;
+    if (result?.status != 'valid') return;
+    sl<SignalRService>().emitLocalChange('profile', {
+      'matchId': state.matchId,
+      'reason': 'check-in',
+    });
   }
 
   Future<String> _describeTag(NfcTag tag) async {

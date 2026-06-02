@@ -4,7 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/profile_state.dart';
 import '../../../../core/widgets/avatar_widget.dart';
+import '../../../../injection/injection_container.dart';
+import '../../data/services/reputation_api_service.dart';
 import '../../domain/entities/trust_badge.dart';
 import '../../domain/entities/trust_event_log.dart';
 import '../../domain/entities/user_trust.dart';
@@ -15,10 +18,17 @@ import '../widgets/trust_stat_card.dart';
 import '../widgets/recovery_mission_card.dart';
 
 class TrustDashboardPage extends StatefulWidget {
-  const TrustDashboardPage({super.key, this.userTrust});
+  const TrustDashboardPage({
+    super.key,
+    this.userTrust,
+    this.userName = 'You',
+    this.userAvatar,
+  });
 
   /// Pass null để dùng mock data
   final UserTrust? userTrust;
+  final String userName;
+  final String? userAvatar;
 
   @override
   State<TrustDashboardPage> createState() => _TrustDashboardPageState();
@@ -26,11 +36,49 @@ class TrustDashboardPage extends StatefulWidget {
 
 class _TrustDashboardPageState extends State<TrustDashboardPage> {
   late UserTrust _trust;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _trust = widget.userTrust ?? mockUserTrust;
+    if (_shouldLoadMyTrust) {
+      _loadTrust();
+    }
+  }
+
+  bool get _shouldLoadMyTrust {
+    final userTrust = widget.userTrust;
+    if (userTrust == null) return true;
+    final currentUserId = ProfileState.notifier.value.id;
+    if (currentUserId.isEmpty) return true;
+    return userTrust.userId.toLowerCase() == currentUserId.toLowerCase();
+  }
+
+  Future<void> _loadTrust() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final trust = await sl<ReputationApiService>().getMyTrust(
+        userName: widget.userName,
+        avatarUrl: widget.userAvatar,
+      );
+      if (!mounted) return;
+      setState(() {
+        _trust = trust;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Could not load trust history.';
+      });
+    }
   }
 
   @override
@@ -39,8 +87,9 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
     final levelData = ReputationService.getLevel(_trust.score);
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBgPrimary : const Color(0xFFF5F7FF),
+      backgroundColor: isDark
+          ? AppColors.darkBgPrimary
+          : const Color(0xFFF5F7FF),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -60,7 +109,10 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.info_outline_rounded, color: Colors.white70),
+                icon: const Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.white70,
+                ),
                 onPressed: () => _showInfoSheet(context),
               ),
             ],
@@ -77,6 +129,14 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_isLoading) ...[
+                    const LinearProgressIndicator(minHeight: 3),
+                    const SizedBox(height: 16),
+                  ],
+                  if (_errorMessage != null) ...[
+                    _buildErrorBanner(isDark),
+                    const SizedBox(height: 20),
+                  ],
                   // Restrict banner
                   if (_trust.isRestricted) ...[
                     _buildRestrictBanner(isDark),
@@ -87,12 +147,6 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                   _buildSectionLabel('📊 Thống kê hoạt động', isDark),
                   const SizedBox(height: 12),
                   _buildStatsGrid(isDark),
-                  const SizedBox(height: 28),
-
-                  // Avg rating
-                  _buildSectionLabel('⭐ Đánh giá từ host', isDark),
-                  const SizedBox(height: 12),
-                  _buildRatingRow(isDark),
                   const SizedBox(height: 28),
 
                   // Badges
@@ -192,7 +246,9 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
@@ -203,8 +259,10 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(levelData.emoji,
-                              style: const TextStyle(fontSize: 13)),
+                          Text(
+                            levelData.emoji,
+                            style: const TextStyle(fontSize: 13),
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             levelData.label,
@@ -222,11 +280,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
               ),
 
               // Score circle
-              ScoreCircle(
-                score: _trust.score,
-                size: 90,
-                strokeWidth: 8,
-              ),
+              ScoreCircle(score: _trust.score, size: 90, strokeWidth: 8),
             ],
           ),
         ),
@@ -243,7 +297,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.18,
       children: [
         TrustStatCard(
           icon: Icons.celebration_rounded,
@@ -258,9 +312,9 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
           color: const Color(0xFF22C55E),
         ),
         TrustStatCard(
-          icon: Icons.cancel_outlined,
-          value: '${_trust.lastMinuteCancels}',
-          label: 'Hủy\nsát giờ',
+          icon: Icons.schedule_rounded,
+          value: '${_trust.lateCheckins}',
+          label: 'Check-in\ntrễ',
           color: const Color(0xFFF97316),
         ),
         TrustStatCard(
@@ -275,7 +329,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
 
   // ─── Rating ───────────────────────────────────────────────────────────────
 
-  Widget _buildRatingRow(bool isDark) {
+  Widget buildRatingRow(bool isDark) {
     final rating = _trust.avgHostRating;
     return Container(
       padding: const EdgeInsets.all(18),
@@ -332,8 +386,8 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                     half
                         ? Icons.star_half_rounded
                         : (filled
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded),
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded),
                     color: const Color(0xFFF59E0B),
                     size: 20,
                   );
@@ -416,9 +470,8 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
   // ─── Restrict Banner ──────────────────────────────────────────────────────
 
   Widget _buildRestrictBanner(bool isDark) {
-    final daysLeft = _trust.restrictedUntil!
-        .difference(DateTime.now())
-        .inDays + 1;
+    final daysLeft =
+        _trust.restrictedUntil!.difference(DateTime.now()).inDays + 1;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -474,6 +527,39 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  Widget _buildErrorBanner(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Color(0xFFEF4444),
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : const Color(0xFF991B1B),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSectionLabel(String label, bool isDark) {
     return Text(
@@ -533,33 +619,35 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                 _ScoreRule('❌ Hủy sát giờ', '-5 điểm'),
                 _ScoreRule('💀 Không đến, không báo', '-15 điểm'),
                 _ScoreRule('👎 Host đánh giá < 3 sao', '-3 điểm'),
-              ].map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          r.action,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark
-                                ? Colors.white70
-                                : const Color(0xFF475569),
-                          ),
+              ].map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        r.action,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? Colors.white70
+                              : const Color(0xFF475569),
                         ),
-                        Text(
-                          r.points,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: r.points.startsWith('+')
-                                ? const Color(0xFF22C55E)
-                                : const Color(0xFFEF4444),
-                          ),
+                      ),
+                      Text(
+                        r.points,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: r.points.startsWith('+')
+                              ? const Color(0xFF22C55E)
+                              : const Color(0xFFEF4444),
                         ),
-                      ],
-                    ),
-                  )),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -591,9 +679,7 @@ class _HistoryRow extends StatelessWidget {
     final isZero = log.delta == 0;
     final Color deltaColor = isPositive
         ? const Color(0xFF22C55E)
-        : (isZero
-            ? const Color(0xFF64748B)
-            : const Color(0xFFEF4444));
+        : (isZero ? const Color(0xFF64748B) : const Color(0xFFEF4444));
 
     return Column(
       children: [
@@ -613,8 +699,8 @@ class _HistoryRow extends StatelessWidget {
                   isPositive
                       ? Icons.trending_up_rounded
                       : (isZero
-                          ? Icons.horizontal_rule_rounded
-                          : Icons.trending_down_rounded),
+                            ? Icons.horizontal_rule_rounded
+                            : Icons.trending_down_rounded),
                   color: deltaColor,
                   size: 18,
                 ),

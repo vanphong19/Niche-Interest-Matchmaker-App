@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../domain/services/reputation_service.dart';
 
-/// Mở HostReviewForm dưới dạng bottom sheet
+/// Má»Ÿ HostReviewForm dÆ°á»›i dáº¡ng bottom sheet
 Future<void> showHostReviewForm(
   BuildContext context, {
   required String userId,
@@ -55,7 +55,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
       HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng chọn số sao đánh giá'),
+          content: Text('Vui lÃ²ng chá»n sá»‘ sao Ä‘Ã¡nh giÃ¡'),
           backgroundColor: Color(0xFFF97316),
           behavior: SnackBarBehavior.floating,
         ),
@@ -81,8 +81,8 @@ class _HostReviewFormState extends State<HostReviewForm> {
       SnackBar(
         content: Text(
           total > 0
-              ? 'Đã gửi đánh giá. ${widget.userName} nhận +$total điểm!'
-              : 'Đã gửi đánh giá. ${widget.userName} bị ${total} điểm.',
+              ? 'ÄÃ£ gá»­i Ä‘Ã¡nh giÃ¡. ${widget.userName} nháº­n +$total Ä‘iá»ƒm!'
+              : 'ÄÃ£ gá»­i Ä‘Ã¡nh giÃ¡. ${widget.userName} bá»‹ $total Ä‘iá»ƒm.',
         ),
         backgroundColor: total > 0
             ? const Color(0xFF22C55E)
@@ -142,7 +142,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Đánh giá người tham gia',
+                            'ÄÃ¡nh giÃ¡ ngÆ°á»i tham gia',
                             style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textHint,
@@ -178,7 +178,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Đã gửi đánh giá!',
+                    'ÄÃ£ gá»­i Ä‘Ã¡nh giÃ¡!',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
@@ -209,7 +209,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Người này có mặt thực sự?',
+                                'NgÆ°á»i nÃ y cÃ³ máº·t thá»±c sá»±?',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -221,8 +221,8 @@ class _HostReviewFormState extends State<HostReviewForm> {
                               const SizedBox(height: 2),
                               Text(
                                 _actuallyAttended
-                                    ? 'Có mặt – điểm sẽ được tính bình thường'
-                                    : 'Vắng mặt – bị trừ 15 điểm uy tín',
+                                    ? 'CÃ³ máº·t â€“ Ä‘iá»ƒm sáº½ Ä‘Æ°á»£c tÃ­nh bÃ¬nh thÆ°á»ng'
+                                    : 'Váº¯ng máº·t â€“ bá»‹ trá»« 15 Ä‘iá»ƒm uy tÃ­n',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: _actuallyAttended
@@ -254,7 +254,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
                   // Star rating
                   if (_actuallyAttended) ...[
                     Text(
-                      'Đánh giá trải nghiệm',
+                      'ÄÃ¡nh giÃ¡ tráº£i nghiá»‡m',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -300,7 +300,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
                       child: Text(
                         key: ValueKey(_stars),
                         _stars == 0
-                            ? 'Chạm vào sao để đánh giá'
+                            ? 'Cháº¡m vÃ o sao Ä‘á»ƒ Ä‘Ã¡nh giÃ¡'
                             : _starLabel(_stars),
                         style: TextStyle(
                           fontSize: 13,
@@ -321,7 +321,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          '${_stars == 5 ? '+5' : (_stars >= 3 ? '+2' : '-3')} điểm uy tín sẽ được cộng/trừ',
+                          '${_stars == 5 ? '+5' : (_stars >= 3 ? '+2' : '-3')} Ä‘iá»ƒm uy tÃ­n sáº½ Ä‘Æ°á»£c cá»™ng/trá»«',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -358,7 +358,7 @@ class _HostReviewFormState extends State<HostReviewForm> {
                           ),
                         ),
                         child: const Text(
-                          '⭐  Gửi đánh giá',
+                          'â­  Gá»­i Ä‘Ã¡nh giÃ¡',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
@@ -379,11 +379,11 @@ class _HostReviewFormState extends State<HostReviewForm> {
 
   String _starLabel(int stars) {
     switch (stars) {
-      case 1: return '😔 Rất tệ';
-      case 2: return '😐 Chưa tốt';
-      case 3: return '🙂 Tạm được';
-      case 4: return '😊 Khá tốt';
-      case 5: return '🤩 Tuyệt vời!';
+      case 1: return 'ðŸ˜” Ráº¥t tá»‡';
+      case 2: return 'ðŸ˜ ChÆ°a tá»‘t';
+      case 3: return 'ðŸ™‚ Táº¡m Ä‘Æ°á»£c';
+      case 4: return 'ðŸ˜Š KhÃ¡ tá»‘t';
+      case 5: return 'ðŸ¤© Tuyá»‡t vá»i!';
       default: return '';
     }
   }
