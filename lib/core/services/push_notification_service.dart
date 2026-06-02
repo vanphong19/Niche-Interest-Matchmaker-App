@@ -36,14 +36,11 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  bool _initialized = false;
   FirebaseMessaging? _messaging;
   bool _openingChatFromNotification = false;
   bool get isOpeningChatFromNotification => _openingChatFromNotification;
 
   Future<void> initialize() async {
-    _initialized = true;
-
     try {
       await Firebase.initializeApp();
     } catch (e) {
