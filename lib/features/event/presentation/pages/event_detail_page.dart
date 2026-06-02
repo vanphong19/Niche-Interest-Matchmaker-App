@@ -27,6 +27,9 @@ import '../../../checkin/presentation/models/checkin_event_details.dart';
 import '../../../trust/presentation/widgets/commitment_modal.dart';
 import '../../../trust/presentation/widgets/checkin_button.dart';
 import '../../../vibe_check/presentation/screens/group_vibe_check_result_page.dart';
+import '../../../chat/data/models/chat_room_model.dart';
+import '../../../chat/data/services/chat_api_service.dart';
+import '../../../chat/presentation/pages/chat_detail_page.dart';
 import 'event_members_page.dart';
 import '../bloc/event_detail_cubit.dart';
 
@@ -703,6 +706,11 @@ class _EventDetailPageState extends State<EventDetailPage>
             _buildCircleCard(event),
             const SizedBox(height: 10),
 
+            if (event.isJoined || _isHost(event)) ...[
+              _buildChatSection(event),
+              const SizedBox(height: 10),
+            ],
+
             if (_canUseGroupVibeCheck(event) || event.isPending) ...[
               _buildGroupVibeCheckCard(event),
               const SizedBox(height: 10),
@@ -836,6 +844,127 @@ class _EventDetailPageState extends State<EventDetailPage>
         ],
       ),
     );
+  }
+
+  Widget _buildChatSection(Event event) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1C2C58).withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: const Icon(
+            Icons.chat_bubble_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
+        ),
+        title: const Text(
+          'Nhắn tin nhóm',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppColors.secondary,
+          ),
+        ),
+        subtitle: const Text(
+          'Trao đổi với host và các thành viên',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textHint,
+          ),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            'Vào chat',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        onTap: () => _openEventChat(event),
+      ),
+    );
+  }
+
+  Future<void> _openEventChat(Event event) async {
+    final chatApi = sl<ChatApiService>();
+    try {
+      final rooms = await chatApi.getChatRoomsByEvent(event.id);
+
+      ChatRoomModel? groupRoom;
+      for (final room in rooms) {
+        if (room.type.toLowerCase() == 'group') {
+          groupRoom = room;
+          break;
+        }
+      }
+
+      if (!mounted) return;
+
+      if (groupRoom != null) {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => ChatDetailPage(room: groupRoom!),
+          ),
+        );
+        return;
+      }
+
+      if (_isHost(event)) {
+        final created = await chatApi.createGroupChatRoom(
+          event.id,
+          name: '${event.title} - Nhóm chat',
+        );
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => ChatDetailPage(room: created),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Nhóm chat chưa được tạo. Vui lòng chờ trưởng nhóm tạo nhóm chat.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().contains('403') ||
+              e.toString().contains('Access denied')
+          ? 'Bạn cần tham gia sự kiện để sử dụng nhóm chat.'
+          : 'Không thể mở chat: ${e.toString().replaceAll('Exception:', '').trim()}';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    }
   }
 
   Widget _buildGroupVibeCheckCard(Event event) {
