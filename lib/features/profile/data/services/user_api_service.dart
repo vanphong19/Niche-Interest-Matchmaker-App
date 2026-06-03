@@ -206,6 +206,14 @@ class UserApiService {
     await _dio.post('/api/app/profile/friends/$userId');
   }
 
+  Future<void> acceptFriend(String requesterId) async {
+    await _dio.post('/api/app/profile/friends/$requesterId/accept');
+  }
+
+  Future<void> rejectFriend(String requesterId) async {
+    await _dio.post('/api/app/profile/friends/$requesterId/reject');
+  }
+
   Future<void> unfriend(String userId) async {
     await _dio.delete('/api/app/profile/friends/$userId');
   }
@@ -227,6 +235,10 @@ class UserApiService {
       '/api/app/profile/notifications/$notificationId/action',
       queryParameters: {'action': action},
     );
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    await _dio.post('/api/app/profile/notifications/$notificationId/read');
   }
 
   Future<void> registerDeviceToken({

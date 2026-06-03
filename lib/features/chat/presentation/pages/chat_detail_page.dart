@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/utils/profile_state.dart';
@@ -1052,7 +1053,7 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: _members!.length,
-                separatorBuilder: (_, __) => Divider(
+                separatorBuilder: (_, _) => Divider(
                   height: 1,
                   indent: 72,
                   endIndent: 16,
@@ -1395,7 +1396,7 @@ class _DotsIndicatorState extends State<_DotsIndicator>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) {
+      builder: (_, _) {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(3, (i) {
@@ -1577,7 +1578,7 @@ class _MessageBubble extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: _buildContent(isMine),
+                        child: _buildContent(context, isMine),
                       ),
                     ),
 
@@ -1608,7 +1609,7 @@ class _MessageBubble extends StatelessWidget {
   bool get _isImageMessage =>
       !message.isDeleted && message.messageType.toLowerCase() == 'image';
 
-  Widget _buildContent(bool isMine) {
+  Widget _buildContent(BuildContext context, bool isMine) {
     if (message.isDeleted) {
       return Text(
         'Message deleted',
@@ -1624,42 +1625,41 @@ class _MessageBubble extends StatelessWidget {
     }
 
     if (_isImageMessage) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          message.content,
-          width: 224,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              width: 224,
-              height: 160,
-              alignment: Alignment.center,
-              color: isDark ? const Color(0xFF202332) : AppColors.bgSecondary,
-              child: const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
+      final imageUrl = _resolveImageUrl(message.content);
+      if (imageUrl == null) {
+        return _BrokenImagePlaceholder(isDark: isDark);
+      }
+
+      return GestureDetector(
+        onTap: () => _openImagePreview(context, imageUrl),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(
+            imageUrl,
+            width: 224,
+            height: 160,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: 224,
+                height: 160,
+                alignment: Alignment.center,
+                color: isDark ? const Color(0xFF202332) : AppColors.bgSecondary,
+                child: const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
                 ),
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              width: 224,
-              height: 150,
-              alignment: Alignment.center,
-              color: isDark ? const Color(0xFF202332) : AppColors.bgSecondary,
-              child: const Icon(
-                Icons.broken_image_rounded,
-                color: AppColors.textHint,
-                size: 34,
-              ),
-            );
-          },
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return _BrokenImagePlaceholder(isDark: isDark);
+            },
+          ),
         ),
       );
     }
@@ -1677,6 +1677,34 @@ class _MessageBubble extends StatelessWidget {
   }
 
   // Mỗi sender có màu khác nhau cho tên
+  void _openImagePreview(BuildContext context, String imageUrl) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      builder: (_) => _ChatImagePreview(imageUrl: imageUrl),
+    );
+  }
+
+  String? _resolveImageUrl(String rawContent) {
+    final raw = rawContent.trim();
+    if (raw.isEmpty) return null;
+
+    final parsed = Uri.tryParse(raw);
+    if (parsed != null && parsed.hasScheme && parsed.hasAuthority) {
+      return raw;
+    }
+
+    if (raw.startsWith('/')) {
+      return '${ApiConstants.baseUrl}$raw';
+    }
+
+    if (parsed != null && !parsed.hasScheme && raw.contains('/')) {
+      return '${ApiConstants.baseUrl}/$raw';
+    }
+
+    return null;
+  }
+
   Color _senderColor(String senderId) {
     final colors = [
       AppColors.primary,
@@ -1690,7 +1718,84 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
-// ─── Date Separator ───────────────────────────────────────────────────────────
+class _ChatImagePreview extends StatelessWidget {
+  const _ChatImagePreview({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      backgroundColor: Colors.black,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: InteractiveViewer(
+              minScale: 0.8,
+              maxScale: 4,
+              child: Center(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const CircularProgressIndicator(
+                      color: AppColors.primary,
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.broken_image_rounded,
+                      color: Colors.white54,
+                      size: 42,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: IconButton.filled(
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withValues(alpha: 0.45),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrokenImagePlaceholder extends StatelessWidget {
+  const _BrokenImagePlaceholder({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 224,
+      height: 160,
+      alignment: Alignment.center,
+      color: isDark ? const Color(0xFF202332) : AppColors.bgSecondary,
+      child: const Icon(
+        Icons.broken_image_rounded,
+        color: AppColors.textHint,
+        size: 34,
+      ),
+    );
+  }
+}
 
 class _DateSeparator extends StatelessWidget {
   const _DateSeparator({required this.date});
@@ -1702,14 +1807,16 @@ class _DateSeparator extends StatelessWidget {
     final local = date.toLocal();
     if (local.day == now.day &&
         local.month == now.month &&
-        local.year == now.year)
+        local.year == now.year) {
       return 'Hôm nay';
+    }
     final yesterday = now.subtract(const Duration(days: 1));
     if (local.day == yesterday.day &&
         local.month == yesterday.month &&
-        local.year == yesterday.year)
+        local.year == yesterday.year) {
       return 'Hôm qua';
-    return DateFormat('EEEE, dd/MM/yyyy', 'vi').format(local);
+    }
+    return DateFormat('dd/MM/yyyy').format(local);
   }
 
   @override

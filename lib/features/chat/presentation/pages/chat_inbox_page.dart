@@ -1,11 +1,13 @@
 // lib/features/chat/presentation/pages/chat_inbox_page.dart
 import 'dart:async';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/signalr_service.dart';
 import '../../../../core/utils/profile_state.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../injection/injection_container.dart';
@@ -14,6 +16,7 @@ import '../../data/services/chat_api_service.dart';
 import '../../data/services/signalr_chat_service.dart';
 import 'chat_detail_page.dart';
 
+@RoutePage()
 class ChatInboxPage extends StatefulWidget {
   const ChatInboxPage({super.key});
 
@@ -27,6 +30,7 @@ class _ChatInboxPageState extends State<ChatInboxPage>
   final TextEditingController _searchController = TextEditingController();
   StreamSubscription<ChatMessageModel>? _messageSub;
   StreamSubscription<PresenceEventModel>? _presenceSub;
+  StreamSubscription<Map<String, dynamic>>? _dataChangeSub;
   String _searchQuery = '';
 
   List<ChatRoomModel> _allRooms = [];
@@ -42,12 +46,16 @@ class _ChatInboxPageState extends State<ChatInboxPage>
     );
     _fetchRooms();
     _connectRealtime();
+    _dataChangeSub = sl<SignalRService>().dataChangeStream.listen(
+      _onDataChanged,
+    );
   }
 
   @override
   void dispose() {
     _messageSub?.cancel();
     _presenceSub?.cancel();
+    _dataChangeSub?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -155,6 +163,30 @@ class _ChatInboxPageState extends State<ChatInboxPage>
     });
   }
 
+  void _onDataChanged(Map<String, dynamic> event) {
+    if (!mounted || event['_type'] != 'chat') return;
+
+    final roomId = (event['roomId'] ?? '').toString();
+    if (roomId.isEmpty) {
+      _fetchRooms(showLoading: false);
+      return;
+    }
+
+    final index = _allRooms.indexWhere(
+      (room) => room.id.toLowerCase() == roomId.toLowerCase(),
+    );
+    if (index == -1) {
+      _fetchRooms(showLoading: false);
+      return;
+    }
+
+    setState(() {
+      final rooms = List<ChatRoomModel>.from(_allRooms);
+      rooms[index] = rooms[index].copyWith(unreadCount: 0);
+      _allRooms = rooms;
+    });
+  }
+
   List<ChatRoomModel> _sortRooms(List<ChatRoomModel> rooms) {
     final sorted = List<ChatRoomModel>.from(rooms);
     sorted.sort((a, b) {
@@ -198,6 +230,7 @@ class _ChatInboxPageState extends State<ChatInboxPage>
                 .map((r) => r.id == room.id ? r.copyWith(unreadCount: 0) : r)
                 .toList();
           });
+          sl<SignalRService>().emitLocalChange('chat', {'roomId': room.id});
         });
   }
 
@@ -438,7 +471,7 @@ class _ChatInboxPageState extends State<ChatInboxPage>
       child: ListView.separated(
         padding: EdgeInsets.zero,
         itemCount: rooms.length,
-        separatorBuilder: (_, __) => Divider(
+        separatorBuilder: (_, index) => Divider(
           height: 1,
           indent: 80,
           color: isDark ? AppColors.darkBorderLight : AppColors.borderLight,

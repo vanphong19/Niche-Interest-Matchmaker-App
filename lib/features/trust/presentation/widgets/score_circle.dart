@@ -67,20 +67,27 @@ class _ScoreCircleState extends State<ScoreCircle>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${(widget.score * _progressAnim.value).round()}',
+                    '${(_progressAnim.value * 100).round()}',
                     style: TextStyle(
                       fontSize: widget.size * 0.26,
                       fontWeight: FontWeight.w900,
-                      color: levelData.color,
-                      letterSpacing: -2,
+                      color: Colors.white,
+                      letterSpacing: -1,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.22),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                   ),
                   Text(
                     '/ 100',
                     style: TextStyle(
                       fontSize: widget.size * 0.1,
-                      fontWeight: FontWeight.w600,
-                      color: levelData.color.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white.withValues(alpha: 0.78),
                     ),
                   ),
                 ],
@@ -113,7 +120,7 @@ class _ScoreArcPainter extends CustomPainter {
 
     // Track (background arc)
     final trackPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.06)
+      ..color = Colors.white.withValues(alpha: 0.22)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;

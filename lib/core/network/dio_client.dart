@@ -17,7 +17,7 @@ class DioClient {
     : _secureStorage = secureStorage ?? const FlutterSecureStorage() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
+        baseUrl: _normalizedBaseUrl(ApiConstants.baseUrl),
         connectTimeout: AppConstants.connectTimeout,
         receiveTimeout: AppConstants.receiveTimeout,
         sendTimeout: AppConstants.sendTimeout,
@@ -45,6 +45,15 @@ class DioClient {
   }
 
   Dio get dio => _dio;
+
+  static String _normalizedBaseUrl(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return trimmed;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    return 'http://$trimmed';
+  }
 
   // ─── GET ────────────────────────────────────────────────────────
   Future<Response> get(

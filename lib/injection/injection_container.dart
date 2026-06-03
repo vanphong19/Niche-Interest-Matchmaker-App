@@ -46,6 +46,8 @@ import '../features/find_in_crowd/domain/repositories/find_in_crowd_repository.d
 import '../features/find_in_crowd/presentation/bloc/finder_cubit.dart';
 import '../features/profile/data/services/user_api_service.dart'
     as import_user_api;
+
+import '../features/trust/data/services/reputation_api_service.dart';
 import '../features/chat/data/services/chat_api_service.dart';
 import '../features/chat/data/services/signalr_chat_service.dart';
 import '../features/chat/presentation/cubit/chat_cubit.dart';
@@ -144,8 +146,15 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<import_user_api.UserApiService>(
     () => import_user_api.UserApiService(sl<DioClient>().dio),
   );
+
+  sl.registerLazySingleton<ReputationApiService>(
+    () => ReputationApiService(sl<DioClient>().dio),
+  );
   sl.registerLazySingleton<PushNotificationService>(
-    () => PushNotificationService(sl<import_user_api.UserApiService>()),
+    () => PushNotificationService(
+      sl<import_user_api.UserApiService>(),
+      sl<ChatApiService>(),
+    ),
   );
 
   // Check-in Feature

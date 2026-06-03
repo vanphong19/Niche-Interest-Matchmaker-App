@@ -16,8 +16,9 @@ import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../find_in_crowd/data/services/find_in_crowd_api_service.dart';
 import '../../../find_in_crowd/domain/entities/finder_models.dart';
+import '../../../trust/data/services/reputation_api_service.dart';
+import '../../../trust/domain/entities/user_trust.dart';
 import '../../../trust/domain/services/reputation_service.dart';
-import '../../../trust/presentation/widgets/user_trust_card.dart';
 import '../../../trust/presentation/widgets/host_review_form.dart';
 import '../../data/services/event_api_service.dart';
 import '../../domain/entities/event.dart';
@@ -39,6 +40,8 @@ class _ManageEventPageState extends State<ManageEventPage>
   late Future<List<Map<String, String>>> _requestsFuture;
   late Future<List<EventFinderMember>> _participantsFuture;
   bool _isReadOnly = false;
+  final Set<String> _expandedParticipantIds = {};
+  final Map<String, Future<UserTrust>> _trustFutures = {};
   StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
 
   @override
@@ -55,6 +58,7 @@ class _ManageEventPageState extends State<ManageEventPage>
   }
 
   void _loadData() {
+    _trustFutures.clear();
     sl<EventApiService>().getEventDetail(widget.eventId).then((event) {
       if (!mounted) return;
       final ended = event.endDateTime?.isBefore(DateTime.now()) ?? false;
@@ -121,8 +125,22 @@ class _ManageEventPageState extends State<ManageEventPage>
       sl<SignalRService>().emitLocalChange('event', {
         'eventId': widget.eventId,
       });
+      _expandedParticipantIds.remove(userId);
+      _trustFutures.remove(userId);
       _refresh();
     }
+  }
+
+  Future<UserTrust> _loadMemberTrust(EventFinderMember member) {
+    final userId = member.userId;
+    return _trustFutures.putIfAbsent(
+      userId,
+      () => sl<ReputationApiService>().getUserTrust(
+        userId,
+        userName: member.fullName,
+        avatarUrl: member.avatarUrl,
+      ),
+    );
   }
 
   void _showInviteDialog() {
@@ -291,91 +309,175 @@ class _ManageEventPageState extends State<ManageEventPage>
   Widget _buildMemberCard(EventFinderMember member) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isHost = member.role == 'Host';
-    // Build a mock trust for this member (keyed by userId for variety)
-    final mockScore = member.userId.hashCode.abs() % 60 + 40;
-    final memberTrust = mockUserTrust.copyWith(score: mockScore);
+    final memberId = member.userId;
+    final isExpanded = _expandedParticipantIds.contains(memberId);
+    final roleLabel = member.role ?? (isHost ? 'Host' : 'Participant');
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF171D2A) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.03),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              VibeAvatar(
-                imageUrl: member.avatarUrl,
-                name: member.fullName,
-                size: 48,
-                showBorder: false,
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF171D2A) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isExpanded
+                ? AppColors.primary.withValues(alpha: 0.18)
+                : (isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.03)),
+          ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: const Color(0xFF1E293B).withValues(alpha: 0.04),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () {
+                if (memberId.isEmpty) return;
+                HapticFeedback.selectionClick();
+                setState(() {
+                  if (isExpanded) {
+                    _expandedParticipantIds.remove(memberId);
+                  } else {
+                    _expandedParticipantIds.add(memberId);
+                    if (!isHost) _loadMemberTrust(member);
+                  }
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
                   children: [
-                    Text(
-                      member.fullName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
+                    VibeAvatar(
+                      imageUrl: member.avatarUrl,
+                      name: member.fullName,
+                      size: 52,
+                      showBorder: true,
+                      borderColor: isHost
+                          ? const Color(0xFFF59E0B).withValues(alpha: 0.3)
+                          : AppColors.primary.withValues(alpha: 0.18),
+                      borderWidth: 2,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            member.fullName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.secondary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${member.statusLabel} - $roleLabel',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textHint,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${member.statusLabel} - ${member.role ?? 'Participant'}',
-                      style: const TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    if (isHost)
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFFF59E0B,
+                          ).withValues(alpha: isDark ? 0.16 : 0.1),
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFFF59E0B),
+                          size: 20,
+                        ),
+                      )
+                    else ...[
+                      if (!_isReadOnly)
+                        IconButton(
+                          onPressed: () => showHostReviewForm(
+                            context,
+                            userId: memberId,
+                            userName: member.fullName,
+                            userAvatarUrl: member.avatarUrl,
+                            onSubmit: (stars, attended) {},
+                          ),
+                          tooltip: 'Review',
+                          icon: const Icon(
+                            Icons.star_rounded,
+                            color: Color(0xFFF59E0B),
+                            size: 21,
+                          ),
+                        ),
+                      if (!_isReadOnly)
+                        IconButton(
+                          onPressed: () => _removeMember(memberId),
+                          tooltip: 'Remove from event',
+                          icon: const Icon(
+                            Icons.person_remove_rounded,
+                            color: AppColors.error,
+                            size: 21,
+                          ),
+                        ),
+                      Icon(
+                        isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: isDark ? Colors.white38 : AppColors.textHint,
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
-              if (!isHost) ...[
-                const SizedBox(width: 8),
-                // Review button
-                if (!_isReadOnly)
-                  IconButton(
-                    onPressed: () => showHostReviewForm(
-                      context,
-                      userId: member.userId,
-                      userName: member.fullName,
-                      userAvatarUrl: member.avatarUrl,
-                      onSubmit: (stars, attended) {
-                        // In real app: call API to update trust score
+            ),
+            if (isExpanded && !isHost)
+              FutureBuilder<UserTrust>(
+                future: _loadMemberTrust(member),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const _MemberTrustLoading();
+                  }
+                  if (snapshot.hasError || snapshot.data == null) {
+                    return _MemberTrustError(
+                      isDark: isDark,
+                      onRetry: () {
+                        setState(() {
+                          _trustFutures.remove(memberId);
+                          _loadMemberTrust(member);
+                        });
                       },
-                    ),
-                    tooltip: 'Đánh giá',
-                    icon: const Icon(
-                      Icons.star_rounded,
-                      color: Color(0xFFF59E0B),
-                      size: 20,
-                    ),
-                  ),
-                IconButton(
-                  onPressed: () => _removeMember(member.userId),
-                  icon: const Icon(
-                    Icons.person_remove_rounded,
-                    color: AppColors.error,
-                    size: 20,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          // Trust card (collapsible)
-          if (!isHost) UserTrustCard(trust: memberTrust),
-        ],
+                    );
+                  }
+                  return _MemberTrustPanel(trust: snapshot.data!);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -479,6 +581,321 @@ class _ManageEventPageState extends State<ManageEventPage>
               ? 'New join requests will appear here in realtime.'
               : 'Participants will appear here as soon as they join.',
           icon: icon,
+        ),
+      ),
+    );
+  }
+}
+
+class _MemberTrustPanel extends StatelessWidget {
+  const _MemberTrustPanel({required this.trust});
+
+  final UserTrust trust;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final levelData = ReputationService.getLevel(trust.score);
+    final attendance = (trust.attendanceRate * 100).round().clamp(0, 100);
+    final noShowsLast30Days = ReputationService.getNoShowsLast30Days(
+      trust.history,
+    );
+    final noShowValue = noShowsLast30Days > 0
+        ? noShowsLast30Days
+        : trust.noShows;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.04)
+              : levelData.color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: levelData.color.withValues(alpha: 0.16)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: levelData.gradientColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: levelData.color.withValues(alpha: 0.22),
+                        blurRadius: 14,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${trust.score}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                      Text(
+                        'pts',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.86),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            levelData.emoji,
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              levelData.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: levelData.color,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        trust.score < 40
+                            ? 'Cần cân nhắc khi duyệt tham gia sự kiện.'
+                            : 'Thông tin uy tín được đồng bộ từ hệ thống.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
+                          fontSize: 12,
+                          height: 1.25,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _TrustMetricChip(
+                  icon: Icons.check_circle_outline_rounded,
+                  value: '$attendance%',
+                  label: 'tham gia',
+                  color: const Color(0xFF22C55E),
+                ),
+                _TrustMetricChip(
+                  icon: Icons.event_available_rounded,
+                  value: '${trust.onTimeCheckins}',
+                  label: 'check-in',
+                  color: const Color(0xFF2563EB),
+                ),
+                _TrustMetricChip(
+                  icon: Icons.warning_amber_rounded,
+                  value: '$noShowValue',
+                  label: 'leo cây',
+                  color: const Color(0xFFEF4444),
+                ),
+                _TrustMetricChip(
+                  icon: Icons.groups_rounded,
+                  value: '${trust.eventsJoined}',
+                  label: 'sự kiện',
+                  color: const Color(0xFF8B5CF6),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrustMetricChip extends StatelessWidget {
+  const _TrustMetricChip({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: 132,
+      constraints: const BoxConstraints(minHeight: 44),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 15),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.secondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textHint,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MemberTrustLoading extends StatelessWidget {
+  const _MemberTrustLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Container(
+        height: 78,
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.04)
+              : const Color(0xFFF8FAFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.06)
+                : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MemberTrustError extends StatelessWidget {
+  const _MemberTrustError({required this.isDark, required this.onRetry});
+
+  final bool isDark;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.16),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Color(0xFFEF4444),
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Không tải được uy tín',
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.secondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            TextButton(onPressed: onRetry, child: const Text('Thử lại')),
+          ],
         ),
       ),
     );
