@@ -14,6 +14,7 @@ import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../../injection/injection_container.dart';
+import '../../../../router/app_router.gr.dart';
 import '../../../find_in_crowd/data/services/find_in_crowd_api_service.dart';
 import '../../../find_in_crowd/domain/entities/finder_models.dart';
 import '../../../trust/data/services/reputation_api_service.dart';
@@ -983,6 +984,15 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
     }
   }
 
+  Future<void> _openUserProfile(String userId) async {
+    if (userId.isEmpty) return;
+    HapticFeedback.selectionClick();
+    final router = context.router;
+    Navigator.of(context).pop();
+    await Future<void>.delayed(const Duration(milliseconds: 220));
+    router.push(PublicProfileRoute(userId: userId));
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -993,245 +1003,277 @@ class _InviteBottomSheetState extends State<_InviteBottomSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF1A1F2E) : Colors.white;
+    final mediaQuery = MediaQuery.of(context);
+    final availableHeight =
+        mediaQuery.size.height -
+        mediaQuery.viewPadding.top -
+        mediaQuery.viewInsets.bottom -
+        12;
+    final maxSheetHeight = availableHeight < mediaQuery.size.height * 0.86
+        ? availableHeight
+        : mediaQuery.size.height * 0.86;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border.all(
-          color: isDark ? Colors.white10 : AppColors.borderLight,
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: BorderRadius.circular(2),
-              ),
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxSheetHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(
+              color: isDark ? Colors.white10 : AppColors.borderLight,
             ),
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          padding: EdgeInsets.fromLTRB(
+            24,
+            12,
+            24,
+            24 + mediaQuery.viewPadding.bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Invite Friends',
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Invite Friends',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : AppColors.secondary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _searchCtrl,
+                onChanged: (_) => _search(),
+                textAlignVertical: TextAlignVertical.center,
                 style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.secondary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  Icons.close_rounded,
-                  color: isDark ? Colors.white54 : Colors.black54,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _searchCtrl,
-            onChanged: (_) => _search(),
-            textAlignVertical: TextAlignVertical.center,
-            style: TextStyle(
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-            decoration: InputDecoration(
-              constraints: const BoxConstraints(maxHeight: 45),
-              hintText: 'Search by name or email...',
-              hintStyle: TextStyle(
-                color: isDark ? AppColors.darkTextHint : AppColors.textHint,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              prefixIcon: Container(
-                width: 46,
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ),
-              prefixIconConstraints: const BoxConstraints(
-                minWidth: 40,
-                minHeight: 0,
-              ),
-              suffixIcon: _searchCtrl.text.isNotEmpty
-                  ? Container(
-                      width: 40,
-                      alignment: Alignment.center,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.close_rounded, size: 20),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          _search();
-                          setState(() {});
-                        },
-                      ),
-                    )
-                  : null,
-              suffixIconConstraints: const BoxConstraints(
-                minWidth: 40,
-                minHeight: 0,
-              ),
-              filled: true,
-              fillColor: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.white,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 15,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : const Color(0xFFE2E8F0),
-                  width: 1.2,
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1.2,
-                ),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : const Color(0xFFE2E8F0),
-                  width: 1.2,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _results.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: VibeEmptyState(
-                        title: _searchCtrl.text.isEmpty
-                            ? 'Search users'
-                            : 'No users found',
-                        message: _searchCtrl.text.isEmpty
-                            ? 'Enter a name or email to find people to invite.'
-                            : 'Try a different name or email.',
-                        icon: _searchCtrl.text.isEmpty
-                            ? Icons.person_search_rounded
-                            : Icons.search_off_rounded,
-                      ),
+                decoration: InputDecoration(
+                  constraints: const BoxConstraints(maxHeight: 45),
+                  hintText: 'Search by name or email...',
+                  hintStyle: TextStyle(
+                    color: isDark ? AppColors.darkTextHint : AppColors.textHint,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  prefixIcon: Container(
+                    width: 46,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primary,
+                      size: 22,
                     ),
-                  )
-                : ListView.separated(
-                    itemCount: _results.length,
-                    separatorBuilder: (_, _) => Divider(
+                  ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 0,
+                  ),
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? Container(
+                          width: 40,
+                          alignment: Alignment.center,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              _search();
+                              setState(() {});
+                            },
+                          ),
+                        )
+                      : null,
+                  suffixIconConstraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 0,
+                  ),
+                  filled: true,
+                  fillColor: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.white,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 15,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(
                       color: isDark
-                          ? Colors.white10
-                          : Colors.black.withValues(alpha: 0.03),
-                      height: 1,
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : const Color(0xFFE2E8F0),
+                      width: 1.2,
                     ),
-                    itemBuilder: (context, index) {
-                      final user = _results[index];
-                      final userId = user['id'] ?? '';
-                      final inviteStatus = (user['inviteStatus'] ?? '')
-                          .toLowerCase();
-                      final isParticipant = _participantIds.contains(
-                        userId.toLowerCase(),
-                      );
-                      final isAlreadyInvited =
-                          isParticipant ||
-                          _invitedIds.contains(userId.toLowerCase()) ||
-                          inviteStatus == 'invited' ||
-                          inviteStatus == 'pending' ||
-                          inviteStatus == 'joined' ||
-                          inviteStatus == 'accepted';
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                        leading: VibeAvatar(
-                          imageUrl: user['avatarUrl'],
-                          name: user['name'],
-                          size: 48,
-                          showBorder: true,
-                          borderColor: AppColors.primary.withValues(alpha: 0.2),
-                          borderWidth: 2,
-                        ),
-                        title: Text(
-                          user['name'] ?? '',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : AppColors.secondary,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.2,
+                    ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : const Color(0xFFE2E8F0),
+                      width: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _results.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: VibeEmptyState(
+                            title: _searchCtrl.text.isEmpty
+                                ? 'Search users'
+                                : 'No users found',
+                            message: _searchCtrl.text.isEmpty
+                                ? 'Enter a name or email to find people to invite.'
+                                : 'Try a different name or email.',
+                            icon: _searchCtrl.text.isEmpty
+                                ? Icons.person_search_rounded
+                                : Icons.search_off_rounded,
                           ),
                         ),
-                        subtitle: Text(
-                          user['email'] ?? '',
-                          style: TextStyle(
-                            color: isDark ? Colors.white54 : AppColors.textHint,
-                            fontSize: 12,
-                          ),
+                      )
+                    : ListView.separated(
+                        itemCount: _results.length,
+                        separatorBuilder: (_, _) => Divider(
+                          color: isDark
+                              ? Colors.white10
+                              : Colors.black.withValues(alpha: 0.03),
+                          height: 1,
                         ),
-                        trailing: SizedBox(
-                          width: 80,
-                          height: 32,
-                          child: ElevatedButton(
-                            onPressed: isAlreadyInvited
-                                ? null
-                                : () => _invite(userId),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isAlreadyInvited
-                                  ? Colors.grey.withValues(alpha: 0.1)
-                                  : AppColors.primary,
-                              foregroundColor: isAlreadyInvited
-                                  ? Colors.grey
-                                  : Colors.white,
-                              elevation: 0,
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                        itemBuilder: (context, index) {
+                          final user = _results[index];
+                          final userId = user['id'] ?? '';
+                          final inviteStatus = (user['inviteStatus'] ?? '')
+                              .toLowerCase();
+                          final isParticipant = _participantIds.contains(
+                            userId.toLowerCase(),
+                          );
+                          final isAlreadyInvited =
+                              isParticipant ||
+                              _invitedIds.contains(userId.toLowerCase()) ||
+                              inviteStatus == 'invited' ||
+                              inviteStatus == 'pending' ||
+                              inviteStatus == 'joined' ||
+                              inviteStatus == 'accepted';
+                          return ListTile(
+                            onTap: () => _openUserProfile(userId),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                            ),
+                            leading: VibeAvatar(
+                              imageUrl: user['avatarUrl'],
+                              name: user['name'],
+                              size: 48,
+                              showBorder: true,
+                              borderColor: AppColors.primary.withValues(
+                                alpha: 0.2,
+                              ),
+                              borderWidth: 2,
+                            ),
+                            title: Text(
+                              user['name'] ?? '',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.secondary,
                               ),
                             ),
-                            child: Text(
-                              inviteStatus == 'joined' ||
-                                      isParticipant ||
-                                      inviteStatus == 'accepted'
-                                  ? 'Joined'
-                                  : (isAlreadyInvited ? 'Invited' : 'Invite'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
+                            subtitle: Text(
+                              user['email'] ?? '',
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white54
+                                    : AppColors.textHint,
                                 fontSize: 12,
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                            trailing: SizedBox(
+                              width: 80,
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: isAlreadyInvited
+                                    ? null
+                                    : () => _invite(userId),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isAlreadyInvited
+                                      ? Colors.grey.withValues(alpha: 0.1)
+                                      : AppColors.primary,
+                                  foregroundColor: isAlreadyInvited
+                                      ? Colors.grey
+                                      : Colors.white,
+                                  elevation: 0,
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Text(
+                                  inviteStatus == 'joined' ||
+                                          isParticipant ||
+                                          inviteStatus == 'accepted'
+                                      ? 'Joined'
+                                      : (isAlreadyInvited
+                                            ? 'Invited'
+                                            : 'Invite'),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
