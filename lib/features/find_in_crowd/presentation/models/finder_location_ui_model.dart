@@ -7,16 +7,25 @@ class FinderLocationUiModel {
     required this.accuracyMeters,
     required this.capturedAt,
     this.headingDegrees,
+    this.speedMetersPerSecond,
   });
 
   factory FinderLocationUiModel.fromPosition(Position position) {
+    final speed = position.speed.isNaN || position.speed < 0
+        ? null
+        : position.speed;
     final heading = position.heading;
+    final reliableHeading =
+        heading.isNaN || heading < 0 || (speed != null && speed < 0.7)
+        ? null
+        : heading;
     return FinderLocationUiModel(
       latitude: position.latitude,
       longitude: position.longitude,
       accuracyMeters: position.accuracy,
       capturedAt: DateTime.now(),
-      headingDegrees: heading.isNaN || heading < 0 ? null : heading,
+      headingDegrees: reliableHeading,
+      speedMetersPerSecond: speed,
     );
   }
 
@@ -25,6 +34,7 @@ class FinderLocationUiModel {
   final double accuracyMeters;
   final DateTime capturedAt;
   final double? headingDegrees;
+  final double? speedMetersPerSecond;
 
   String get coordinateLabel {
     return '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
@@ -42,6 +52,9 @@ class FinderNavigationUiModel {
     required this.relativeBearingDegrees,
     required this.directionLabel,
     required this.guidanceLabel,
+    required this.stepInstructionLabel,
+    required this.headingConfidenceLabel,
+    required this.usesDeviceHeading,
   });
 
   final double distanceMeters;
@@ -49,6 +62,9 @@ class FinderNavigationUiModel {
   final double relativeBearingDegrees;
   final String directionLabel;
   final String guidanceLabel;
+  final String stepInstructionLabel;
+  final String headingConfidenceLabel;
+  final bool usesDeviceHeading;
 
   String get distanceLabel {
     if (distanceMeters < 10) return '${distanceMeters.toStringAsFixed(1)}m';
@@ -58,5 +74,17 @@ class FinderNavigationUiModel {
 
   double get arrowTurns => relativeBearingDegrees / 360;
 
-  bool get isVeryClose => distanceMeters <= 4;
+  bool get isNearby => distanceMeters <= 30;
+
+  bool get isVeryClose => distanceMeters <= 5;
+
+  String get turnDetailLabel {
+    if (!usesDeviceHeading) return 'Approximate compass direction';
+    final turnDegrees = relativeBearingDegrees <= 180
+        ? relativeBearingDegrees
+        : 360 - relativeBearingDegrees;
+    if (turnDegrees <= 22.5) return 'Straight ahead';
+    final side = relativeBearingDegrees < 180 ? 'right' : 'left';
+    return 'Turn ${turnDegrees.round()} degrees $side';
+  }
 }

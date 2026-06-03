@@ -14,6 +14,8 @@ import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../../injection/injection_container.dart';
+import '../../../find_in_crowd/data/services/find_in_crowd_api_service.dart';
+import '../../../find_in_crowd/domain/entities/finder_models.dart';
 import '../../../trust/data/services/reputation_api_service.dart';
 import '../../../trust/domain/entities/user_trust.dart';
 import '../../../trust/domain/services/reputation_service.dart';
@@ -36,7 +38,7 @@ class _ManageEventPageState extends State<ManageEventPage>
   late final TabController _tabController;
 
   late Future<List<Map<String, String>>> _requestsFuture;
-  late Future<List<Map<String, String>>> _participantsFuture;
+  late Future<List<EventFinderMember>> _participantsFuture;
   bool _isReadOnly = false;
   final Set<String> _expandedParticipantIds = {};
   final Map<String, Future<UserTrust>> _trustFutures = {};
@@ -70,7 +72,7 @@ class _ManageEventPageState extends State<ManageEventPage>
     _requestsFuture = sl<EventApiService>().getPendingJoinRequests(
       widget.eventId,
     );
-    _participantsFuture = sl<EventApiService>().getEventParticipants(
+    _participantsFuture = sl<FindInCrowdApiService>().getEventMembers(
       widget.eventId,
     );
   }
@@ -109,7 +111,8 @@ class _ManageEventPageState extends State<ManageEventPage>
     final confirmed = await showVibeConfirmDialog(
       context: context,
       title: 'Remove Member?',
-      message: 'Are you sure you want to remove this participant from the event?',
+      message:
+          'Are you sure you want to remove this participant from the event?',
       confirmLabel: 'Remove',
       cancelLabel: 'Cancel',
       icon: Icons.person_remove_rounded,
@@ -128,14 +131,14 @@ class _ManageEventPageState extends State<ManageEventPage>
     }
   }
 
-  Future<UserTrust> _loadMemberTrust(Map<String, String> member) {
-    final userId = member['id'] ?? '';
+  Future<UserTrust> _loadMemberTrust(EventFinderMember member) {
+    final userId = member.userId;
     return _trustFutures.putIfAbsent(
       userId,
       () => sl<ReputationApiService>().getUserTrust(
         userId,
-        userName: member['name'] ?? 'Member',
-        avatarUrl: member['avatarUrl'],
+        userName: member.fullName,
+        avatarUrl: member.avatarUrl,
       ),
     );
   }
@@ -228,7 +231,7 @@ class _ManageEventPageState extends State<ManageEventPage>
   }
 
   Widget _buildParticipantsTab() {
-    return FutureBuilder<List<Map<String, String>>>(
+    return FutureBuilder<List<EventFinderMember>>(
       future: _participantsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -303,12 +306,12 @@ class _ManageEventPageState extends State<ManageEventPage>
     );
   }
 
-  Widget _buildMemberCard(Map<String, String> member) {
+  Widget _buildMemberCard(EventFinderMember member) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isHost = member['role'] == 'Host';
-    final memberId = member['id'] ?? '';
+    final isHost = member.role == 'Host';
+    final memberId = member.userId;
     final isExpanded = _expandedParticipantIds.contains(memberId);
-    final roleLabel = member['role'] ?? (isHost ? 'Host' : 'Participant');
+    final roleLabel = member.role ?? (isHost ? 'Host' : 'Participant');
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 220),
@@ -322,8 +325,8 @@ class _ManageEventPageState extends State<ManageEventPage>
             color: isExpanded
                 ? AppColors.primary.withValues(alpha: 0.18)
                 : (isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.black.withValues(alpha: 0.03)),
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.03)),
           ),
           boxShadow: [
             if (!isDark)
@@ -355,8 +358,8 @@ class _ManageEventPageState extends State<ManageEventPage>
                 child: Row(
                   children: [
                     VibeAvatar(
-                      imageUrl: member['avatarUrl'],
-                      name: member['name'],
+                      imageUrl: member.avatarUrl,
+                      name: member.fullName,
                       size: 52,
                       showBorder: true,
                       borderColor: isHost
@@ -370,7 +373,7 @@ class _ManageEventPageState extends State<ManageEventPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            member['name'] ?? 'Member',
+                            member.fullName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -384,7 +387,7 @@ class _ManageEventPageState extends State<ManageEventPage>
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            roleLabel,
+                            '${member.statusLabel} - $roleLabel',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -403,8 +406,9 @@ class _ManageEventPageState extends State<ManageEventPage>
                         width: 34,
                         height: 34,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B)
-                              .withValues(alpha: isDark ? 0.16 : 0.1),
+                          color: const Color(
+                            0xFFF59E0B,
+                          ).withValues(alpha: isDark ? 0.16 : 0.1),
                           borderRadius: BorderRadius.circular(11),
                         ),
                         child: const Icon(
@@ -419,11 +423,11 @@ class _ManageEventPageState extends State<ManageEventPage>
                           onPressed: () => showHostReviewForm(
                             context,
                             userId: memberId,
-                            userName: member['name'] ?? 'Member',
-                            userAvatarUrl: member['avatarUrl'],
+                            userName: member.fullName,
+                            userAvatarUrl: member.avatarUrl,
                             onSubmit: (stars, attended) {},
                           ),
-                          tooltip: 'Đánh giá',
+                          tooltip: 'Review',
                           icon: const Icon(
                             Icons.star_rounded,
                             color: Color(0xFFF59E0B),
@@ -433,7 +437,7 @@ class _ManageEventPageState extends State<ManageEventPage>
                       if (!_isReadOnly)
                         IconButton(
                           onPressed: () => _removeMember(memberId),
-                          tooltip: 'Xóa khỏi event',
+                          tooltip: 'Remove from event',
                           icon: const Icon(
                             Icons.person_remove_rounded,
                             color: AppColors.error,
@@ -593,10 +597,12 @@ class _MemberTrustPanel extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final levelData = ReputationService.getLevel(trust.score);
     final attendance = (trust.attendanceRate * 100).round().clamp(0, 100);
-    final noShowsLast30Days =
-        ReputationService.getNoShowsLast30Days(trust.history);
-    final noShowValue =
-        noShowsLast30Days > 0 ? noShowsLast30Days : trust.noShows;
+    final noShowsLast30Days = ReputationService.getNoShowsLast30Days(
+      trust.history,
+    );
+    final noShowValue = noShowsLast30Days > 0
+        ? noShowsLast30Days
+        : trust.noShows;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -888,10 +894,7 @@ class _MemberTrustError extends StatelessWidget {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Thử lại'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Thử lại')),
           ],
         ),
       ),

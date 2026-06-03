@@ -11,6 +11,7 @@ import 'injection/injection_container.dart';
 import 'core/widgets/no_scroll_glow_behavior.dart';
 import 'router/app_router.dart';
 import 'router/app_router.gr.dart';
+import 'features/find_in_crowd/presentation/widgets/global_finder_listener.dart';
 
 class VibeApp extends StatefulWidget {
   const VibeApp({super.key});
@@ -57,15 +58,18 @@ class _VibeAppState extends State<VibeApp> {
                   locale: Locale(localeStr),
                   scrollBehavior: NoScrollGlowBehavior(),
                   builder: (context, child) {
-                    return GestureDetector(
-                      onTap: () {
-                        final currentFocus = FocusScope.of(context);
-                        if (!currentFocus.hasPrimaryFocus &&
-                            currentFocus.focusedChild != null) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                        }
-                      },
-                      child: child,
+                    return GlobalFinderListener(
+                      router: _appRouter,
+                      child: GestureDetector(
+                        onTap: () {
+                          final currentFocus = FocusScope.of(context);
+                          if (!currentFocus.hasPrimaryFocus &&
+                              currentFocus.focusedChild != null) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          }
+                        },
+                        child: child,
+                      ),
                     );
                   },
                   routerConfig: _appRouter.config(),

@@ -103,6 +103,7 @@ class _RegisterPageState extends State<RegisterPage>
           }
         }
         if (state is AuthError) {
+          setState(() => _isSocialLoading = false);
           VibeSnackBar.error(context, state.message);
         }
       },

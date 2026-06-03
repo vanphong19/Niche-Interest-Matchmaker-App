@@ -109,7 +109,18 @@ class _HomePageState extends State<HomePage>
 
   void _openFindInCrowd() {
     HapticFeedback.selectionClick();
-    context.router.push(const FindInCrowdMeetingRoute());
+    context.router.push(FindInCrowdMeetingRoute());
+  }
+
+  Future<void> _openNotifications() async {
+    HapticFeedback.selectionClick();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => NotificationsPanel(onChanged: _loadNotificationUnread),
+    );
+    await _loadNotificationUnread();
   }
 
   Future<void> _openNotifications() async {

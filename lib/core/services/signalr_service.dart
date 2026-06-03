@@ -64,6 +64,9 @@ class SignalRService {
         _hubConnection?.on(name, (arguments) {
           final data = _normalizePayload(arguments);
           final payload = {...data, '_type': type, '_event': name};
+          if (kDebugMode && type == 'finder') {
+            debugPrint('SignalR Finder event [$name]: $payload');
+          }
           controller.add(payload);
           _dataChangeController.add(payload);
         });
@@ -109,6 +112,32 @@ class SignalRService {
       const ['OnMatchChanged', 'MatchChanged', 'MatchUpdated'],
       _matchController,
       'match',
+    );
+    bindMany(
+      const [
+        'finder.requested',
+        'finder.request.accepted',
+        'finder.request.declined',
+        'finder.request.cancelled',
+        'finder.request.expired',
+        'finder.session.started',
+        'finder.location.updated',
+        'finder.session.stopped',
+        'finder.session.expired',
+        'finder.member.availability.updated',
+        'OnFinderRequested',
+        'OnFinderRequestAccepted',
+        'OnFinderRequestDeclined',
+        'OnFinderRequestCancelled',
+        'OnFinderRequestExpired',
+        'OnFinderSessionStarted',
+        'OnFinderLocationUpdated',
+        'OnFinderSessionStopped',
+        'OnFinderSessionExpired',
+        'OnFinderMemberAvailabilityUpdated',
+      ],
+      _eventStatusController,
+      'finder',
     );
 
     try {

@@ -1,32 +1,16 @@
-import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'models/finder_location_ui_model.dart';
+import '../models/finder_location_ui_model.dart';
 
-class FinderLocationSession {
-  FinderLocationSession._();
+class FinderNavigationCalculator {
+  const FinderNavigationCalculator();
 
-  static final ValueNotifier<FinderLocationUiModel?> currentLocation =
-      ValueNotifier<FinderLocationUiModel?>(null);
-  static final ValueNotifier<FinderLocationUiModel?> targetLocation =
-      ValueNotifier<FinderLocationUiModel?>(null);
-
-  static void update(FinderLocationUiModel location) {
-    currentLocation.value = location;
-  }
-
-  static void updateTarget(FinderLocationUiModel location) {
-    targetLocation.value = location;
-  }
-
-  static void resetTarget() {
-    targetLocation.value = null;
-  }
-
-  static FinderNavigationUiModel? navigationFrom(
-    FinderLocationUiModel? current,
-  ) {
-    final target = targetLocation.value;
+  FinderNavigationUiModel? calculate({
+    required FinderLocationUiModel? current,
+    required FinderLocationUiModel? target,
+    double? lastKnownHeading,
+    bool usesDeviceCompass = false,
+  }) {
     if (current == null || target == null) return null;
 
     final distance = Geolocator.distanceBetween(
@@ -42,7 +26,7 @@ class FinderLocationSession {
       target.longitude,
     );
     final normalizedBearing = (bearing + 360) % 360;
-    final heading = current.headingDegrees;
+    final heading = current.headingDegrees ?? lastKnownHeading;
     final relativeBearing = heading == null
         ? normalizedBearing
         : (normalizedBearing - heading + 360) % 360;
@@ -61,12 +45,14 @@ class FinderLocationSession {
           : _stepInstructionLabel(relativeBearing, distanceLabel),
       headingConfidenceLabel: heading == null
           ? 'Approximate compass direction'
+          : usesDeviceCompass
+          ? 'Direction follows your phone heading'
           : 'Direction follows your movement',
       usesDeviceHeading: heading != null,
     );
   }
 
-  static String _directionLabel(double bearing) {
+  String _directionLabel(double bearing) {
     const labels = [
       'North',
       'North-east',
@@ -81,7 +67,7 @@ class FinderLocationSession {
     return labels[index];
   }
 
-  static String _guidanceLabel(double relativeBearing) {
+  String _guidanceLabel(double relativeBearing) {
     if (relativeBearing <= 22.5 || relativeBearing >= 337.5) {
       return 'Keep going straight';
     }
@@ -90,10 +76,7 @@ class FinderLocationSession {
     return 'Turn left';
   }
 
-  static String _stepInstructionLabel(
-    double relativeBearing,
-    String distanceLabel,
-  ) {
+  String _stepInstructionLabel(double relativeBearing, String distanceLabel) {
     if (relativeBearing <= 22.5 || relativeBearing >= 337.5) {
       return 'Go straight for $distanceLabel';
     }
@@ -104,7 +87,7 @@ class FinderLocationSession {
     return 'Slight left, then $distanceLabel';
   }
 
-  static String _distanceLabel(double distanceMeters) {
+  String _distanceLabel(double distanceMeters) {
     if (distanceMeters < 10) return '${distanceMeters.toStringAsFixed(1)}m';
     if (distanceMeters < 1000) return '${distanceMeters.round()}m';
     return '${(distanceMeters / 1000).toStringAsFixed(1)}km';
