@@ -4,6 +4,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vibe_empty_state.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../injection/injection_container.dart';
+import '../../../find_in_crowd/data/services/find_in_crowd_api_service.dart';
+import '../../../find_in_crowd/domain/entities/finder_models.dart';
 import '../../data/services/event_api_service.dart';
 
 class EventMembersPage extends StatefulWidget {
@@ -78,8 +80,8 @@ class _EventMembersPageState extends State<EventMembersPage>
   }
 
   Widget _membersTab() {
-    return FutureBuilder<List<Map<String, String>>>(
-      future: sl<EventApiService>().getEventParticipants(widget.eventId),
+    return FutureBuilder<List<EventFinderMember>>(
+      future: sl<FindInCrowdApiService>().getEventMembers(widget.eventId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -112,15 +114,15 @@ class _EventMembersPageState extends State<EventMembersPage>
               ),
               child: ListTile(
                 leading: VibeAvatar(
-                  imageUrl: member['avatarUrl'],
-                  name: member['name'],
+                  imageUrl: member.avatarUrl,
+                  name: member.fullName,
                   size: 40,
                 ),
                 title: Text(
-                  member['name'] ?? 'Member',
+                  member.fullName,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                subtitle: Text(member['role'] ?? 'Participant'),
+                subtitle: Text(member.statusLabel),
               ),
             );
           },
