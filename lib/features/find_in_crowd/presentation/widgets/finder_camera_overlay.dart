@@ -38,7 +38,7 @@ class FinderCameraOverlay extends StatelessWidget {
                   borderRadius: AppSpacing.borderRadiusPill,
                 ),
                 child: Text(
-                  'AR-style Finder',
+                  'Visual Finder',
                   style: AppTextStyles.captionMedium.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w700,

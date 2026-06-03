@@ -13,6 +13,7 @@ import '../models/finder_ui_mappers.dart';
 import '../widgets/finder_action_button.dart';
 import '../widgets/finder_current_location_card.dart';
 import '../widgets/finder_glass_panel.dart';
+import '../widgets/finder_guidance_card.dart';
 import '../widgets/finder_radar_canvas.dart';
 import '../widgets/finder_scaffold.dart';
 import '../widgets/finder_signal_card.dart';
@@ -28,7 +29,15 @@ class FinderRadarPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<FinderCubit>()..startSession(sessionId),
-      child: BlocBuilder<FinderCubit, FinderState>(
+      child: BlocConsumer<FinderCubit, FinderState>(
+        listenWhen: (previous, current) => previous.status != current.status,
+        listener: (context, state) {
+          if (state.status == FinderFlowStatus.ended) {
+            context.router.replace(
+              FinderEndedRoute(sessionId: sessionId, reason: state.endReason),
+            );
+          }
+        },
         builder: (context, state) {
           final partner = state.partner;
           final participant = partner == null
@@ -67,6 +76,12 @@ class FinderRadarPage extends StatelessWidget {
                       size: 310,
                     ),
                   const SizedBox(height: AppSpacing.lg),
+                  FinderGuidanceCard(
+                    navigation: state.navigation,
+                    isStale: state.hasStalePartnerLocation,
+                    weakGps: state.weakGps,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
                   if (participant != null)
                     FinderSignalCard(
                       participant: participant,
@@ -92,21 +107,21 @@ class FinderRadarPage extends StatelessWidget {
                     child: Row(
                       children: [
                         Icon(
-                          state.canOpenArFinder
-                              ? Icons.view_in_ar_rounded
+                          state.isNearby
+                              ? Icons.directions_walk_rounded
                               : Icons.gps_fixed_rounded,
-                          color: state.canOpenArFinder
+                          color: state.isNearby
                               ? AppColors.success
                               : colorScheme.primary,
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
-                            state.isNearby && !state.canOpenArFinder
-                                ? state.arReadinessMessage
-                                : state.hasStalePartnerLocation
+                            state.hasStalePartnerLocation
                                 ? 'Waiting for the latest partner location. Sharing resumes when both apps are active.'
-                                : 'Live location sharing is active for this finder session only.',
+                                : state.isNearby
+                                ? 'Final guidance is available. Keep moving slowly and look around visually near the last few meters.'
+                                : 'Live location sharing is active. Follow the direction card until you are close enough for final guidance.',
                             style: AppTextStyles.captionMedium.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
@@ -118,25 +133,17 @@ class FinderRadarPage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   FinderActionButton(
-                    label: state.canOpenArFinder
-                        ? 'Open AR-style Finder'
-                        : state.isNearby
-                        ? 'Improving GPS Accuracy'
-                        : 'Move Closer',
-                    icon: state.canOpenArFinder
-                        ? Icons.view_in_ar_rounded
-                        : state.isNearby
-                        ? Icons.gps_fixed_rounded
+                    label: state.isNearby
+                        ? 'Open Final Guidance'
+                        : 'Final Guidance Unlocks Within 30m',
+                    icon: state.isNearby
+                        ? Icons.directions_walk_rounded
                         : Icons.social_distance_rounded,
-                    onPressed: state.canOpenArFinder
+                    onPressed: state.isNearby
                         ? () => context.router.push(
-                            FinderCameraRoute(sessionId: sessionId),
-                          )
-                        : state.isNearby
-                        ? null
-                        : () => context.router.push(
                             FinderNearbyRoute(sessionId: sessionId),
-                          ),
+                          )
+                        : null,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   FinderActionButton(

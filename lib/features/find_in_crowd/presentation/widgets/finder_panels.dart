@@ -161,20 +161,20 @@ class FinderConfirmationPanel extends StatelessWidget {
     required this.title,
     required this.message,
     required this.primaryLabel,
-    required this.secondaryLabel,
     required this.icon,
     required this.onPrimary,
-    required this.onSecondary,
+    this.secondaryLabel,
+    this.onSecondary,
     this.destructive = false,
   });
 
   final String title;
   final String message;
   final String primaryLabel;
-  final String secondaryLabel;
+  final String? secondaryLabel;
   final IconData icon;
   final VoidCallback onPrimary;
-  final VoidCallback onSecondary;
+  final VoidCallback? onSecondary;
   final bool destructive;
 
   @override
@@ -220,12 +220,14 @@ class FinderConfirmationPanel extends StatelessWidget {
             destructive: destructive,
             onPressed: onPrimary,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          FinderActionButton(
-            label: secondaryLabel,
-            secondary: true,
-            onPressed: onSecondary,
-          ),
+          if (secondaryLabel != null && onSecondary != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            FinderActionButton(
+              label: secondaryLabel!,
+              secondary: true,
+              onPressed: onSecondary!,
+            ),
+          ],
         ],
       ),
     );

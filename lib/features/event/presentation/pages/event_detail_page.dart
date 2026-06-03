@@ -30,6 +30,8 @@ import '../../../vibe_check/presentation/screens/group_vibe_check_result_page.da
 import '../../../chat/data/models/chat_room_model.dart';
 import '../../../chat/data/services/chat_api_service.dart';
 import '../../../chat/presentation/pages/chat_detail_page.dart';
+import '../../../find_in_crowd/data/services/find_in_crowd_api_service.dart';
+import '../../../find_in_crowd/domain/entities/finder_models.dart';
 import 'event_members_page.dart';
 import '../bloc/event_detail_cubit.dart';
 
@@ -860,8 +862,7 @@ class _EventDetailPageState extends State<EventDetailPage>
         ],
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
           width: 44,
           height: 44,
@@ -885,10 +886,7 @@ class _EventDetailPageState extends State<EventDetailPage>
         ),
         subtitle: const Text(
           'Trao đổi với host và các thành viên',
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColors.textHint,
-          ),
+          style: TextStyle(fontSize: 12, color: AppColors.textHint),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -927,9 +925,7 @@ class _EventDetailPageState extends State<EventDetailPage>
 
       if (groupRoom != null) {
         await Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (_) => ChatDetailPage(room: groupRoom!),
-          ),
+          MaterialPageRoute(builder: (_) => ChatDetailPage(room: groupRoom!)),
         );
         return;
       }
@@ -941,9 +937,7 @@ class _EventDetailPageState extends State<EventDetailPage>
         );
         if (!mounted) return;
         await Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (_) => ChatDetailPage(room: created),
-          ),
+          MaterialPageRoute(builder: (_) => ChatDetailPage(room: created)),
         );
       } else {
         if (!mounted) return;
@@ -957,13 +951,11 @@ class _EventDetailPageState extends State<EventDetailPage>
       }
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString().contains('403') ||
-              e.toString().contains('Access denied')
+      final msg =
+          e.toString().contains('403') || e.toString().contains('Access denied')
           ? 'Bạn cần tham gia sự kiện để sử dụng nhóm chat.'
           : 'Không thể mở chat: ${e.toString().replaceAll('Exception:', '').trim()}';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -2225,19 +2217,56 @@ class _MembersBottomSheet extends StatefulWidget {
 }
 
 class _MembersBottomSheetState extends State<_MembersBottomSheet> {
-  late Future<List<Map<String, String>>> _membersFuture;
+  late Future<List<_CircleMember>> _membersFuture;
   final TextEditingController _searchCtrl = TextEditingController();
   String _query = '';
 
   @override
   void initState() {
     super.initState();
-    _membersFuture = sl<EventApiService>().getEventParticipants(
-      widget.event.id,
-    );
+    _membersFuture = _loadMembers();
     _searchCtrl.addListener(() {
       setState(() => _query = _searchCtrl.text.toLowerCase());
     });
+  }
+
+  Future<List<_CircleMember>> _loadMembers() async {
+    final profiles = await sl<EventApiService>().getEventParticipants(
+      widget.event.id,
+    );
+
+    List<EventFinderMember> finderMembers = const [];
+    try {
+      finderMembers = await sl<FindInCrowdApiService>().getEventMembers(
+        widget.event.id,
+      );
+    } catch (_) {
+      finderMembers = const [];
+    }
+
+    final finderById = {
+      for (final member in finderMembers) member.userId: member,
+    };
+
+    return profiles.map((profile) {
+      final id = profile['id'] ?? '';
+      return _CircleMember(profile: profile, finder: finderById[id]);
+    }).toList();
+  }
+
+  void _openFinder(EventFinderMember member) {
+    HapticFeedback.selectionClick();
+    final router = context.router;
+    Navigator.of(context).pop();
+
+    if (member.canResume) {
+      router.push(FinderRadarRoute(sessionId: member.activeFinderSessionId!));
+      return;
+    }
+
+    router.push(
+      FinderStartRoute(eventId: widget.event.id, partnerId: member.userId),
+    );
   }
 
   @override
@@ -2457,7 +2486,7 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
               ),
               // Members list
               Expanded(
-                child: FutureBuilder<List<Map<String, String>>>(
+                child: FutureBuilder<List<_CircleMember>>(
                   future: _membersFuture,
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
@@ -2470,21 +2499,18 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
                         ),
                       );
                     }
-                    final allMembers =
-                        List<Map<String, String>>.from(snapshot.data!)
-                          ..sort((a, b) {
-                            if (a['role'] == 'Host') return -1;
-                            if (b['role'] == 'Host') return 1;
-                            return (a['name'] ?? '').compareTo(b['name'] ?? '');
-                          });
+                    final allMembers = List<_CircleMember>.from(snapshot.data!)
+                      ..sort((a, b) {
+                        if (a.isHost) return -1;
+                        if (b.isHost) return 1;
+                        return a.name.compareTo(b.name);
+                      });
 
                     final members = _query.isEmpty
                         ? allMembers
                         : allMembers
                               .where(
-                                (m) => (m['name'] ?? '').toLowerCase().contains(
-                                  _query,
-                                ),
+                                (m) => m.name.toLowerCase().contains(_query),
                               )
                               .toList();
 
@@ -2509,14 +2535,13 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
                       itemCount: members.length,
                       itemBuilder: (context, index) {
                         final member = members[index];
-                        final isHost = member['role'] == 'Host';
-                        final isMe = member['id'] == currentUserId;
+                        final isMe = member.id == currentUserId;
 
                         return _MemberTile(
                           member: member,
-                          isHost: isHost,
                           isMe: isMe,
                           isDark: isDark,
+                          onOpenFinder: _openFinder,
                         );
                       },
                     );
@@ -2531,18 +2556,43 @@ class _MembersBottomSheetState extends State<_MembersBottomSheet> {
   }
 }
 
+class _CircleMember {
+  const _CircleMember({required this.profile, this.finder});
+
+  final Map<String, String> profile;
+  final EventFinderMember? finder;
+
+  String get id => profile['id'] ?? finder?.userId ?? '';
+
+  String get name {
+    final value = profile['name'] ?? finder?.fullName ?? '';
+    return value.isEmpty ? 'Member' : value;
+  }
+
+  String? get avatarUrl => profile['avatarUrl'] ?? finder?.avatarUrl;
+
+  String get role {
+    final value = profile['role'] ?? finder?.role ?? 'Participant';
+    return value.isEmpty ? 'Participant' : value;
+  }
+
+  bool get isHost => role.toLowerCase() == 'host';
+
+  String get friendshipStatus => profile['friendshipStatus'] ?? '';
+}
+
 // ─── Member Tile ──────────────────────────────────────────────────────────────
 class _MemberTile extends StatefulWidget {
   const _MemberTile({
     required this.member,
-    required this.isHost,
     required this.isMe,
     required this.isDark,
+    required this.onOpenFinder,
   });
-  final Map<String, String> member;
-  final bool isHost;
+  final _CircleMember member;
   final bool isMe;
   final bool isDark;
+  final void Function(EventFinderMember member) onOpenFinder;
 
   @override
   State<_MemberTile> createState() => _MemberTileState();
@@ -2563,13 +2613,58 @@ class _MemberTileState extends State<_MemberTile> {
     }
   }
 
+  String _finderStatusText(EventFinderMember member) {
+    switch (member.finderAvailability) {
+      case FinderAvailability.available:
+        return 'Ready to find';
+      case FinderAvailability.alreadyFindingWithMe:
+        return 'Finder session active';
+      case FinderAvailability.self:
+        return 'This is you';
+      case FinderAvailability.notCheckedIn:
+        return 'Not checked in';
+      case FinderAvailability.offline:
+        return 'Offline or unavailable';
+      case FinderAvailability.busy:
+        return 'Busy in another Finder';
+      case FinderAvailability.notAllowed:
+        return 'Finder not allowed';
+    }
+  }
+
+  Color _finderStatusColor(EventFinderMember member) {
+    switch (member.finderAvailability) {
+      case FinderAvailability.available:
+      case FinderAvailability.alreadyFindingWithMe:
+        return AppColors.success;
+      case FinderAvailability.notCheckedIn:
+      case FinderAvailability.busy:
+        return AppColors.warning;
+      case FinderAvailability.self:
+      case FinderAvailability.offline:
+      case FinderAvailability.notAllowed:
+        return AppColors.textHint;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final status = (widget.member['friendshipStatus'] ?? '').toLowerCase();
+    final status = widget.member.friendshipStatus.toLowerCase();
     final isFriend = status == 'accepted' || status == 'friend';
     final isPending =
         _requested || status == 'requested' || status == 'pending';
     final canAddFriend = !widget.isMe && !isFriend && !isPending;
+    final finderMember = widget.member.finder;
+    final canOpenFinder =
+        finderMember != null &&
+        !widget.isMe &&
+        (finderMember.canFind || finderMember.canResume);
+    final finderStatusText = finderMember == null
+        ? null
+        : _finderStatusText(finderMember);
+    final finderStatusColor = finderMember == null
+        ? AppColors.textHint
+        : _finderStatusColor(finderMember);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -2587,8 +2682,8 @@ class _MemberTileState extends State<_MemberTile> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                final id = widget.member['id'];
-                if (id != null && id.isNotEmpty) {
+                final id = widget.member.id;
+                if (id.isNotEmpty) {
                   context.router.push(PublicProfileRoute(userId: id));
                 }
               },
@@ -2597,12 +2692,12 @@ class _MemberTileState extends State<_MemberTile> {
                   Stack(
                     children: [
                       VibeAvatar(
-                        imageUrl: widget.member['avatarUrl'],
-                        name: widget.member['name'],
+                        imageUrl: widget.member.avatarUrl,
+                        name: widget.member.name,
                         size: 48,
                         showBorder: false,
                       ),
-                      if (widget.isHost)
+                      if (widget.member.isHost)
                         Positioned(
                           right: -2,
                           bottom: -2,
@@ -2634,7 +2729,7 @@ class _MemberTileState extends State<_MemberTile> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.member['name'] ?? 'Member',
+                          widget.member.name,
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 15,
@@ -2645,17 +2740,43 @@ class _MemberTileState extends State<_MemberTile> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          widget.isHost
-                              ? 'Host ★'
-                              : (widget.member['role'] ?? 'Participant'),
+                          widget.member.isHost ? 'Host ★' : widget.member.role,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: widget.isHost
+                            color: widget.member.isHost
                                 ? AppColors.primary
                                 : AppColors.textHint,
                           ),
                         ),
+                        if (finderStatusText != null && !widget.isMe) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: finderStatusColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  finderStatusText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: finderStatusColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -2663,15 +2784,49 @@ class _MemberTileState extends State<_MemberTile> {
               ),
             ),
           ),
+          if (finderMember != null && !widget.isMe) ...[
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 92,
+              height: 32,
+              child: ElevatedButton.icon(
+                onPressed: canOpenFinder
+                    ? () => widget.onOpenFinder(finderMember)
+                    : null,
+                icon: Icon(
+                  finderMember.canResume
+                      ? Icons.navigation_rounded
+                      : Icons.my_location_rounded,
+                  size: 15,
+                ),
+                label: Text(
+                  finderMember.actionLabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: widget.isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFE2E8F0),
+                  disabledForegroundColor: AppColors.textHint,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           if (!widget.isMe)
             GestureDetector(
               onTap: canAddFriend
                   ? () {
                       HapticFeedback.selectionClick();
-                      _sendFriendRequest(
-                        context,
-                        (widget.member['id'] ?? '').toString(),
-                      );
+                      _sendFriendRequest(context, widget.member.id);
                     }
                   : null,
               child: Container(

@@ -12,6 +12,7 @@ import '../bloc/finder_state.dart';
 import '../models/finder_ui_mappers.dart';
 import '../widgets/finder_action_button.dart';
 import '../widgets/finder_glass_panel.dart';
+import '../widgets/finder_guidance_card.dart';
 import '../widgets/finder_participant_avatar.dart';
 import '../widgets/finder_radar_canvas.dart';
 import '../widgets/finder_scaffold.dart';
@@ -27,7 +28,15 @@ class FinderNearbyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<FinderCubit>()..startSession(sessionId),
-      child: BlocBuilder<FinderCubit, FinderState>(
+      child: BlocConsumer<FinderCubit, FinderState>(
+        listenWhen: (previous, current) => previous.status != current.status,
+        listener: (context, state) {
+          if (state.status == FinderFlowStatus.ended) {
+            context.router.replace(
+              FinderEndedRoute(sessionId: sessionId, reason: state.endReason),
+            );
+          }
+        },
         builder: (context, state) {
           final partner = state.partner;
           final participant = partner == null
@@ -58,6 +67,12 @@ class FinderNearbyPage extends StatelessWidget {
                       size: 260,
                     ),
                   const SizedBox(height: AppSpacing.lg),
+                  FinderGuidanceCard(
+                    navigation: state.navigation,
+                    isStale: state.hasStalePartnerLocation,
+                    weakGps: state.weakGps,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
                   FinderGlassPanel(
                     radius: 30,
                     padding: const EdgeInsets.all(AppSpacing.xl),
@@ -83,7 +98,8 @@ class FinderNearbyPage extends StatelessWidget {
                         Text(
                           isVeryClose
                               ? '${partner?.firstName ?? 'They'} should be right around you.'
-                              : '${partner?.firstName ?? 'They'} is close. Keep moving ${state.navigation?.directionLabel.toLowerCase() ?? 'toward the marker'}.',
+                              : state.navigation?.stepInstructionLabel ??
+                                    '${partner?.firstName ?? 'They'} is close. Keep moving toward the marker.',
                           style: AppTextStyles.headingMedium.copyWith(
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w900,
@@ -93,30 +109,14 @@ class FinderNearbyPage extends StatelessWidget {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           isVeryClose
-                              ? 'Look around, wave, or use AR-style Finder for the last few steps.'
-                              : state.canOpenArFinder
-                              ? 'Distance updates live from GPS. Open AR-style Finder for approximate visual guidance.'
-                              : state.arReadinessMessage,
+                              ? 'Look around, wave, or message them. GPS can drift in the last few meters.'
+                              : 'Distance updates live from GPS. Walk slowly so Finder can keep the arrow stable.',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: AppSpacing.xl),
-                        FinderActionButton(
-                          label: state.canOpenArFinder
-                              ? 'Open AR-style Finder'
-                              : 'Improving GPS Accuracy',
-                          icon: state.canOpenArFinder
-                              ? Icons.view_in_ar_rounded
-                              : Icons.gps_fixed_rounded,
-                          onPressed: state.canOpenArFinder
-                              ? () => context.router.push(
-                                  FinderCameraRoute(sessionId: sessionId),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
                         FinderActionButton(
                           label: 'Stop Sharing',
                           icon: Icons.stop_circle_rounded,

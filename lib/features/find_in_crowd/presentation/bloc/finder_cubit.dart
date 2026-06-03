@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../data/services/finder_location_service.dart';
 import '../../data/services/finder_realtime_service.dart';
@@ -33,10 +35,15 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
   final FinderNavigationCalculator _navigationCalculator;
 
   StreamSubscription? _locationSubscription;
+  StreamSubscription? _headingSubscription;
   StreamSubscription? _partnerLocationSubscription;
+  StreamSubscription? _sessionLifecycleSubscription;
   StreamSubscription? _realtimeSubscription;
   DateTime? _lastSentAt;
   double? _lastKnownHeading;
+  DateTime? _lastDeviceHeadingAt;
+  FinderLocationUiModel? _lastHeadingLocation;
+  bool _cancelRequestInFlight = false;
 
   Future<void> loadMembers(String eventId) async {
     emit(
@@ -272,16 +279,30 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
   }
 
   Future<void> cancelRequest(String requestId) async {
+    if (isClosed ||
+        _cancelRequestInFlight ||
+        state.status != FinderFlowStatus.requestPending) {
+      return;
+    }
+
+    _cancelRequestInFlight = true;
+    emit(state.copyWith(status: FinderFlowStatus.stopping));
     try {
       await _repository.cancelRequest(requestId);
-      emit(state.copyWith(status: FinderFlowStatus.requestCancelled));
+      if (!isClosed) {
+        emit(state.copyWith(status: FinderFlowStatus.requestCancelled));
+      }
     } catch (e) {
-      emit(
-        state.copyWith(
-          status: FinderFlowStatus.error,
-          errorMessage: _friendlyError(e),
-        ),
-      );
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            status: FinderFlowStatus.error,
+            errorMessage: _friendlyError(e),
+          ),
+        );
+      }
+    } finally {
+      _cancelRequestInFlight = false;
     }
   }
 
@@ -306,12 +327,27 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
           eventId: session.eventId,
           partner: session.partner,
           liveSharing: true,
+          clearEndReason: true,
           clearError: true,
         ),
       );
       _watchPartnerLocation(session.sessionId);
+      _watchSessionLifecycle(session.sessionId);
+      _startHeadingTracking();
       await _startLocationSharing(session.sessionId);
     } catch (e) {
+      if (_isSessionGoneError(e)) {
+        await _stopLocationSharing();
+        emit(
+          state.copyWith(
+            status: FinderFlowStatus.ended,
+            liveSharing: false,
+            endReason: _sessionEndReasonFor(e),
+            errorMessage: _friendlyError(e),
+          ),
+        );
+        return;
+      }
       emit(
         state.copyWith(
           status: FinderFlowStatus.error,
@@ -328,8 +364,25 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
     try {
       await _repository.stopSession(sessionId);
       await _stopLocationSharing();
-      emit(state.copyWith(status: FinderFlowStatus.ended, liveSharing: false));
+      emit(
+        state.copyWith(
+          status: FinderFlowStatus.ended,
+          liveSharing: false,
+          endReason: 'stopped',
+        ),
+      );
     } catch (e) {
+      if (_isSessionGoneError(e)) {
+        await _stopLocationSharing();
+        emit(
+          state.copyWith(
+            status: FinderFlowStatus.ended,
+            liveSharing: false,
+            endReason: _sessionEndReasonFor(e),
+          ),
+        );
+        return;
+      }
       emit(
         state.copyWith(
           status: FinderFlowStatus.error,
@@ -344,11 +397,13 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
     _locationSubscription = _locationService.watchLocation().listen((
       location,
     ) async {
+      if (isClosed) return;
       _rememberHeading(location);
       final navigation = _navigationCalculator.calculate(
         current: location,
         target: state.partnerLocation,
         lastKnownHeading: _lastKnownHeading,
+        usesDeviceCompass: _hasFreshDeviceHeading,
       );
       emit(
         state.copyWith(
@@ -362,19 +417,81 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
       if (_lastSentAt == null ||
           now.difference(_lastSentAt!) >= const Duration(seconds: 2)) {
         _lastSentAt = now;
-        await _repository.sendLocation(
-          sessionId: sessionId,
-          location: location,
-        );
+        await _sendLocationSafely(sessionId: sessionId, location: location);
       }
     });
   }
 
+  Future<void> _sendLocationSafely({
+    required String sessionId,
+    required FinderLocationUiModel location,
+  }) async {
+    try {
+      await _repository.sendLocation(sessionId: sessionId, location: location);
+    } catch (error) {
+      if (isClosed) return;
+
+      final statusCode = error is DioException
+          ? error.response?.statusCode
+          : null;
+      if (statusCode == 409 || statusCode == 403 || statusCode == 404) {
+        await _stopLocationSharing();
+        if (!isClosed) {
+          emit(
+            state.copyWith(
+              status: FinderFlowStatus.ended,
+              liveSharing: false,
+              endReason: _sessionEndReasonFor(error),
+              errorMessage: _friendlyError(error),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!isClosed) {
+        emit(state.copyWith(status: FinderFlowStatus.reconnecting));
+      }
+    }
+  }
+
   Future<void> _stopLocationSharing() async {
     await _locationSubscription?.cancel();
+    await _headingSubscription?.cancel();
     await _partnerLocationSubscription?.cancel();
+    await _sessionLifecycleSubscription?.cancel();
     _locationSubscription = null;
+    _headingSubscription = null;
     _partnerLocationSubscription = null;
+    _sessionLifecycleSubscription = null;
+    _lastDeviceHeadingAt = null;
+  }
+
+  void _startHeadingTracking() {
+    _headingSubscription?.cancel();
+    _headingSubscription = _locationService.watchDeviceHeading().listen(
+      (heading) {
+        if (isClosed) return;
+        _lastKnownHeading = heading;
+        _lastDeviceHeadingAt = DateTime.now();
+        final navigation = _navigationCalculator.calculate(
+          current: state.currentLocation,
+          target: state.partnerLocation,
+          lastKnownHeading: _lastKnownHeading,
+          usesDeviceCompass: true,
+        );
+        if (navigation == null) return;
+        emit(
+          state.copyWith(
+            navigation: navigation,
+            status: _statusForNavigation(navigation),
+          ),
+        );
+      },
+      onError: (_) {
+        _lastDeviceHeadingAt = null;
+      },
+    );
   }
 
   void _watchPartnerLocation(String sessionId) {
@@ -382,10 +499,12 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
     _partnerLocationSubscription = _realtimeService
         .locationEvents(sessionId)
         .listen((event) {
+          if (isClosed) return;
           final navigation = _navigationCalculator.calculate(
             current: state.currentLocation,
             target: event.location,
             lastKnownHeading: _lastKnownHeading,
+            usesDeviceCompass: _hasFreshDeviceHeading,
           );
           emit(
             state.copyWith(
@@ -398,9 +517,44 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
         });
   }
 
+  void _watchSessionLifecycle(String sessionId) {
+    _sessionLifecycleSubscription?.cancel();
+    _sessionLifecycleSubscription = _realtimeService.events.listen((
+      event,
+    ) async {
+      if (isClosed) return;
+      final name = event.name.toLowerCase();
+      final isStopped =
+          name.contains('session.stopped') ||
+          name.contains('onfindersessionstopped');
+      final isExpired =
+          name.contains('session.expired') ||
+          name.contains('onfindersessionexpired');
+      if (!isStopped && !isExpired) return;
+
+      final eventSessionId =
+          (event.data['sessionId'] ?? event.data['SessionId'] ?? '').toString();
+      if (eventSessionId.isNotEmpty && eventSessionId != sessionId) return;
+
+      await _stopLocationSharing();
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          status: FinderFlowStatus.ended,
+          liveSharing: false,
+          endReason: isExpired ? 'expired' : 'stopped',
+          errorMessage: isExpired
+              ? 'Finder session expired.'
+              : 'Location sharing was stopped.',
+        ),
+      );
+    });
+  }
+
   void _watchRequest(String requestId) {
     _realtimeSubscription?.cancel();
     _realtimeSubscription = _realtimeService.events.listen((event) async {
+      if (isClosed) return;
       final name = event.name.toLowerCase();
       final eventRequestId =
           (event.data['requestId'] ?? event.data['RequestId'] ?? '').toString();
@@ -415,6 +569,7 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
         emit(state.copyWith(status: FinderFlowStatus.requestExpired));
       }
       if (name.contains('session.started')) {
+        if (isClosed) return;
         final session = FinderSession.fromJson(event.data);
         await startSession(session.sessionId, session);
       }
@@ -429,9 +584,78 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
   }
 
   void _rememberHeading(FinderLocationUiModel location) {
+    if (_hasFreshDeviceHeading) return;
+
     if (location.headingDegrees != null) {
       _lastKnownHeading = location.headingDegrees;
+      _lastHeadingLocation = location;
+      return;
     }
+
+    final previous = _lastHeadingLocation;
+    if (previous == null) {
+      _lastHeadingLocation = location;
+      return;
+    }
+
+    final distance = Geolocator.distanceBetween(
+      previous.latitude,
+      previous.longitude,
+      location.latitude,
+      location.longitude,
+    );
+    if (distance >= 2.5 && location.accuracyMeters <= 35) {
+      _lastKnownHeading =
+          (Geolocator.bearingBetween(
+                previous.latitude,
+                previous.longitude,
+                location.latitude,
+                location.longitude,
+              ) +
+              360) %
+          360;
+      _lastHeadingLocation = location;
+    }
+  }
+
+  bool get _hasFreshDeviceHeading {
+    final lastDeviceHeadingAt = _lastDeviceHeadingAt;
+    if (lastDeviceHeadingAt == null) return false;
+    return DateTime.now().difference(lastDeviceHeadingAt) <=
+        const Duration(seconds: 3);
+  }
+
+  bool _isSessionGoneError(Object error) {
+    if (error is! DioException) return false;
+    final statusCode = error.response?.statusCode;
+    return statusCode == 409 || statusCode == 403 || statusCode == 404;
+  }
+
+  String _sessionEndReasonFor(Object error) {
+    final code = _responseCode(error);
+    if (code?.contains('EXPIRED') == true) return 'expired';
+    return 'stopped';
+  }
+
+  String? _responseCode(Object error) {
+    if (error is! DioException) return null;
+    final data = error.response?.data;
+    if (data is Map) {
+      final nestedData = data['data'] ?? data['Data'];
+      if (nestedData is Map) {
+        return (nestedData['code'] ??
+                nestedData['Code'] ??
+                nestedData['message'] ??
+                nestedData['Message'])
+            ?.toString();
+      }
+      return (data['code'] ??
+              data['Code'] ??
+              data['message'] ??
+              data['Message'])
+          ?.toString();
+    }
+    return null;
   }
 
   @override
@@ -441,9 +665,11 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       _locationSubscription?.pause();
+      _headingSubscription?.pause();
       emit(this.state.copyWith(status: FinderFlowStatus.reconnecting));
     } else if (state == AppLifecycleState.resumed) {
       _locationSubscription?.resume();
+      _headingSubscription?.resume();
       emit(this.state.copyWith(status: FinderFlowStatus.active));
     }
   }
@@ -470,6 +696,22 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
   }
 
   String _friendlyError(Object error) {
+    if (error is DioException) {
+      final responseMessage = _responseCode(error);
+      if (error.response?.statusCode == 409) {
+        if (responseMessage != null && responseMessage.isNotEmpty) {
+          return responseMessage.replaceAll('_', ' ');
+        }
+        return 'This Finder session has ended or is no longer active.';
+      }
+      if (error.response?.statusCode == 403) {
+        return 'You no longer have access to this Finder session.';
+      }
+      if (error.response?.statusCode == 404) {
+        return 'This Finder session was not found.';
+      }
+    }
+
     final message = error.toString();
     if (message.contains('FINDER_MEMBER_NOT_ELIGIBLE')) {
       return 'This person is not available for Finder right now.';

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/signalr_service.dart';
@@ -36,6 +37,9 @@ class _GlobalFinderListenerState extends State<GlobalFinderListener>
   void _handleEvent(Map<String, dynamic> payload) {
     final type = payload['_type']?.toString().toLowerCase();
     if (type != 'finder') return;
+    if (kDebugMode) {
+      debugPrint('GlobalFinderListener received: $payload');
+    }
 
     final event = payload['_event']?.toString().toLowerCase() ?? '';
     final isIncomingRequest =
@@ -49,6 +53,9 @@ class _GlobalFinderListenerState extends State<GlobalFinderListener>
       'Id',
     ]);
     if (requestId == null || requestId == _lastOpenedRequestId) return;
+    if (kDebugMode) {
+      debugPrint('Opening Finder incoming request: $requestId');
+    }
 
     _lastOpenedRequestId = requestId;
     WidgetsBinding.instance.addPostFrameCallback((_) {

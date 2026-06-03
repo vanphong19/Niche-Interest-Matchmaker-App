@@ -14,7 +14,6 @@ import '../../../../core/widgets/snackbar_service.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/widgets/vibe_confirm_dialog.dart';
 import '../../../../injection/injection_container.dart';
-import '../../../../router/app_router.gr.dart';
 import '../../../find_in_crowd/data/services/find_in_crowd_api_service.dart';
 import '../../../find_in_crowd/domain/entities/finder_models.dart';
 import '../../../trust/domain/services/reputation_service.dart';
@@ -108,7 +107,8 @@ class _ManageEventPageState extends State<ManageEventPage>
     final confirmed = await showVibeConfirmDialog(
       context: context,
       title: 'Remove Member?',
-      message: 'Are you sure you want to remove this participant from the event?',
+      message:
+          'Are you sure you want to remove this participant from the event?',
       confirmLabel: 'Remove',
       cancelLabel: 'Cancel',
       icon: Icons.person_remove_rounded,
@@ -288,19 +288,6 @@ class _ManageEventPageState extends State<ManageEventPage>
     );
   }
 
-  void _openFinder(EventFinderMember member) {
-    HapticFeedback.selectionClick();
-    if (member.canResume) {
-      context.router.push(
-        FinderRadarRoute(sessionId: member.activeFinderSessionId!),
-      );
-      return;
-    }
-    context.router.push(
-      FinderStartRoute(eventId: widget.eventId, partnerId: member.userId),
-    );
-  }
-
   Widget _buildMemberCard(EventFinderMember member) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isHost = member.role == 'Host';
@@ -354,41 +341,8 @@ class _ManageEventPageState extends State<ManageEventPage>
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 104,
-                height: 36,
-                child: ElevatedButton.icon(
-                  onPressed: member.canFind || member.canResume
-                      ? () => _openFinder(member)
-                      : null,
-                  icon: Icon(
-                    member.canResume
-                        ? Icons.navigation_rounded
-                        : Icons.my_location_rounded,
-                    size: 16,
-                  ),
-                  label: Text(
-                    member.actionLabel,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : const Color(0xFFE2E8F0),
-                    disabledForegroundColor: AppColors.textHint,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ),
               if (!isHost) ...[
+                const SizedBox(width: 8),
                 // Review button
                 if (!_isReadOnly)
                   IconButton(
@@ -420,8 +374,7 @@ class _ManageEventPageState extends State<ManageEventPage>
             ],
           ),
           // Trust card (collapsible)
-          if (!isHost)
-            UserTrustCard(trust: memberTrust),
+          if (!isHost) UserTrustCard(trust: memberTrust),
         ],
       ),
     );

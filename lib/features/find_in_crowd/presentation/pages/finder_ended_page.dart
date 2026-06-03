@@ -17,31 +17,40 @@ class FinderEndedPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpired = reason == 'expired';
-    return FinderScaffold(
-      title: 'Finder Ended',
-      subtitle: isExpired ? 'Session expired' : 'Location sharing stopped',
-      background: const FinderMapBackground(dimmed: true),
-      body: Center(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: FinderConfirmationPanel(
-            title: isExpired ? 'Finder session expired' : 'Finder ended',
-            message:
-                'Your temporary location is no longer shared for this finder session.',
-            primaryLabel: 'Back',
-            secondaryLabel: 'Close',
-            icon: Icons.check_circle_rounded,
-            onPrimary: () => context.router.popUntilRoot(),
-            onSecondary: () => context.router.maybePop(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _exitFinderFlow(context);
+      },
+      child: FinderScaffold(
+        title: 'Finder Ended',
+        subtitle: isExpired ? 'Session expired' : 'Location sharing stopped',
+        showBack: false,
+        background: const FinderMapBackground(dimmed: true),
+        body: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: FinderConfirmationPanel(
+              title: isExpired ? 'Finder session expired' : 'Finder ended',
+              message:
+                  'Your temporary location is no longer shared for this finder session.',
+              primaryLabel: 'Done',
+              icon: Icons.check_circle_rounded,
+              onPrimary: () => _exitFinderFlow(context),
+            ),
           ),
         ),
-      ),
-      trailing: const Icon(
-        Icons.verified_rounded,
-        color: AppColors.success,
-        size: 28,
+        trailing: const Icon(
+          Icons.verified_rounded,
+          color: AppColors.success,
+          size: 28,
+        ),
       ),
     );
+  }
+
+  void _exitFinderFlow(BuildContext context) {
+    context.router.popUntilRoot();
   }
 }

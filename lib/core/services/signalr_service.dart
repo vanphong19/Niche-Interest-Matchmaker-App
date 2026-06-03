@@ -41,7 +41,7 @@ class SignalRService {
     final token = await _storage.read(key: AppConstants.tokenKey);
     if (token == null) return;
 
-    final url = '${ApiConstants.baseUrl}/hubs/event';
+    final url = ApiConstants.eventHubUrl;
     _isStarting = true;
 
     _hubConnection = HubConnectionBuilder()
@@ -64,6 +64,9 @@ class SignalRService {
         _hubConnection?.on(name, (arguments) {
           final data = _normalizePayload(arguments);
           final payload = {...data, '_type': type, '_event': name};
+          if (kDebugMode && type == 'finder') {
+            debugPrint('SignalR Finder event [$name]: $payload');
+          }
           controller.add(payload);
           _dataChangeController.add(payload);
         });

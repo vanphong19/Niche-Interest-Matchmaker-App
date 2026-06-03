@@ -6,6 +6,7 @@ import 'auth_state.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../../../core/services/push_notification_service.dart';
+import '../../../../core/services/signalr_service.dart';
 import '../../../../injection/injection_container.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -41,6 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.password,
       );
       sl<PushNotificationService>().registerCurrentDeviceToken();
+      await sl<SignalRService>().init();
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -60,6 +62,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.providerId,
       );
       sl<PushNotificationService>().registerCurrentDeviceToken();
+      await sl<SignalRService>().init();
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -79,6 +82,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.verificationCode,
       );
       sl<PushNotificationService>().registerCurrentDeviceToken();
+      await sl<SignalRService>().init();
       emit(AuthAuthenticated(_mapToUser(authUser)));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -105,6 +109,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     await sl<PushNotificationService>().unregisterCurrentDeviceToken();
+    await sl<SignalRService>().stop();
     await _authRepository.logout();
     emit(AuthUnauthenticated());
   }
@@ -117,6 +122,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final user = await _authRepository.getCurrentUser();
       if (user != null) {
+        await sl<SignalRService>().init();
         emit(AuthAuthenticated(_mapToUser(user)));
       } else {
         emit(AuthUnauthenticated());

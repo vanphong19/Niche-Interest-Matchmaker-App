@@ -23,7 +23,15 @@ class FinderCameraPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<FinderCubit>()..startSession(sessionId),
-      child: BlocBuilder<FinderCubit, FinderState>(
+      child: BlocConsumer<FinderCubit, FinderState>(
+        listenWhen: (previous, current) => previous.status != current.status,
+        listener: (context, state) {
+          if (state.status == FinderFlowStatus.ended) {
+            context.router.replace(
+              FinderEndedRoute(sessionId: sessionId, reason: state.endReason),
+            );
+          }
+        },
         builder: (context, state) {
           final participant = state.partner == null
               ? null
@@ -33,7 +41,7 @@ class FinderCameraPage extends StatelessWidget {
                   directionLabel: state.navigation?.directionLabel ?? 'Waiting',
                 );
           return FinderScaffold(
-            title: 'AR-style Finder',
+            title: 'Visual Finder',
             subtitle: state.navigation == null
                 ? 'GPS-based direction'
                 : '${state.navigation!.distanceLabel} - approximate direction',

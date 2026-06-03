@@ -46,6 +46,7 @@ class FinderLocationSession {
     final relativeBearing = heading == null
         ? normalizedBearing
         : (normalizedBearing - heading + 360) % 360;
+    final distanceLabel = _distanceLabel(distance);
 
     return FinderNavigationUiModel(
       distanceMeters: distance,
@@ -53,8 +54,14 @@ class FinderLocationSession {
       relativeBearingDegrees: relativeBearing,
       directionLabel: _directionLabel(normalizedBearing),
       guidanceLabel: heading == null
-          ? 'Head ${_directionLabel(normalizedBearing).toLowerCase()}'
+          ? 'Walk toward ${_directionLabel(normalizedBearing).toLowerCase()}'
           : _guidanceLabel(relativeBearing),
+      stepInstructionLabel: heading == null
+          ? 'Move $distanceLabel toward ${_directionLabel(normalizedBearing).toLowerCase()}'
+          : _stepInstructionLabel(relativeBearing, distanceLabel),
+      headingConfidenceLabel: heading == null
+          ? 'Approximate compass direction'
+          : 'Direction follows your movement',
       usesDeviceHeading: heading != null,
     );
   }
@@ -81,5 +88,25 @@ class FinderLocationSession {
     if (relativeBearing < 157.5) return 'Turn right';
     if (relativeBearing <= 202.5) return 'Turn around';
     return 'Turn left';
+  }
+
+  static String _stepInstructionLabel(
+    double relativeBearing,
+    String distanceLabel,
+  ) {
+    if (relativeBearing <= 22.5 || relativeBearing >= 337.5) {
+      return 'Go straight for $distanceLabel';
+    }
+    if (relativeBearing < 67.5) return 'Slight right, then $distanceLabel';
+    if (relativeBearing < 157.5) return 'Turn right, then $distanceLabel';
+    if (relativeBearing <= 202.5) return 'Turn around, then $distanceLabel';
+    if (relativeBearing <= 292.5) return 'Turn left, then $distanceLabel';
+    return 'Slight left, then $distanceLabel';
+  }
+
+  static String _distanceLabel(double distanceMeters) {
+    if (distanceMeters < 10) return '${distanceMeters.toStringAsFixed(1)}m';
+    if (distanceMeters < 1000) return '${distanceMeters.round()}m';
+    return '${(distanceMeters / 1000).toStringAsFixed(1)}km';
   }
 }

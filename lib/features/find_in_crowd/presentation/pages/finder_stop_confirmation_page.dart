@@ -24,7 +24,9 @@ class FinderStopConfirmationPage extends StatelessWidget {
       child: BlocConsumer<FinderCubit, FinderState>(
         listener: (context, state) {
           if (state.status == FinderFlowStatus.ended) {
-            context.router.replace(FinderEndedRoute(sessionId: sessionId));
+            context.router.replace(
+              FinderEndedRoute(sessionId: sessionId, reason: state.endReason),
+            );
           }
         },
         builder: (context, state) {

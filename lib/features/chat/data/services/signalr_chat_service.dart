@@ -49,7 +49,7 @@ class SignalRChatService {
     }
 
     _isStarting = true;
-    final url = '${ApiConstants.baseUrl}/hubs/chat';
+    final url = ApiConstants.chatHubUrl;
     debugPrint('SignalRChat: Connecting to $url');
 
     _connection = HubConnectionBuilder()

@@ -38,6 +38,7 @@ class FinderState extends Equatable {
     this.navigation,
     this.partnerLocationUpdatedAt,
     this.errorMessage,
+    this.endReason,
     this.liveSharing = false,
     this.weakGps = false,
   });
@@ -57,6 +58,7 @@ class FinderState extends Equatable {
   final FinderNavigationUiModel? navigation;
   final DateTime? partnerLocationUpdatedAt;
   final String? errorMessage;
+  final String? endReason;
   final bool liveSharing;
   final bool weakGps;
 
@@ -83,14 +85,14 @@ class FinderState extends Equatable {
   }
 
   String get arReadinessMessage {
-    if (!isNearby) return 'Move closer to unlock AR-style guidance.';
+    if (!isNearby) return 'Move closer to unlock final guidance.';
     if (!hasAccurateCurrentLocation) {
-      return 'Improving location accuracy before opening AR-style guidance.';
+      return 'Improving location accuracy before final guidance.';
     }
     if (!hasFreshPartnerLocation) {
-      return 'Waiting for the latest partner location before opening AR-style guidance.';
+      return 'Waiting for the latest partner location before final guidance.';
     }
-    return 'GPS is ready for AR-style guidance.';
+    return 'GPS is ready for final guidance.';
   }
 
   FinderState copyWith({
@@ -105,9 +107,11 @@ class FinderState extends Equatable {
     FinderNavigationUiModel? navigation,
     DateTime? partnerLocationUpdatedAt,
     String? errorMessage,
+    String? endReason,
     bool? liveSharing,
     bool? weakGps,
     bool clearError = false,
+    bool clearEndReason = false,
   }) {
     return FinderState(
       status: status ?? this.status,
@@ -122,6 +126,7 @@ class FinderState extends Equatable {
       partnerLocationUpdatedAt:
           partnerLocationUpdatedAt ?? this.partnerLocationUpdatedAt,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      endReason: clearEndReason ? null : endReason ?? this.endReason,
       liveSharing: liveSharing ?? this.liveSharing,
       weakGps: weakGps ?? this.weakGps,
     );
@@ -140,6 +145,7 @@ class FinderState extends Equatable {
     navigation,
     partnerLocationUpdatedAt,
     errorMessage,
+    endReason,
     liveSharing,
     weakGps,
   ];
