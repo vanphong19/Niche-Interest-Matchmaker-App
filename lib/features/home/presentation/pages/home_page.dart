@@ -123,17 +123,6 @@ class _HomePageState extends State<HomePage>
     await _loadNotificationUnread();
   }
 
-  Future<void> _openNotifications() async {
-    HapticFeedback.selectionClick();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => NotificationsPanel(onChanged: _loadNotificationUnread),
-    );
-    await _loadNotificationUnread();
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
