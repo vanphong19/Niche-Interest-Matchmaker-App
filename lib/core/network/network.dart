@@ -1,7 +1,14 @@
+// lib/core/network/network.dart
 import 'package:dio/dio.dart';
 
-import '../constants/constants.dart';
+import '../constants/app_constants.dart';
 
+export 'dio_client.dart';
+export 'network_info.dart';
+export 'interceptors/auth_interceptor.dart';
+
+/// Backward-compatible NetworkConfig class.
+/// New code should use [DioClient] instead.
 class NetworkConfig {
   NetworkConfig._();
 
@@ -10,7 +17,7 @@ class NetworkConfig {
       baseUrl: baseUrl,
       connectTimeout: AppConstants.connectTimeout,
       receiveTimeout: AppConstants.receiveTimeout,
-      sendTimeout: AppConstants.sendTimeout,
+      sendTimeout: const Duration(seconds: 15),
       responseType: ResponseType.json,
       contentType: Headers.jsonContentType,
       headers: const {Headers.acceptHeader: Headers.jsonContentType},

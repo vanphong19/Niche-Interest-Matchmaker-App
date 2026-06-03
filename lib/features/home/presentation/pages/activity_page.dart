@@ -1,0 +1,305 @@
+import 'dart:async';
+
+import 'package:auto_route/auto_route.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/snackbar_service.dart';
+import '../../../../core/widgets/vibe_empty_state.dart';
+import '../../../../core/services/signalr_service.dart';
+import '../../../../injection/injection_container.dart';
+import '../../../../router/app_router.gr.dart';
+import '../../../checkin/presentation/models/checkin_event_details.dart';
+import '../../../checkin/presentation/pages/checkin_detail_page.dart';
+import '../../../event/domain/entities/event.dart';
+import '../../../event/presentation/bloc/event_bloc.dart';
+
+@RoutePage()
+class ActivityPage extends StatefulWidget {
+  const ActivityPage({super.key});
+
+  @override
+  State<ActivityPage> createState() => _ActivityPageState();
+}
+
+class _ActivityPageState extends State<ActivityPage>
+    with SingleTickerProviderStateMixin {
+  late final EventBloc _eventBloc;
+  late final TabController _tabController;
+  StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _eventBloc = sl<EventBloc>();
+    _eventBloc.add(LoadMyEvents());
+    _tabController = TabController(length: 3, vsync: this);
+    _realtimeSubscription = sl<SignalRService>().dataChangeStream.listen((_) {
+      _eventBloc.add(LoadMyEvents());
+    });
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    _eventBloc.close();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider.value(
+      value: _eventBloc,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkBgPrimary
+            : AppColors.bgSecondary,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            'My Activity',
+            style: TextStyle(
+              color: AppColors.secondary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'Open check-in',
+              onPressed: () {
+                final event = _firstCheckinCandidate(_eventBloc.state.joined);
+                if (event == null) {
+                  VibeSnackBar.info(
+                    context,
+                    'Join an active vibe before checking in.',
+                  );
+                  return;
+                }
+                _openCheckin(event);
+              },
+              icon: const Icon(
+                Icons.verified_user_rounded,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          bottom: TabBar(
+            controller: _tabController,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: AppColors.textHint,
+            indicatorColor: AppColors.primary,
+            indicatorWeight: 3,
+            tabs: const [
+              Tab(text: 'Hosted'),
+              Tab(text: 'Joined'),
+              Tab(text: 'Past'),
+            ],
+          ),
+        ),
+        body: BlocBuilder<EventBloc, EventState>(
+          builder: (context, state) {
+            if (state.isLoading &&
+                state.hosting.isEmpty &&
+                state.joined.isEmpty &&
+                state.past.isEmpty) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
+
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildEventList(state.hosting, isHost: true),
+                _buildEventList(state.joined, isHost: false),
+                _buildEventList(state.past, isHost: false, isPast: true),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventList(
+    List<Event> events, {
+    required bool isHost,
+    bool isPast = false,
+  }) {
+    if (events.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: VibeEmptyState(
+            title: 'No events here yet',
+            message:
+                'Events will appear here as soon as your activity changes.',
+            icon: Icons.event_busy_rounded,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        final event = events[index];
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(
+                        image: NetworkImage(
+                          event.photoUrls.isNotEmpty
+                              ? event.photoUrls.first
+                              : 'https://api-prod-minimal-v700.pages.dev/assets/images/cover/cover-${(event.id.hashCode % 20) + 1}.webp',
+                        ),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${event.startDateTime.day}/${event.startDateTime.month} • ${event.location.name}',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: AppColors.borderLight, height: 1),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      isPast ? 'Ended' : 'Starts in 2 days',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: isPast ? AppColors.textHint : AppColors.info,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (isHost && !isPast)
+                          TextButton(
+                            onPressed: () {},
+                            child: const Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (!isHost && !isPast) {
+                              _openCheckin(event);
+                              return;
+                            }
+
+                            context.router.push(
+                              EventDetailRoute(eventId: event.id),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isPast
+                                ? AppColors.bgSecondary
+                                : AppColors.primary,
+                            foregroundColor: isPast
+                                ? AppColors.secondary
+                                : Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            isPast
+                                ? 'Rate Experience'
+                                : (isHost ? 'Manage' : 'Check In'),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Event? _firstCheckinCandidate(List<Event> events) {
+    for (final event in events) {
+      if (event.status == EventStatus.active) return event;
+    }
+    return events.isNotEmpty ? events.first : null;
+  }
+
+  void _openCheckin(Event event) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CheckinDetailPage(
+          eventDetails: CheckinEventDetails.fromEvent(event),
+        ),
+      ),
+    );
+  }
+}
