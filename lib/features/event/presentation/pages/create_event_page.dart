@@ -67,6 +67,7 @@ class _CreateEventPageState extends State<CreateEventPage>
   bool _isSearchingPlaces = false;
   int _searchSequence = 0;
   Timer? _searchDebounce;
+  String? _selectedPartnerLocationId;
   int _selectedCoverPreset = 0;
   late final AnimationController _heroPulse;
 
@@ -316,6 +317,11 @@ class _CreateEventPageState extends State<CreateEventPage>
     setState(() {
       final name = (place['name'] as String? ?? '').trim();
       final address = (place['address'] as String? ?? '').trim();
+      final linkedPartnerLocationId =
+          (place['linkedPartnerLocationId'] ??
+                  place['LinkedPartnerLocationId'])
+              ?.toString()
+              .trim();
       final locationText = address.isNotEmpty ? address : name;
 
       // Show full details in search box for better clarity as requested
@@ -324,6 +330,10 @@ class _CreateEventPageState extends State<CreateEventPage>
       _locationNameCtrl.text = name;
       _addressCtrl.text = locationText;
       _coords = point;
+      _selectedPartnerLocationId =
+          linkedPartnerLocationId == null || linkedPartnerLocationId.isEmpty
+              ? null
+              : linkedPartnerLocationId;
       _placeSuggestions = const [];
     });
 
@@ -409,6 +419,8 @@ class _CreateEventPageState extends State<CreateEventPage>
         'locationName': _locationNameCtrl.text.trim(),
         'location': _addressCtrl.text.trim(),
         'isPublic': _isPublic,
+        if (_selectedPartnerLocationId != null)
+          'partnerLocationId': _selectedPartnerLocationId,
       },
     );
   }
@@ -1179,7 +1191,10 @@ class _CreateEventPageState extends State<CreateEventPage>
           controller: _locationSearchCtrl,
           label: _tr('event_field_search_place'),
           hint: _tr('event_field_search_place_hint'),
-          onChanged: _searchPlaces,
+          onChanged: (value) {
+            _selectedPartnerLocationId = null;
+            _searchPlaces(value);
+          },
           prefixIcon: Icons.search_rounded,
           suffix: _isSearchingPlaces
               ? const Padding(
@@ -1202,6 +1217,7 @@ class _CreateEventPageState extends State<CreateEventPage>
                 borderRadius: BorderRadius.circular(999),
                 onTap: () {
                   _locationSearchCtrl.text = query;
+                  _selectedPartnerLocationId = null;
                   _searchPlaces(query);
                 },
                 child: Container(
