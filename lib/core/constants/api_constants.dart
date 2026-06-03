@@ -6,9 +6,7 @@ class ApiConstants {
   /// - Web / Desktop    : http://localhost:5230
   /// - Thiết bị thật   : đổi thành IP LAN của máy chạy backend
   static String get baseUrl {
-    // const configuredUrl = String.fromEnvironment('API_BASE_URL');
-    // if (configuredUrl.isNotEmpty) return configuredUrl;
-    return 'http://192.168.100.198:5230/';
+    return 'https://niche-interest-matchmaker.onrender.com/';
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────

@@ -73,6 +73,7 @@ class _LoginPageState extends State<LoginPage>
           context.router.replaceAll([const BaseRoute()]);
         }
         if (state is AuthError) {
+          setState(() => _isSocialLoading = false);
           VibeSnackBar.error(context, state.message);
         }
       },
