@@ -31,7 +31,9 @@ class _GlobalFinderListenerState extends State<GlobalFinderListener>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _subscription = sl<SignalRService>().dataChangeStream.listen(_handleEvent);
+    final signalRService = _signalRServiceOrNull();
+    if (signalRService == null) return;
+    _subscription = signalRService.dataChangeStream.listen(_handleEvent);
   }
 
   void _handleEvent(Map<String, dynamic> payload) {
@@ -84,8 +86,20 @@ class _GlobalFinderListenerState extends State<GlobalFinderListener>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      sl<SignalRService>().init();
+      _signalRServiceOrNull()?.init();
     }
+  }
+
+  SignalRService? _signalRServiceOrNull() {
+    if (!sl.isRegistered<SignalRService>()) {
+      if (kDebugMode) {
+        debugPrint(
+          'GlobalFinderListener skipped: SignalRService is not registered.',
+        );
+      }
+      return null;
+    }
+    return sl<SignalRService>();
   }
 
   @override
