@@ -10,6 +10,7 @@ class EventLocation {
   final double latitude;
   final double longitude;
   final String? placeId;
+  final String? partnerLocationId;
 
   const EventLocation({
     required this.name,
@@ -17,6 +18,7 @@ class EventLocation {
     required this.latitude,
     required this.longitude,
     this.placeId,
+    this.partnerLocationId,
   });
 
   factory EventLocation.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,9 @@ class EventLocation {
       latitude: (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0,
       longitude: (json['longitude'] ?? json['lng'] as num?)?.toDouble() ?? 0,
       placeId: json['placeId'] as String?,
+      partnerLocationId:
+          json['partnerLocationId']?.toString() ??
+          json['PartnerLocationId']?.toString(),
     );
   }
 
@@ -39,6 +44,7 @@ class EventLocation {
     'latitude': latitude,
     'longitude': longitude,
     'placeId': placeId,
+    'partnerLocationId': partnerLocationId,
   };
 }
 
