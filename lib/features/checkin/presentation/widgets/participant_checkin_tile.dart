@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/checkin_ui_model.dart';
 import 'glass_card.dart';
 import 'status_pill.dart';
@@ -58,7 +59,7 @@ class ParticipantCheckinTile extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            participant.subtitle,
+                            _localizedLabel(participant.subtitle),
                             style: AppTextStyles.captionLarge.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
@@ -71,7 +72,7 @@ class ParticipantCheckinTile extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     StatusPill(
-                      label: participant.status,
+                      label: _localizedLabel(participant.status),
                       icon: _iconForTone(participant.tone),
                       tone: participant.tone,
                     ),
@@ -95,5 +96,19 @@ class ParticipantCheckinTile extends StatelessWidget {
       case CheckinStatusTone.neutral:
         return Icons.hourglass_empty_rounded;
     }
+  }
+
+  String _localizedLabel(String value) {
+    return switch (value) {
+      'Verified Member' => AppLocalizations.tr('checkin_member_verified'),
+      'Top Contributor' => AppLocalizations.tr(
+        'checkin_member_top_contributor',
+      ),
+      'New Member' => AppLocalizations.tr('checkin_member_new'),
+      'Arrived' => AppLocalizations.tr('checkin_status_arrived'),
+      'Pending' => AppLocalizations.tr('checkin_status_pending'),
+      'Late' => AppLocalizations.tr('checkin_status_late'),
+      _ => value,
+    };
   }
 }

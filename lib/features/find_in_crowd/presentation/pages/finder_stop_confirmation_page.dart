@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/finder_cubit.dart';
@@ -30,9 +31,11 @@ class FinderStopConfirmationPage extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          final name = state.partner?.firstName ?? 'your partner';
+          final name =
+              state.partner?.firstName ??
+              AppLocalizations.tr('finder_your_partner');
           return FinderScaffold(
-            title: 'Stop Finding',
+            title: AppLocalizations.tr('finder_stop'),
             subtitle: state.partner?.fullName,
             background: const FinderMapBackground(dimmed: true),
             body: Center(
@@ -40,13 +43,13 @@ class FinderStopConfirmationPage extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: FinderConfirmationPanel(
-                  title: 'Stop sharing location?',
+                  title: AppLocalizations.tr('finder_stop_sharing_question'),
                   message:
-                      'This ends the finder session for both you and $name.',
+                      '${AppLocalizations.tr('finder_stop_message_prefix')} $name.',
                   primaryLabel: state.status == FinderFlowStatus.stopping
-                      ? 'Stopping...'
-                      : 'Stop Sharing',
-                  secondaryLabel: 'Keep Finding',
+                      ? AppLocalizations.tr('finder_stopping')
+                      : AppLocalizations.tr('finder_stop_sharing'),
+                  secondaryLabel: AppLocalizations.tr('finder_keep_finding'),
                   icon: Icons.location_off_rounded,
                   destructive: true,
                   onPrimary: () => context.read<FinderCubit>().stopSession(),

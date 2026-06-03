@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/utils/app_localizations.dart';
 import '../../domain/entities/finder_models.dart';
 import '../models/finder_location_ui_model.dart';
 
@@ -85,14 +86,14 @@ class FinderState extends Equatable {
   }
 
   String get arReadinessMessage {
-    if (!isNearby) return 'Move closer to unlock final guidance.';
+    if (!isNearby) return AppLocalizations.tr('finder_move_closer_unlock');
     if (!hasAccurateCurrentLocation) {
-      return 'Improving location accuracy before final guidance.';
+      return AppLocalizations.tr('finder_improving_accuracy');
     }
     if (!hasFreshPartnerLocation) {
-      return 'Waiting for the latest partner location before final guidance.';
+      return AppLocalizations.tr('finder_waiting_latest_partner');
     }
-    return 'GPS is ready for final guidance.';
+    return AppLocalizations.tr('finder_gps_ready_final');
   }
 
   FinderState copyWith({

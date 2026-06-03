@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../constants/finder_ui_constants.dart';
 import '../models/finder_location_ui_model.dart';
 import '../models/finder_participant_ui_model.dart';
@@ -131,7 +132,7 @@ class _FinderRadarCanvasState extends State<FinderRadarCanvas>
           ),
           FinderParticipantAvatar(
             imageUrl: widget.currentUserAvatarUrl,
-            name: 'You',
+            name: AppLocalizations.tr('finder_you'),
             size: 48,
             accentColor: colorScheme.primary,
           ),
@@ -151,7 +152,7 @@ class _FinderRadarCanvasState extends State<FinderRadarCanvas>
                   ),
                 ),
                 child: Text(
-                  'Waiting for shared location',
+                  AppLocalizations.tr('finder_waiting_shared_location'),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w700,
@@ -279,14 +280,17 @@ class _RadarConnectionPainter extends CustomPainter {
     final angle = (relativeBearingDegrees - 90) * math.pi / 180;
     const arrowLength = 16.0;
     const arrowWidth = 11.0;
-    final tip = arrowCenter + Offset(math.cos(angle), math.sin(angle)) * arrowLength;
-    final left = arrowCenter +
+    final tip =
+        arrowCenter + Offset(math.cos(angle), math.sin(angle)) * arrowLength;
+    final left =
+        arrowCenter +
         Offset(
               math.cos(angle + math.pi * 0.72),
               math.sin(angle + math.pi * 0.72),
             ) *
             arrowWidth;
-    final right = arrowCenter +
+    final right =
+        arrowCenter +
         Offset(
               math.cos(angle - math.pi * 0.72),
               math.sin(angle - math.pi * 0.72),

@@ -1,5 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 
+import '../../../../core/utils/app_localizations.dart';
+
 class FinderLocationUiModel {
   const FinderLocationUiModel({
     required this.latitude,
@@ -79,12 +81,16 @@ class FinderNavigationUiModel {
   bool get isVeryClose => distanceMeters <= 5;
 
   String get turnDetailLabel {
-    if (!usesDeviceHeading) return 'Approximate compass direction';
+    if (!usesDeviceHeading) return AppLocalizations.tr('finder_approx_compass');
     final turnDegrees = relativeBearingDegrees <= 180
         ? relativeBearingDegrees
         : 360 - relativeBearingDegrees;
-    if (turnDegrees <= 22.5) return 'Straight ahead';
-    final side = relativeBearingDegrees < 180 ? 'right' : 'left';
-    return 'Turn ${turnDegrees.round()} degrees $side';
+    if (turnDegrees <= 22.5) {
+      return AppLocalizations.tr('finder_straight_ahead');
+    }
+    final side = relativeBearingDegrees < 180
+        ? AppLocalizations.tr('finder_right')
+        : AppLocalizations.tr('finder_left');
+    return '${AppLocalizations.tr('finder_turn_degrees')} ${turnDegrees.round()} ${AppLocalizations.tr('finder_degrees')} $side';
   }
 }

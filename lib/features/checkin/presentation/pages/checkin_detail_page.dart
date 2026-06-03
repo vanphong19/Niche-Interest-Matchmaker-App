@@ -30,7 +30,7 @@ class CheckinDetailPage extends StatelessWidget {
         eventDetails ?? CheckinEventDetails.fallback(matchId: matchId);
 
     return CheckinScaffold(
-      title: 'Meetup Verified',
+      title: AppLocalizations.tr('checkin_feature_title'),
       leadingIcon: Icons.arrow_back_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       activeTab: CheckinShellTab.meetups,
@@ -59,9 +59,9 @@ class CheckinDetailPage extends StatelessWidget {
                       onCheckin: () {
                         if (!details.hasMatchContext) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                'This check-in is missing meetup context.',
+                                AppLocalizations.tr('checkin_missing_context'),
                               ),
                             ),
                           );
@@ -163,7 +163,7 @@ class _CheckinActionPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'You are checked in',
+                    AppLocalizations.tr('checkin_checked_in_title'),
                     style: AppTextStyles.headingSmall.copyWith(
                       color: colorScheme.onSurface,
                       fontWeight: FontWeight.w900,
@@ -172,7 +172,7 @@ class _CheckinActionPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Your arrival has been verified. Enjoy the meetup.',
+                    AppLocalizations.tr('checkin_checked_in_desc'),
                     style: AppTextStyles.bodySmall.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -236,7 +236,7 @@ class _CheckinActionPanel extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'NFC tag and time window will be checked automatically.',
+                      AppLocalizations.tr('checkin_auto_verify_note'),
                       style: AppTextStyles.captionMedium.copyWith(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w700,

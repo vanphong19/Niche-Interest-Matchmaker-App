@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/finder_participant_ui_model.dart';
 import 'finder_glass_panel.dart';
 
@@ -30,13 +31,13 @@ class FinderSignalCard extends StatelessWidget {
         children: [
           _SignalMetric(
             icon: Icons.near_me_rounded,
-            label: 'Distance',
+            label: AppLocalizations.tr('finder_distance'),
             value: distanceLabel ?? participant.distanceLabel,
           ),
           const SizedBox(width: AppSpacing.sm),
           _SignalMetric(
             icon: Icons.explore_rounded,
-            label: 'Direction',
+            label: AppLocalizations.tr('finder_direction'),
             value: directionLabel ?? participant.directionLabel,
           ),
           const SizedBox(width: AppSpacing.sm),

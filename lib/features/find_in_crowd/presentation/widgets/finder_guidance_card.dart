@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/finder_location_ui_model.dart';
 import 'finder_glass_panel.dart';
 
@@ -25,10 +26,10 @@ class FinderGuidanceCard extends StatelessWidget {
         ? colorScheme.tertiary
         : colorScheme.primary;
     final title = currentNavigation == null
-        ? 'Waiting for shared location'
+        ? AppLocalizations.tr('finder_waiting_shared_location')
         : currentNavigation.stepInstructionLabel;
     final subtitle = currentNavigation == null
-        ? 'Keep both apps open so Finder can receive live updates.'
+        ? AppLocalizations.tr('finder_guidance_keep_apps_open')
         : _subtitleFor(currentNavigation);
 
     return FinderGlassPanel(
@@ -82,8 +83,8 @@ class FinderGuidanceCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     isStale
-                        ? 'Signal is stale. Ask them to keep the app open.'
-                        : 'GPS is weak. Move near an open area for steadier guidance.',
+                        ? AppLocalizations.tr('finder_signal_stale')
+                        : AppLocalizations.tr('finder_gps_weak_open_area'),
                     style: AppTextStyles.captionSmall.copyWith(
                       color: iconColor,
                       fontWeight: FontWeight.w800,
@@ -101,6 +102,6 @@ class FinderGuidanceCard extends StatelessWidget {
   String _subtitleFor(FinderNavigationUiModel navigation) {
     final direction = navigation.guidanceLabel;
     final accuracy = navigation.headingConfidenceLabel;
-    return '$direction - ${navigation.distanceLabel} away - $accuracy';
+    return '$direction - ${navigation.distanceLabel} ${AppLocalizations.tr('finder_away')} - $accuracy';
   }
 }

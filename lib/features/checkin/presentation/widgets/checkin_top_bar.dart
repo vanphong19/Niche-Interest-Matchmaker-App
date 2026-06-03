@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 
 class CheckinTopBar extends StatelessWidget {
   const CheckinTopBar({
     super.key,
-    this.title = 'Check-in',
+    this.title,
     this.leadingIcon,
     this.onLeadingPressed,
     this.trailingIcon,
     this.onTrailingPressed,
   });
 
-  final String title;
+  final String? title;
   final IconData? leadingIcon;
   final VoidCallback? onLeadingPressed;
   final IconData? trailingIcon;
@@ -44,7 +45,7 @@ class CheckinTopBar extends StatelessWidget {
             ],
             Expanded(
               child: Text(
-                title,
+                title ?? AppLocalizations.tr('checkin_title'),
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w800,

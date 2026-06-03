@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_app_bar.dart';
 import '../../../../injection/injection_container.dart';
@@ -45,8 +46,8 @@ class _VibeCheckResultBody extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLow,
-      appBar: const VibeAppBar(
-        title: 'Vibe Check',
+      appBar: VibeAppBar(
+        title: AppLocalizations.tr('vibe_check_title'),
         showBack: true,
         translucent: true,
       ),
@@ -84,7 +85,7 @@ class _LoadingView extends StatelessWidget {
             CircularProgressIndicator(color: colorScheme.primary),
             const SizedBox(height: AppSpacing.xl),
             Text(
-              'AI dang phan tich vibe...',
+              AppLocalizations.tr('vibe_check_loading_title'),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: colorScheme.onSurfaceVariant,
@@ -92,7 +93,7 @@ class _LoadingView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Dang so sanh so thich, bio va cac tin hieu khac.',
+              AppLocalizations.tr('vibe_check_loading_desc'),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall.copyWith(
                 color: colorScheme.outline,
@@ -123,7 +124,7 @@ class _ErrorView extends StatelessWidget {
             Icon(Icons.error_outline, size: 64, color: colorScheme.error),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Chua xem duoc vibe',
+              AppLocalizations.tr('vibe_check_error_title'),
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -140,7 +141,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Quay lai'),
+              child: Text(AppLocalizations.tr('back')),
             ),
           ],
         ),
@@ -172,7 +173,7 @@ class _SuccessView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Vibe voi ${result.targetUserName}',
+            '${AppLocalizations.tr('vibe_check_with')} ${result.targetUserName}',
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -192,14 +193,14 @@ class _SuccessView extends StatelessWidget {
           ],
           const SizedBox(height: AppSpacing.lg),
           _InsightSection(
-            title: 'Diem manh',
+            title: AppLocalizations.tr('strengths'),
             icon: Icons.thumb_up_rounded,
             iconColor: Colors.green,
             items: result.strengths,
           ),
           const SizedBox(height: AppSpacing.md),
           _InsightSection(
-            title: 'Can luu y',
+            title: AppLocalizations.tr('considerations'),
             icon: Icons.info_rounded,
             iconColor: Colors.orange,
             items: result.risks,
@@ -207,7 +208,7 @@ class _SuccessView extends StatelessWidget {
           if (result.conversationStarters.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             _SectionCard(
-              title: 'Goi y bat chuyen',
+              title: AppLocalizations.tr('conversation_starters'),
               icon: Icons.chat_bubble_outline_rounded,
               items: result.conversationStarters,
             ),
@@ -215,7 +216,7 @@ class _SuccessView extends StatelessWidget {
           if (result.suggestedDateIdeas.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             _SectionCard(
-              title: 'Keo co the ru',
+              title: AppLocalizations.tr('date_ideas'),
               icon: Icons.event_rounded,
               items: result.suggestedDateIdeas,
             ),
@@ -226,7 +227,7 @@ class _SuccessView extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.close),
-              label: const Text('Dong'),
+              label: Text(AppLocalizations.tr('close')),
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -282,28 +283,32 @@ class _VerdictSection extends StatelessWidget {
         ? Colors.orange
         : colorScheme.error;
     final verdictLabel = score >= 0.75
-        ? 'Rat dang thu'
+        ? AppLocalizations.tr('verdict_strong')
         : score >= 0.50
-        ? 'Co the thu nhe'
-        : 'Nen tim hieu them';
+        ? AppLocalizations.tr('verdict_medium')
+        : AppLocalizations.tr('verdict_low');
 
     final rows = [
       (
         Icons.person_search_rounded,
-        'Nguoi nay nhu the nao',
+        AppLocalizations.tr('personality_take'),
         result.personalityTake,
       ),
       (
         Icons.favorite_border_rounded,
-        'Ket luan do hop',
+        AppLocalizations.tr('compatibility_conclusion'),
         result.compatibilityConclusion,
       ),
       (
         Icons.event_available_rounded,
-        'Co nen moi di choi?',
+        AppLocalizations.tr('date_recommendation'),
         result.dateRecommendation,
       ),
-      (Icons.arrow_forward_rounded, 'Buoc tiep theo', result.nextStep),
+      (
+        Icons.arrow_forward_rounded,
+        AppLocalizations.tr('next_step'),
+        result.nextStep,
+      ),
     ].where((row) => row.$3.trim().isNotEmpty).toList();
 
     if (rows.isEmpty) return const SizedBox.shrink();
@@ -336,7 +341,7 @@ class _VerdictSection extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    'Ket luan',
+                    AppLocalizations.tr('verdict'),
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -482,12 +487,36 @@ class _BreakdownSection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final items = [
-      ('So thich', breakdown.interests, Icons.interests_rounded),
-      ('Bio', breakdown.bio, Icons.person_outline_rounded),
-      ('Lifestyle', breakdown.lifestyle, Icons.home_rounded),
-      ('Event', breakdown.eventPreference, Icons.event_rounded),
-      ('Dia diem', breakdown.location, Icons.location_on_rounded),
-      ('Uy tin', breakdown.reputation, Icons.verified_rounded),
+      (
+        AppLocalizations.tr('interests'),
+        breakdown.interests,
+        Icons.interests_rounded,
+      ),
+      (
+        AppLocalizations.tr('bio_label'),
+        breakdown.bio,
+        Icons.person_outline_rounded,
+      ),
+      (
+        AppLocalizations.tr('lifestyle'),
+        breakdown.lifestyle,
+        Icons.home_rounded,
+      ),
+      (
+        AppLocalizations.tr('event'),
+        breakdown.eventPreference,
+        Icons.event_rounded,
+      ),
+      (
+        AppLocalizations.tr('location'),
+        breakdown.location,
+        Icons.location_on_rounded,
+      ),
+      (
+        AppLocalizations.tr('reputation'),
+        breakdown.reputation,
+        Icons.verified_rounded,
+      ),
     ];
 
     return Card(
@@ -502,7 +531,7 @@ class _BreakdownSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Chi tiet diem so',
+              AppLocalizations.tr('score_breakdown'),
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -592,7 +621,7 @@ class _CommonInterestsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'So thich chung',
+          AppLocalizations.tr('common_interests'),
           style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: AppSpacing.sm),

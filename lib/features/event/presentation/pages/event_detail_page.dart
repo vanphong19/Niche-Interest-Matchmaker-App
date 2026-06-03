@@ -877,7 +877,7 @@ class _EventDetailPageState extends State<EventDetailPage>
           ),
         ),
         title: const Text(
-          'Nhắn tin nhóm',
+          'Chat group',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w800,
@@ -885,7 +885,7 @@ class _EventDetailPageState extends State<EventDetailPage>
           ),
         ),
         subtitle: const Text(
-          'Trao đổi với host và các thành viên',
+          'Discuss with host and member',
           style: TextStyle(fontSize: 12, color: AppColors.textHint),
         ),
         trailing: Container(
@@ -895,7 +895,7 @@ class _EventDetailPageState extends State<EventDetailPage>
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(
-            'Vào chat',
+            'Chat',
             style: TextStyle(
               color: Colors.white,
               fontSize: 12,
@@ -933,7 +933,7 @@ class _EventDetailPageState extends State<EventDetailPage>
       if (_isHost(event)) {
         final created = await chatApi.createGroupChatRoom(
           event.id,
-          name: '${event.title} - Nhóm chat',
+          name: '${event.title} - Group chat',
         );
         if (!mounted) return;
         await Navigator.of(context).push<void>(

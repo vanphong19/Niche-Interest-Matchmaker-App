@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/responsive_layout.dart';
 import '../../../../core/widgets/vibe_app_bar.dart';
 import '../widgets/app_button.dart';
@@ -20,13 +21,13 @@ class UserDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bgSecondary,
       appBar: VibeAppBar(
-        title: 'Profile',
+        title: AppLocalizations.tr('profile'),
         translucent: true,
         actions: [
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.more_vert_rounded),
-            tooltip: 'More options',
+            tooltip: AppLocalizations.tr('more_options'),
           ),
         ],
       ),
@@ -55,7 +56,7 @@ class UserDetailScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: AppButton(
-                  label: 'Message',
+                  label: AppLocalizations.tr('message'),
                   icon: Icons.chat_bubble_rounded,
                   filled: false,
                   onPressed: () {},
@@ -64,7 +65,7 @@ class UserDetailScreen extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: AppButton(
-                  label: 'Invite to Event',
+                  label: AppLocalizations.tr('invite_to_event'),
                   icon: Icons.event_rounded,
                   onPressed: () {},
                 ),
@@ -215,40 +216,40 @@ class _ProfileMatchSummary extends StatelessWidget {
           final compact = constraints.maxWidth <= 420;
 
           if (compact) {
-            return const Column(
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _MetricBlock(
-                  label: 'Vibe Match',
-                  primary: 'High',
-                  secondary: '92% Compatibility',
+                  label: AppLocalizations.tr('vibe_match_title'),
+                  primary: AppLocalizations.tr('high'),
+                  secondary: '92% ${AppLocalizations.tr('compatibility')}',
                   primaryColor: AppColors.secondary,
                 ),
-                SizedBox(height: AppSpacing.lg),
-                Divider(color: AppColors.borderLight),
-                SizedBox(height: AppSpacing.lg),
-                _ReputationBlock(),
+                const SizedBox(height: AppSpacing.lg),
+                const Divider(color: AppColors.borderLight),
+                const SizedBox(height: AppSpacing.lg),
+                const _ReputationBlock(),
               ],
             );
           }
 
-          return const Row(
+          return Row(
             children: [
               Expanded(
                 child: _MetricBlock(
-                  label: 'Vibe Match',
-                  primary: 'High',
-                  secondary: '92% Compatibility',
+                  label: AppLocalizations.tr('vibe_match_title'),
+                  primary: AppLocalizations.tr('high'),
+                  secondary: '92% ${AppLocalizations.tr('compatibility')}',
                   primaryColor: AppColors.secondary,
                 ),
               ),
-              SizedBox(width: AppSpacing.lg),
-              SizedBox(
+              const SizedBox(width: AppSpacing.lg),
+              const SizedBox(
                 height: 50,
                 child: VerticalDivider(color: AppColors.borderLight),
               ),
-              SizedBox(width: AppSpacing.lg),
-              Expanded(child: _ReputationBlock()),
+              const SizedBox(width: AppSpacing.lg),
+              const Expanded(child: _ReputationBlock()),
             ],
           );
         },
@@ -313,7 +314,7 @@ class _ReputationBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Reputation',
+          AppLocalizations.tr('reputation'),
           style: AppTextStyles.labelLarge.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -330,7 +331,10 @@ class _ReputationBlock extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.xs),
-            Text('(42 Meetups)', style: AppTextStyles.captionLarge),
+            Text(
+              '(42 ${AppLocalizations.tr('meetups')})',
+              style: AppTextStyles.captionLarge,
+            ),
           ],
         ),
       ],
@@ -347,21 +351,21 @@ class _AboutAndInterests extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'About Sarah',
+          AppLocalizations.tr('about_user'),
           style: AppTextStyles.headingMedium.copyWith(
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
-          'Always down for a spontaneous coffee run or a long hike at the greenbelt. Looking for folks who enjoy trying new food spots and deep conversations over matcha.',
+          AppLocalizations.tr('about_user_desc'),
           style: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(
-          'INTERESTS',
+          AppLocalizations.tr('interests').toUpperCase(),
           style: AppTextStyles.captionSmall.copyWith(
             color: AppColors.textSecondary,
             letterSpacing: 1,
@@ -404,7 +408,7 @@ class _RecentActivity extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Recent Activity',
+          AppLocalizations.tr('recent_activity'),
           style: AppTextStyles.headingMedium.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -413,20 +417,20 @@ class _RecentActivity extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             if (constraints.maxWidth < 720) {
-              return const Column(
+              return Column(
                 children: [
                   UserActivityCard(
-                    type: 'HOSTED',
+                    type: AppLocalizations.tr('hosted_upper'),
                     title: 'Sunday Morning Hike',
-                    timeLabel: 'Last week',
+                    timeLabel: AppLocalizations.tr('last_week'),
                     icon: Icons.park_rounded,
                     accentColor: AppColors.primary,
                   ),
-                  SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.md),
                   UserActivityCard(
-                    type: 'ATTENDED',
+                    type: AppLocalizations.tr('attended_upper'),
                     title: 'Downtown Art Walk',
-                    timeLabel: '2 weeks ago',
+                    timeLabel: AppLocalizations.tr('two_weeks_ago'),
                     icon: Icons.palette_rounded,
                     accentColor: AppColors.warning,
                   ),
@@ -434,24 +438,24 @@ class _RecentActivity extends StatelessWidget {
               );
             }
 
-            return const Row(
+            return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: UserActivityCard(
-                    type: 'HOSTED',
+                    type: AppLocalizations.tr('hosted_upper'),
                     title: 'Sunday Morning Hike',
-                    timeLabel: 'Last week',
+                    timeLabel: AppLocalizations.tr('last_week'),
                     icon: Icons.park_rounded,
                     accentColor: AppColors.primary,
                   ),
                 ),
-                SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: UserActivityCard(
-                    type: 'ATTENDED',
+                    type: AppLocalizations.tr('attended_upper'),
                     title: 'Downtown Art Walk',
-                    timeLabel: '2 weeks ago',
+                    timeLabel: AppLocalizations.tr('two_weeks_ago'),
                     icon: Icons.palette_rounded,
                     accentColor: AppColors.warning,
                   ),

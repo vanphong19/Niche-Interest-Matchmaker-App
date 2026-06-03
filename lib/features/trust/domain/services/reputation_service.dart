@@ -8,11 +8,11 @@ import '../entities/user_trust.dart';
 // ─── Cấp độ uy tín ────────────────────────────────────────────────────────────
 
 enum TrustLevel {
-  gold,    // 90–100
-  blue,    // 75–89
-  yellow,  // 60–74
-  orange,  // 40–59
-  red,     // 0–39
+  gold, // 90–100
+  blue, // 75–89
+  yellow, // 60–74
+  orange, // 40–59
+  red, // 0–39
 }
 
 class TrustLevelData {
@@ -42,42 +42,62 @@ class ReputationService {
     if (score >= 90) {
       return const TrustLevelData(
         level: TrustLevel.gold,
-        label: 'Người giữ lời vàng',
+        label: 'Person who keeps the promise',
         emoji: '🏆',
         color: Color(0xFF22C55E),
-        gradientColors: [Color(0xFF16A34A), Color(0xFF22C55E), Color(0xFF4ADE80)],
+        gradientColors: [
+          Color(0xFF16A34A),
+          Color(0xFF22C55E),
+          Color(0xFF4ADE80),
+        ],
       );
     } else if (score >= 75) {
       return const TrustLevelData(
         level: TrustLevel.blue,
-        label: 'Đồng đội đáng tin',
+        label: 'Trusted teammate',
         emoji: '💎',
         color: Color(0xFF3B82F6),
-        gradientColors: [Color(0xFF1D4ED8), Color(0xFF3B82F6), Color(0xFF60A5FA)],
+        gradientColors: [
+          Color(0xFF1D4ED8),
+          Color(0xFF3B82F6),
+          Color(0xFF60A5FA),
+        ],
       );
     } else if (score >= 60) {
       return const TrustLevelData(
         level: TrustLevel.yellow,
-        label: 'Cần cố gắng thêm',
+        label: 'Person who needs to improve',
         emoji: '⚡',
         color: Color(0xFFF59E0B),
-        gradientColors: [Color(0xFFD97706), Color(0xFFF59E0B), Color(0xFFFBBF24)],
+        gradientColors: [
+          Color(0xFFD97706),
+          Color(0xFFF59E0B),
+          Color(0xFFFBBF24),
+        ],
       );
     } else if (score >= 40) {
       return const TrustLevelData(
         level: TrustLevel.orange,
-        label: 'Hay bốc hơi',
+        label: 'Person who is inconsistent',
         emoji: '🌊',
         color: Color(0xFFF97316),
-        gradientColors: [Color(0xFFEA580C), Color(0xFFF97316), Color(0xFFFB923C)],
+        gradientColors: [
+          Color(0xFFEA580C),
+          Color(0xFFF97316),
+          Color(0xFFFB923C),
+        ],
       );
     } else {
       return const TrustLevelData(
         level: TrustLevel.red,
-        label: 'Báo động leo cây',
+        label: 'Person who is a danger',
         emoji: '🚨',
         color: Color(0xFFEF4444),
-        gradientColors: [Color(0xFFDC2626), Color(0xFFEF4444), Color(0xFFF87171)],
+        gradientColors: [
+          Color(0xFFDC2626),
+          Color(0xFFEF4444),
+          Color(0xFFF87171),
+        ],
       );
     }
   }
@@ -144,9 +164,11 @@ class ReputationService {
   static int getNoShowsLast30Days(List<TrustEventLog> logs) {
     final cutoff = DateTime.now().subtract(const Duration(days: 30));
     return logs
-        .where((log) =>
-            log.reason == TrustLogReason.noShow &&
-            log.timestamp.isAfter(cutoff))
+        .where(
+          (log) =>
+              log.reason == TrustLogReason.noShow &&
+              log.timestamp.isAfter(cutoff),
+        )
         .length;
   }
 
