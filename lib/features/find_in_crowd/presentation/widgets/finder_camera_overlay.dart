@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/finder_location_ui_model.dart';
 import '../models/finder_participant_ui_model.dart';
 import 'finder_participant_avatar.dart';
@@ -38,7 +39,7 @@ class FinderCameraOverlay extends StatelessWidget {
                   borderRadius: AppSpacing.borderRadiusPill,
                 ),
                 child: Text(
-                  'Visual Finder',
+                  AppLocalizations.tr('finder_visual_title'),
                   style: AppTextStyles.captionMedium.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w700,
@@ -63,7 +64,8 @@ class FinderCameraOverlay extends StatelessWidget {
           right: 24,
           child: _DirectionArrow(
             directionLabel:
-                navigation?.guidanceLabel ?? 'Waiting for shared location',
+                navigation?.guidanceLabel ??
+                AppLocalizations.tr('finder_waiting_shared_location'),
             compassLabel: navigation?.directionLabel,
             distanceLabel: navigation?.distanceLabel,
             detailLabel: navigation?.turnDetailLabel,
@@ -89,7 +91,7 @@ class FinderCameraOverlay extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    'GPS-based approximate direction to ${participant.name}. Keep scanning visually when you get close.',
+                    '${AppLocalizations.tr('finder_camera_note_prefix')} ${participant.name}. ${AppLocalizations.tr('finder_camera_note_suffix')}',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
@@ -168,7 +170,7 @@ class _DirectionArrow extends StatelessWidget {
                 ),
                 Text(
                   distanceLabel == null || compassLabel == null
-                      ? 'No target position yet'
+                      ? AppLocalizations.tr('finder_no_target_position')
                       : '$distanceLabel - $compassLabel',
                   style: AppTextStyles.captionMedium.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -257,7 +259,8 @@ class _TargetReticle extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                navigation?.distanceLabel ?? 'waiting',
+                navigation?.distanceLabel ??
+                    AppLocalizations.tr('finder_waiting_location'),
                 style: AppTextStyles.labelMedium.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.w900,

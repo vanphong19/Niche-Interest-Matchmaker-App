@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/widgets/avatar_widget.dart';
 import '../../../../core/widgets/vibe_app_bar.dart';
 import '../../../../injection/injection_container.dart';
@@ -42,8 +43,8 @@ class _GroupVibeCheckResultBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgSecondary,
-      appBar: const VibeAppBar(
-        title: 'Group Vibe Check',
+      appBar: VibeAppBar(
+        title: AppLocalizations.tr('group_vibe_check_title'),
         showBack: true,
         translucent: true,
       ),
@@ -72,22 +73,22 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(AppSpacing.xxl),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: AppColors.primary),
-            SizedBox(height: AppSpacing.xl),
+            const CircularProgressIndicator(color: AppColors.primary),
+            const SizedBox(height: AppSpacing.xl),
             Text(
-              'AI đang đọc vibe của nhóm...',
+              AppLocalizations.tr('group_vibe_loading_title'),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMediumSemiBold,
             ),
-            SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.sm),
             Text(
-              'Đang so sánh participants, chủ đề event và tín hiệu an toàn.',
+              AppLocalizations.tr('group_vibe_loading_desc'),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall,
             ),
@@ -137,7 +138,7 @@ class _ErrorView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Chưa xem được vibe nhóm',
+              AppLocalizations.tr('group_vibe_error_title'),
               textAlign: TextAlign.center,
               style: AppTextStyles.headingSmall.copyWith(
                 fontWeight: FontWeight.w800,
@@ -159,7 +160,7 @@ class _ErrorView extends StatelessWidget {
                   onPressed: () =>
                       context.router.push(const EditProfileRoute()),
                   icon: const Icon(Icons.edit_rounded),
-                  label: const Text('Cập nhật hồ sơ'),
+                  label: Text(AppLocalizations.tr('update_profile')),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -169,7 +170,7 @@ class _ErrorView extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back_rounded),
-                label: const Text('Quay lại event'),
+                label: Text(AppLocalizations.tr('back_to_event')),
               ),
             ),
           ],
@@ -180,13 +181,13 @@ class _ErrorView extends StatelessWidget {
 
   String _fallbackMessage(String value) {
     if (value.trim().isEmpty) {
-      return 'Event này chưa có đủ dữ liệu để phân tích vibe nhóm.';
+      return AppLocalizations.tr('group_vibe_empty_error');
     }
     if (value == 'Bad request') {
-      return 'Event này chưa có đủ người hoặc hồ sơ của bạn cần thêm bio/sở thích.';
+      return AppLocalizations.tr('group_vibe_bad_request');
     }
     if (value == 'Access denied') {
-      return 'Bạn cần được duyệt vào event trước khi xem vibe nhóm.';
+      return AppLocalizations.tr('group_vibe_access_denied');
     }
     return value;
   }
@@ -214,28 +215,28 @@ class _SuccessView extends StatelessWidget {
               _TopMatchesSection(matches: result.topMatches),
               const SizedBox(height: AppSpacing.lg),
               _InsightListCard(
-                title: 'Điểm mạnh của nhóm',
+                title: AppLocalizations.tr('group_strengths'),
                 icon: Icons.thumb_up_alt_rounded,
                 iconColor: AppColors.success,
                 items: result.groupStrengths,
               ),
               const SizedBox(height: AppSpacing.md),
               _InsightListCard(
-                title: 'Cần lưu ý',
+                title: AppLocalizations.tr('watchouts'),
                 icon: Icons.info_rounded,
                 iconColor: AppColors.warning,
                 items: result.watchouts,
               ),
               const SizedBox(height: AppSpacing.md),
               _InsightListCard(
-                title: 'Gợi ý bắt chuyện',
+                title: AppLocalizations.tr('conversation_starters'),
                 icon: Icons.chat_bubble_outline_rounded,
                 iconColor: AppColors.info,
                 items: result.conversationAngles,
               ),
               const SizedBox(height: AppSpacing.md),
               _InsightListCard(
-                title: 'Hành động nên thử',
+                title: AppLocalizations.tr('suggested_actions'),
                 icon: Icons.bolt_rounded,
                 iconColor: AppColors.primary,
                 items: result.suggestedActions,
@@ -274,7 +275,8 @@ class _HeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '${result.groupSize} members • phân tích ${result.analyzedMemberCount}',
+            '${result.groupSize} ${AppLocalizations.tr('members')} - '
+            '${AppLocalizations.tr('analyzed')} ${result.analyzedMemberCount}',
             textAlign: TextAlign.center,
             style: AppTextStyles.captionLarge,
           ),
@@ -353,8 +355,8 @@ class _RecommendationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(
-            title: 'Nhóm này có hợp với bạn không?',
+          _SectionHeader(
+            title: AppLocalizations.tr('group_recommendation_title'),
             icon: Icons.psychology_alt_rounded,
             color: AppColors.primary,
           ),
@@ -395,20 +397,40 @@ class _BreakdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = [
-      ('Member compatibility', breakdown.memberCompatibility, Icons.groups_2),
-      ('Interest alignment', breakdown.interestAlignment, Icons.interests),
-      ('Event fit', breakdown.eventFit, Icons.event_available),
-      ('Social comfort', breakdown.socialComfort, Icons.volunteer_activism),
-      ('Location fit', breakdown.locationFit, Icons.place),
-      ('Group reliability', breakdown.groupReliability, Icons.verified),
+      (
+        AppLocalizations.tr('member_compatibility'),
+        breakdown.memberCompatibility,
+        Icons.groups_2,
+      ),
+      (
+        AppLocalizations.tr('interest_alignment'),
+        breakdown.interestAlignment,
+        Icons.interests,
+      ),
+      (
+        AppLocalizations.tr('event_fit'),
+        breakdown.eventFit,
+        Icons.event_available,
+      ),
+      (
+        AppLocalizations.tr('social_comfort'),
+        breakdown.socialComfort,
+        Icons.volunteer_activism,
+      ),
+      (AppLocalizations.tr('location_fit'), breakdown.locationFit, Icons.place),
+      (
+        AppLocalizations.tr('group_reliability'),
+        breakdown.groupReliability,
+        Icons.verified,
+      ),
     ];
 
     return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(
-            title: 'Breakdown',
+          _SectionHeader(
+            title: AppLocalizations.tr('breakdown'),
             icon: Icons.analytics_outlined,
             color: AppColors.accent,
           ),
@@ -433,15 +455,15 @@ class _TopMatchesSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(
-            title: 'Top matches trong nhóm',
+          _SectionHeader(
+            title: AppLocalizations.tr('top_matches_in_group'),
             icon: Icons.favorite_rounded,
             color: AppColors.error,
           ),
           const SizedBox(height: AppSpacing.md),
           if (matches.isEmpty)
             Text(
-              'Chưa có thành viên nổi bật để gợi ý.',
+              AppLocalizations.tr('no_group_top_matches'),
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -487,7 +509,9 @@ class _TopMatchTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          match.name.isEmpty ? 'Member' : match.name,
+                          match.name.isEmpty
+                              ? AppLocalizations.tr('member')
+                              : match.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.bodyMediumSemiBold,
@@ -598,8 +622,8 @@ class _FallbackNotice extends StatelessWidget {
           Expanded(
             child: Text(
               reason == null
-                  ? 'Insight được tạo bằng fallback từ dữ liệu đã tính.'
-                  : 'Insight fallback: $reason',
+                  ? AppLocalizations.tr('fallback_insight_computed')
+                  : '${AppLocalizations.tr('fallback_insight_prefix')}: $reason',
               style: AppTextStyles.captionLarge,
             ),
           ),

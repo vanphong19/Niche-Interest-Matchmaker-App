@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/responsive_layout.dart';
 import '../../../../core/widgets/vibe_app_bar.dart';
 import '../widgets/app_button.dart';
@@ -32,7 +33,7 @@ class GroupVibeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bgSecondary,
       appBar: VibeAppBar(
-        title: 'Vibe Match',
+        title: AppLocalizations.tr('vibe_match_title'),
         showBack: false,
         leading: Padding(
           padding: const EdgeInsets.all(8),
@@ -46,7 +47,7 @@ class GroupVibeScreen extends StatelessWidget {
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Settings',
+            tooltip: AppLocalizations.tr('settings'),
           ),
         ],
       ),
@@ -105,7 +106,7 @@ class _GroupHeader extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'Group Analysis',
+          AppLocalizations.tr('group_analysis'),
           style: AppTextStyles.captionMedium.copyWith(
             color: AppColors.textSecondary,
             letterSpacing: 1,
@@ -178,14 +179,14 @@ class _ScoreHero extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Exceptional Vibe',
+            AppLocalizations.tr('exceptional_vibe'),
             style: AppTextStyles.headingMedium.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'This group has incredibly high energy alignment. Perfect for long, active outings.',
+            AppLocalizations.tr('exceptional_vibe_desc'),
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -272,18 +273,18 @@ class _InsightsSection extends StatelessWidget {
         final isWide = constraints.maxWidth >= 640;
 
         final cards = [
-          const GroupVibeMemberCard(
-            header: 'Strongest Match',
+          GroupVibeMemberCard(
+            header: AppLocalizations.tr('strongest_match'),
             title: 'Sarah J.',
-            subtitle: '98% Match',
+            subtitle: '98% ${AppLocalizations.tr('match')}',
             icon: Icons.favorite,
             iconColor: AppColors.secondary,
             imageUrl: GroupVibeScreen._avatarA,
           ),
-          const GroupVibeMemberCard(
-            header: 'Vibe Check',
+          GroupVibeMemberCard(
+            header: AppLocalizations.tr('vibe_check_title'),
             title: 'Mike T.',
-            subtitle: 'Low Pace Match',
+            subtitle: AppLocalizations.tr('low_pace_match'),
             icon: Icons.info,
             iconColor: AppColors.warning,
             imageUrl: GroupVibeScreen._avatarD,
@@ -311,21 +312,21 @@ class _InsightsSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Group Personality',
+                    AppLocalizations.tr('group_personality'),
                     style: AppTextStyles.headingSmall.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'The majority of this group prefers an energetic, fast-paced environment. Consider adjusting the route to accommodate Mike\'s preferred casual pace.',
+                    AppLocalizations.tr('group_personality_desc'),
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   AppButton(
-                    label: 'Suggest Route Adjustment',
+                    label: AppLocalizations.tr('suggest_route_adjustment'),
                     filled: false,
                     onPressed: () {},
                   ),

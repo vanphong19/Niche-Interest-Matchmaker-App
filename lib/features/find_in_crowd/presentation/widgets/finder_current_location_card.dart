@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/finder_location_ui_model.dart';
 import 'finder_action_button.dart';
 import 'finder_glass_panel.dart';
@@ -57,8 +58,10 @@ class FinderCurrentLocationCard extends StatelessWidget {
                   children: [
                     Text(
                       hasLocation
-                          ? 'Current GPS position'
-                          : 'GPS permission required',
+                          ? AppLocalizations.tr('finder_current_gps_position')
+                          : AppLocalizations.tr(
+                              'finder_gps_permission_required',
+                            ),
                       style: AppTextStyles.bodyMediumSemiBold.copyWith(
                         color: colorScheme.onSurface,
                       ),
@@ -67,7 +70,7 @@ class FinderCurrentLocationCard extends StatelessWidget {
                     Text(
                       hasLocation
                           ? location!.coordinateLabel
-                          : 'Allow location access to start the finder.',
+                          : AppLocalizations.tr('finder_allow_location_start'),
                       style: AppTextStyles.captionMedium.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -104,8 +107,10 @@ class FinderCurrentLocationCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             FinderActionButton(
               label: isLoading
-                  ? 'Getting location...'
-                  : (hasLocation ? 'Refresh GPS' : 'Allow GPS Access'),
+                  ? AppLocalizations.tr('finder_getting_location')
+                  : (hasLocation
+                        ? AppLocalizations.tr('finder_refresh_gps')
+                        : AppLocalizations.tr('finder_allow_gps_access')),
               icon: hasLocation
                   ? Icons.refresh_rounded
                   : Icons.gps_fixed_rounded,

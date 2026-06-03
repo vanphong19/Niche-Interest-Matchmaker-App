@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/responsive_layout.dart';
 import '../../../../core/widgets/vibe_app_bar.dart';
 import '../widgets/app_card.dart';
@@ -19,14 +20,14 @@ class MatchDetailsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bgSecondary,
       appBar: VibeAppBar(
-        title: 'Match Details',
+        title: AppLocalizations.tr('match_details_title'),
         showBack: true,
         translucent: true,
         actions: [
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.more_vert_rounded),
-            tooltip: 'More',
+            tooltip: AppLocalizations.tr('more'),
           ),
         ],
       ),
@@ -70,22 +71,24 @@ class _Content extends StatelessWidget {
                 builder: (context, constraints) {
                   final split = constraints.maxWidth >= 760;
                   if (!split) {
-                    return const Column(
+                    return Column(
                       children: [
                         MatchInsightCard(
-                          title: 'Strengths',
-                          description:
-                              'Strong match in sports. Both prefer high-intensity weekend activities and share similar skill levels in tennis.',
+                          title: AppLocalizations.tr('strengths'),
+                          description: AppLocalizations.tr(
+                            'match_strengths_desc',
+                          ),
                           leadingIcon: Icons.check_circle,
                           leadingBg: AppColors.successLight,
                           leadingFg: AppColors.secondary,
                           emphasisColor: AppColors.secondary,
                         ),
-                        SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.md),
                         MatchInsightCard(
-                          title: 'Considerations',
-                          description:
-                              'Contains 2 new users to the platform. Less historical data available for schedule reliability.',
+                          title: AppLocalizations.tr('considerations'),
+                          description: AppLocalizations.tr(
+                            'match_considerations_desc',
+                          ),
                           leadingIcon: Icons.info,
                           leadingBg: AppColors.errorLight,
                           leadingFg: AppColors.error,
@@ -95,26 +98,28 @@ class _Content extends StatelessWidget {
                     );
                   }
 
-                  return const Row(
+                  return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: MatchInsightCard(
-                          title: 'Strengths',
-                          description:
-                              'Strong match in sports. Both prefer high-intensity weekend activities and share similar skill levels in tennis.',
+                          title: AppLocalizations.tr('strengths'),
+                          description: AppLocalizations.tr(
+                            'match_strengths_desc',
+                          ),
                           leadingIcon: Icons.check_circle,
                           leadingBg: AppColors.successLight,
                           leadingFg: AppColors.secondary,
                           emphasisColor: AppColors.secondary,
                         ),
                       ),
-                      SizedBox(width: AppSpacing.md),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: MatchInsightCard(
-                          title: 'Considerations',
-                          description:
-                              'Contains 2 new users to the platform. Less historical data available for schedule reliability.',
+                          title: AppLocalizations.tr('considerations'),
+                          description: AppLocalizations.tr(
+                            'match_considerations_desc',
+                          ),
                           leadingIcon: Icons.info,
                           leadingBg: AppColors.errorLight,
                           leadingFg: AppColors.error,
@@ -200,13 +205,13 @@ class _ScoreHero extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(
-          'Vibe Match',
+          AppLocalizations.tr('vibe_match_title'),
           style: AppTextStyles.headingLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'High compatibility found',
+          AppLocalizations.tr('high_compatibility_found'),
           style: AppTextStyles.bodySmall.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -225,11 +230,14 @@ class _DeepDiveSection extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Compatibility Deep Dive', style: AppTextStyles.headingSmall),
-          SizedBox(height: AppSpacing.lg),
+        children: [
+          Text(
+            AppLocalizations.tr('compatibility_deep_dive'),
+            style: AppTextStyles.headingSmall,
+          ),
+          const SizedBox(height: AppSpacing.lg),
           MatchMetricBar.progress(
-            label: 'Interests',
+            label: AppLocalizations.tr('interests'),
             icon: Icons.interests_rounded,
             trailing: '90%',
             progress: 0.90,
@@ -238,20 +246,20 @@ class _DeepDiveSection extends StatelessWidget {
               colors: [AppColors.primary, AppColors.accentLight],
             ),
           ),
-          SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.lg),
           MatchMetricBar.spectrum(
-            label: 'Activity Style',
+            label: AppLocalizations.tr('activity_style'),
             icon: Icons.directions_run,
-            trailing: 'Competitive',
+            trailing: AppLocalizations.tr('competitive'),
             iconColor: AppColors.secondary,
             spectrumValue: 0.7,
-            leftHint: 'Casual',
-            rightHint: 'Intense',
+            leftHint: AppLocalizations.tr('casual'),
+            rightHint: AppLocalizations.tr('intense'),
             spectrumColor: AppColors.secondary,
           ),
-          SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.lg),
           MatchMetricBar.progress(
-            label: 'Schedule Match',
+            label: AppLocalizations.tr('schedule_match'),
             icon: Icons.calendar_month_rounded,
             trailing: '75%',
             progress: 0.75,
@@ -279,25 +287,25 @@ class _CompareSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'How you compare to group',
+          Text(
+            AppLocalizations.tr('how_you_compare_to_group'),
             style: AppTextStyles.headingSmall,
           ),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: _StatBlock(
-                  title: 'Your Score',
+                  title: AppLocalizations.tr('your_score'),
                   value: '85',
                   valueColor: AppColors.primary,
                   alignEnd: false,
                 ),
               ),
               Container(width: 1, height: 42, color: AppColors.borderLight),
-              const Expanded(
+              Expanded(
                 child: _StatBlock(
-                  title: 'Group Avg',
+                  title: AppLocalizations.tr('group_avg'),
                   value: '72',
                   alignEnd: true,
                 ),
@@ -318,7 +326,7 @@ class _CompareSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
               ),
               child: Text(
-                'You are in the top 15% for this group',
+                AppLocalizations.tr('you_top_group'),
                 style: AppTextStyles.captionMedium.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
@@ -430,7 +438,7 @@ class _CompareTrack extends StatelessWidget {
                 top: 0,
                 left: markerX - 12,
                 child: Text(
-                  'Avg',
+                  AppLocalizations.tr('avg'),
                   style: AppTextStyles.captionSmall.copyWith(
                     color: AppColors.textSecondary,
                   ),

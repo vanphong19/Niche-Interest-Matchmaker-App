@@ -11,6 +11,7 @@ import 'package:niche_interest_matchmaker_app/features/base/bloc/base_bloc.dart'
 import 'package:niche_interest_matchmaker_app/injection/injection_container.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/utils/app_localizations.dart';
 import '../../domain/entities/checkin_eligibility.dart';
 import '../../domain/usecases/check_in_with_strategy_usecase.dart';
 import '../../domain/usecases/get_checkin_eligibility_usecase.dart';
@@ -83,7 +84,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           qrStatus: QrCheckinStatus.failure,
-          errorMessage: 'Missing match context for QR check-in.',
+          errorMessage: AppLocalizations.tr('checkin_missing_qr_context'),
         ),
       );
       return;
@@ -112,8 +113,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           qrStatus: QrCheckinStatus.permissionDenied,
-          errorMessage:
-              'Camera permission is required to scan the event QR code.',
+          errorMessage: AppLocalizations.tr('checkin_qr_permission_required'),
         ),
       );
       return;
@@ -152,7 +152,9 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       _emitMethodFailure(
         emit: emit,
         qr: qr,
-        message: 'Missing match context for ${method.toUpperCase()} check-in.',
+        message:
+            '${AppLocalizations.tr('checkin_missing_method_context_prefix')} '
+            '${_methodLabel(method)} check-in.',
       );
       return false;
     }
@@ -177,7 +179,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
 
   String? _eligibilityMessage(CheckinEligibility eligibility, String method) {
     if (eligibility.alreadyCheckedIn) {
-      return 'You have already checked in for this meetup.';
+      return AppLocalizations.tr('checkin_already_checked_in_meetup');
     }
 
     if (!eligibility.canCheckIn) {
@@ -185,13 +187,14 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
         return null;
       }
       return _friendlyDisabledReason(
-        eligibility.disabledReason ?? 'Check-in is not available right now.',
+        eligibility.disabledReason ??
+            AppLocalizations.tr('checkin_not_available_now'),
       );
     }
 
     final availability = eligibility.methodAvailability(method);
     if (availability == null) {
-      return '${method.toUpperCase()} check-in is not available for this meetup.';
+      return '${_methodLabel(method)} ${AppLocalizations.tr('checkin_method_not_available')}';
     }
 
     if (!availability.enabled) {
@@ -200,7 +203,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       }
       return _friendlyDisabledReason(
         availability.disabledReason ??
-            '${method.toUpperCase()} check-in is currently disabled.',
+            '${_methodLabel(method)} ${AppLocalizations.tr('checkin_method_disabled')}',
       );
     }
 
@@ -220,21 +223,29 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
 
   String _friendlyDisabledReason(String reason) {
     return switch (reason) {
-      'not_participant' => 'You are not a participant of this meetup.',
-      'participant_not_approved' =>
-        'Your join request has not been approved yet.',
-      'match_cancelled' => 'This meetup is no longer active.',
-      'outside_time_window' =>
-        'Check-in is only available near the meetup time.',
-      'already_checked_in' => 'You have already checked in for this meetup.',
-      'location_not_supported' =>
-        'This meetup does not have a supported check-in location.',
-      'no_active_method' => 'No check-in method is active for this meetup.',
-      'no_active_nfc_tag' => 'No active NFC tag is available at this venue.',
-      'no_active_qr_code' => 'No active QR code is available at this venue.',
-      'location_missing_coordinates' =>
-        'The venue is missing GPS coordinates for QR check-in.',
-      'location_radius_missing' => 'The venue is missing a QR check-in radius.',
+      'not_participant' => AppLocalizations.tr('checkin_not_participant'),
+      'participant_not_approved' => AppLocalizations.tr(
+        'checkin_join_not_approved',
+      ),
+      'match_cancelled' => AppLocalizations.tr('checkin_match_cancelled'),
+      'outside_time_window' => AppLocalizations.tr(
+        'checkin_outside_time_window',
+      ),
+      'already_checked_in' => AppLocalizations.tr(
+        'checkin_already_checked_in_meetup',
+      ),
+      'location_not_supported' => AppLocalizations.tr(
+        'checkin_location_not_supported',
+      ),
+      'no_active_method' => AppLocalizations.tr('checkin_no_active_method'),
+      'no_active_nfc_tag' => AppLocalizations.tr('checkin_no_active_nfc'),
+      'no_active_qr_code' => AppLocalizations.tr('checkin_no_active_qr'),
+      'location_missing_coordinates' => AppLocalizations.tr(
+        'checkin_missing_gps_coordinates',
+      ),
+      'location_radius_missing' => AppLocalizations.tr(
+        'checkin_missing_qr_radius',
+      ),
       _ => reason.replaceAll('_', ' '),
     };
   }
@@ -270,7 +281,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           qrStatus: QrCheckinStatus.failure,
-          errorMessage: 'Missing match context for QR check-in.',
+          errorMessage: AppLocalizations.tr('checkin_missing_qr_context'),
         ),
       );
       return;
@@ -280,7 +291,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           qrStatus: QrCheckinStatus.failure,
-          errorMessage: 'Check-in service is not available.',
+          errorMessage: AppLocalizations.tr('checkin_service_unavailable'),
         ),
       );
       return;
@@ -293,7 +304,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           qrStatus: QrCheckinStatus.failure,
-          errorMessage: 'Unable to get current GPS location. Please try again.',
+          errorMessage: AppLocalizations.tr('checkin_unable_current_location'),
         ),
       );
       return;
@@ -338,7 +349,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           nfcStatus: NfcCheckinStatus.failure,
-          errorMessage: 'Missing match context for NFC check-in.',
+          errorMessage: AppLocalizations.tr('checkin_missing_nfc_context'),
         ),
       );
       return;
@@ -367,7 +378,9 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
           await _stopNfcSession();
           await NfcManager.instance.startSession(
             pollingOptions: const {NfcPollingOption.iso14443},
-            alertMessageIos: 'Hold your device near the event NFC tag.',
+            alertMessageIos: AppLocalizations.tr(
+              'checkin_hold_device_near_nfc',
+            ),
             onDiscovered: (tag) {
               _describeTag(
                 tag,
@@ -380,14 +393,16 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
           emit(
             state.copyWith(
               nfcStatus: NfcCheckinStatus.disabled,
-              errorMessage: 'NFC is turned off. Enable NFC and try again.',
+              errorMessage: AppLocalizations.tr(
+                'checkin_nfc_turned_off_try_again',
+              ),
             ),
           );
         case NfcAvailability.unsupported:
           emit(
             state.copyWith(
               nfcStatus: NfcCheckinStatus.unsupported,
-              errorMessage: 'This device does not support NFC check-in.',
+              errorMessage: AppLocalizations.tr('checkin_nfc_unsupported_desc'),
             ),
           );
       }
@@ -395,7 +410,9 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           nfcStatus: NfcCheckinStatus.failure,
-          errorMessage: 'Unable to start NFC scanning. Please try again.',
+          errorMessage: AppLocalizations.tr(
+            'checkin_unable_start_nfc_try_again',
+          ),
         ),
       );
     }
@@ -419,7 +436,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           nfcStatus: NfcCheckinStatus.failure,
-          errorMessage: 'Missing match context for NFC check-in.',
+          errorMessage: AppLocalizations.tr('checkin_missing_nfc_context'),
         ),
       );
       return;
@@ -429,7 +446,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
       emit(
         state.copyWith(
           nfcStatus: NfcCheckinStatus.failure,
-          errorMessage: 'Check-in service is not available.',
+          errorMessage: AppLocalizations.tr('checkin_service_unavailable'),
         ),
       );
       return;
@@ -526,7 +543,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
   Future<String?> _ensureLocationReady() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return 'Location service is required for QR check-in.';
+      return AppLocalizations.tr('checkin_location_service_required');
     }
 
     var permission = await Geolocator.checkPermission();
@@ -536,7 +553,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
 
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      return 'Location permission is required for QR check-in.';
+      return AppLocalizations.tr('checkin_location_permission_required');
     }
 
     return null;
@@ -564,7 +581,7 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
 
     try {
       await NfcManager.instance.stopSession(
-        alertMessageIos: 'Check-in verified.',
+        alertMessageIos: AppLocalizations.tr('checkin_verified_ios_alert'),
       );
     } finally {
       _nfcSessionActive = false;
@@ -575,5 +592,13 @@ class CheckinBloc extends BaseBloc<CheckinEvent, CheckinState> {
   Future<void> close() async {
     await _stopNfcSession();
     return super.close();
+  }
+
+  String _methodLabel(String method) {
+    return switch (method.toLowerCase()) {
+      'qr' => 'QR',
+      'nfc' => 'NFC',
+      _ => method.toUpperCase(),
+    };
   }
 }

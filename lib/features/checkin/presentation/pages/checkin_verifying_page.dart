@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../mock/checkin_mock_data.dart';
 import '../models/checkin_event_details.dart';
 import '../../domain/entities/checkin_result.dart';
@@ -17,12 +18,12 @@ import 'nfc_checkin_result_page.dart';
 class CheckinVerifyingPage extends StatefulWidget {
   const CheckinVerifyingPage({
     super.key,
-    this.method = 'QR Check-in',
+    this.method,
     this.result,
     this.eventDetails,
   });
 
-  final String method;
+  final String? method;
   final CheckinResult? result;
   final CheckinEventDetails? eventDetails;
 
@@ -65,7 +66,7 @@ class _CheckinVerifyingPageState extends State<CheckinVerifyingPage> {
     final details = widget.eventDetails;
 
     return CheckinScaffold(
-      title: 'Verifying Check-in',
+      title: AppLocalizations.tr('checkin_verifying_page_title'),
       leadingIcon: Icons.close_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       body: Stack(

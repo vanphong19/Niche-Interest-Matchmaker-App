@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../../../core/utils/app_localizations.dart';
 import '../../data/services/finder_location_service.dart';
 import '../../data/services/finder_realtime_service.dart';
 import '../../domain/entities/finder_models.dart';
@@ -150,7 +151,9 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
         emit(
           state.copyWith(
             status: FinderFlowStatus.permissionRequired,
-            errorMessage: 'Location permission is needed to use Finder.',
+            errorMessage: AppLocalizations.tr(
+              'finder_location_permission_needed',
+            ),
           ),
         );
         return;
@@ -160,8 +163,7 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
           state.copyWith(
             status: FinderFlowStatus.permissionRequired,
             weakGps: true,
-            errorMessage:
-                'GPS accuracy is too weak. Move near an open area and try again.',
+            errorMessage: AppLocalizations.tr('finder_gps_accuracy_weak'),
           ),
         );
         return;
@@ -243,7 +245,9 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
         emit(
           state.copyWith(
             status: FinderFlowStatus.permissionRequired,
-            errorMessage: 'Location permission is needed to use Finder.',
+            errorMessage: AppLocalizations.tr(
+              'finder_location_permission_needed',
+            ),
           ),
         );
         return;
@@ -544,8 +548,8 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
           liveSharing: false,
           endReason: isExpired ? 'expired' : 'stopped',
           errorMessage: isExpired
-              ? 'Finder session expired.'
-              : 'Location sharing was stopped.',
+              ? AppLocalizations.tr('finder_session_expired_message')
+              : AppLocalizations.tr('finder_location_sharing_stopped'),
         ),
       );
     });
@@ -685,11 +689,11 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
   String _permissionMessage(FinderLocationPermissionResult result) {
     switch (result) {
       case FinderLocationPermissionResult.serviceOff:
-        return 'GPS is off. Turn on GPS to use Finder.';
+        return AppLocalizations.tr('finder_gps_off');
       case FinderLocationPermissionResult.deniedForever:
-        return 'Enable location in app settings to use Finder.';
+        return AppLocalizations.tr('finder_enable_location_settings');
       case FinderLocationPermissionResult.denied:
-        return 'Location permission is needed to use Finder.';
+        return AppLocalizations.tr('finder_location_permission_needed');
       case FinderLocationPermissionResult.granted:
         return '';
     }
@@ -702,28 +706,28 @@ class FinderCubit extends Cubit<FinderState> with WidgetsBindingObserver {
         if (responseMessage != null && responseMessage.isNotEmpty) {
           return responseMessage.replaceAll('_', ' ');
         }
-        return 'This Finder session has ended or is no longer active.';
+        return AppLocalizations.tr('finder_session_inactive');
       }
       if (error.response?.statusCode == 403) {
-        return 'You no longer have access to this Finder session.';
+        return AppLocalizations.tr('finder_session_no_access');
       }
       if (error.response?.statusCode == 404) {
-        return 'This Finder session was not found.';
+        return AppLocalizations.tr('finder_session_not_found');
       }
     }
 
     final message = error.toString();
     if (message.contains('FINDER_MEMBER_NOT_ELIGIBLE')) {
-      return 'This person is not available for Finder right now.';
+      return AppLocalizations.tr('finder_member_not_available');
     }
     if (message.contains('FINDER_REQUEST_EXPIRED')) {
-      return 'This request has expired.';
+      return AppLocalizations.tr('finder_request_expired_error');
     }
     if (message.contains('FINDER_SESSION_CONFLICT')) {
-      return 'One of you is already in another Finder session.';
+      return AppLocalizations.tr('finder_session_conflict');
     }
     if (message.contains('FINDER_REQUEST_ALREADY_EXISTS')) {
-      return 'You already have a pending Finder request.';
+      return AppLocalizations.tr('finder_request_already_exists');
     }
     return message.replaceFirst('Exception: ', '');
   }

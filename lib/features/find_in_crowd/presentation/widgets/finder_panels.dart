@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/finder_participant_ui_model.dart';
 import 'finder_action_button.dart';
 import 'finder_glass_panel.dart';
@@ -39,7 +40,7 @@ class FinderStartPanel extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'Find ${participant.name} in the crowd?',
+            '${AppLocalizations.tr('finder_find_question_prefix')} ${participant.name} ${AppLocalizations.tr('finder_find_question_suffix')}',
             style: AppTextStyles.headingMedium.copyWith(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.w900,
@@ -48,7 +49,7 @@ class FinderStartPanel extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'You and ${participant.name} will share approximate locations temporarily to find each other faster.',
+            '${AppLocalizations.tr('finder_start_desc_prefix')} ${participant.name} ${AppLocalizations.tr('finder_start_desc_suffix')}',
             style: AppTextStyles.bodySmall.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -58,13 +59,13 @@ class FinderStartPanel extends StatelessWidget {
           const FinderSafetyNotice(),
           const SizedBox(height: AppSpacing.lg),
           FinderActionButton(
-            label: 'Start Finding',
+            label: AppLocalizations.tr('finder_start'),
             icon: Icons.my_location_rounded,
             onPressed: onStart,
           ),
           const SizedBox(height: AppSpacing.sm),
           FinderActionButton(
-            label: 'Cancel',
+            label: AppLocalizations.tr('cancel'),
             secondary: true,
             onPressed: onCancel,
           ),
@@ -98,10 +99,10 @@ class FinderRequestPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const FinderParticipantAvatar(
+              FinderParticipantAvatar(
                 imageUrl:
                     'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
-                name: 'You',
+                name: AppLocalizations.tr('finder_you'),
                 size: 62,
               ),
               Container(
@@ -120,7 +121,7 @@ class FinderRequestPanel extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            '${participant.name} wants to find you in the crowd',
+            '${participant.name} ${AppLocalizations.tr('finder_request_wants_title_suffix')}',
             style: AppTextStyles.headingSmall.copyWith(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.w900,
@@ -129,7 +130,7 @@ class FinderRequestPanel extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '${participant.name} wants to share temporary approximate locations so you can find each other faster.',
+            '${participant.name} ${AppLocalizations.tr('finder_request_wants_desc_suffix')}',
             style: AppTextStyles.bodySmall.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -139,13 +140,13 @@ class FinderRequestPanel extends StatelessWidget {
           const FinderSafetyNotice(),
           const SizedBox(height: AppSpacing.lg),
           FinderActionButton(
-            label: 'Share Temporary Location',
+            label: AppLocalizations.tr('finder_accept'),
             icon: Icons.location_on_rounded,
             onPressed: onAccept,
           ),
           const SizedBox(height: AppSpacing.sm),
           FinderActionButton(
-            label: 'Not Now',
+            label: AppLocalizations.tr('finder_decline'),
             secondary: true,
             onPressed: onDecline,
           ),
@@ -249,13 +250,13 @@ class FinderSafetyNotice extends StatelessWidget {
       child: Column(
         children: [
           FinderStatusPill(
-            label: 'For finding only',
+            label: AppLocalizations.tr('finder_for_finding_only'),
             icon: Icons.shield_rounded,
             color: AppColors.success,
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Temporary sharing ends automatically after 10 minutes. You can stop anytime.',
+            AppLocalizations.tr('finder_safety_notice'),
             style: AppTextStyles.captionMedium.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

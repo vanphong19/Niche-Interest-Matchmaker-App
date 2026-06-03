@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/finder_cubit.dart';
@@ -49,8 +50,8 @@ class FinderWaitingPage extends StatelessWidget {
           final colorScheme = Theme.of(context).colorScheme;
 
           return FinderScaffold(
-            title: 'Waiting',
-            subtitle: 'Request sent',
+            title: AppLocalizations.tr('finder_waiting'),
+            subtitle: AppLocalizations.tr('finder_request_sent'),
             body: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
@@ -78,8 +79,8 @@ class FinderWaitingPage extends StatelessWidget {
                         const SizedBox(height: AppSpacing.lg),
                         Text(
                           participant == null
-                              ? 'Waiting for response...'
-                              : 'Waiting for ${participant.name} to accept...',
+                              ? AppLocalizations.tr('finder_waiting_response')
+                              : '${AppLocalizations.tr('finder_waiting_accept_prefix')} ${participant.name} ${AppLocalizations.tr('finder_waiting_accept_suffix')}',
                           style: AppTextStyles.headingMedium.copyWith(
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w900,
@@ -88,7 +89,9 @@ class FinderWaitingPage extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
-                          'Location sharing starts only after they accept this request.',
+                          AppLocalizations.tr(
+                            'finder_location_starts_after_accept',
+                          ),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -113,7 +116,7 @@ class FinderWaitingPage extends StatelessWidget {
                         ],
                         const SizedBox(height: AppSpacing.xl),
                         FinderActionButton(
-                          label: 'Cancel Request',
+                          label: AppLocalizations.tr('finder_cancel_request'),
                           secondary: true,
                           onPressed:
                               state.status == FinderFlowStatus.requestPending
@@ -138,13 +141,13 @@ class FinderWaitingPage extends StatelessWidget {
 String _waitingStatusMessage(FinderFlowStatus status) {
   switch (status) {
     case FinderFlowStatus.requestDeclined:
-      return 'Finder request declined.';
+      return AppLocalizations.tr('finder_request_declined');
     case FinderFlowStatus.requestExpired:
-      return 'Finder request expired.';
+      return AppLocalizations.tr('finder_request_expired');
     case FinderFlowStatus.requestCancelled:
-      return 'Finder request cancelled.';
+      return AppLocalizations.tr('finder_request_cancelled');
     default:
-      return 'Finder request ended.';
+      return AppLocalizations.tr('finder_request_ended');
   }
 }
 
@@ -205,8 +208,8 @@ class _RequestExpiryCountdownState extends State<_RequestExpiryCountdown> {
     final seconds = remaining.inSeconds;
     final expired = seconds <= 0;
     final label = expired
-        ? 'Request expired'
-        : 'Request expires in ${seconds.clamp(0, 999)}s';
+        ? AppLocalizations.tr('finder_request_expired_short')
+        : '${AppLocalizations.tr('finder_request_expires_in')} ${seconds.clamp(0, 999)}s';
 
     return Container(
       padding: const EdgeInsets.symmetric(

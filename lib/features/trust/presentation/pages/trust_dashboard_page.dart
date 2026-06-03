@@ -144,26 +144,26 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                   ],
 
                   // Stats row
-                  _buildSectionLabel('📊 Thống kê hoạt động', isDark),
+                  _buildSectionLabel('📊 Stats', isDark),
                   const SizedBox(height: 12),
                   _buildStatsGrid(isDark),
                   const SizedBox(height: 28),
 
                   // Badges
-                  _buildSectionLabel('🏅 Huy hiệu uy tín', isDark),
+                  _buildSectionLabel('🏅 Prestigious badges', isDark),
                   const SizedBox(height: 12),
                   _buildBadgesGrid(),
                   const SizedBox(height: 28),
 
                   // History
-                  _buildSectionLabel('📋 Lịch sử điểm', isDark),
+                  _buildSectionLabel('📋 Point history', isDark),
                   const SizedBox(height: 12),
                   _buildHistory(isDark),
                   const SizedBox(height: 28),
 
                   // Recovery missions
                   if (_trust.score < 60) ...[
-                    _buildSectionLabel('🎯 Nhiệm vụ phục hồi', isDark),
+                    _buildSectionLabel('🎯 Recovery missions', isDark),
                     const SizedBox(height: 12),
                     RecoveryMissionCard(score: _trust.score),
                   ],
@@ -302,25 +302,25 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
         TrustStatCard(
           icon: Icons.celebration_rounded,
           value: '${_trust.eventsJoined}',
-          label: 'Sự kiện\nđã tham gia',
+          label: 'Events\nJoined',
           color: const Color(0xFF3B82F6),
         ),
         TrustStatCard(
           icon: Icons.check_circle_outline_rounded,
           value: '${_trust.onTimeCheckins}',
-          label: 'Check-in\nđúng giờ',
+          label: 'Check-in\nOn Time',
           color: const Color(0xFF22C55E),
         ),
         TrustStatCard(
           icon: Icons.schedule_rounded,
           value: '${_trust.lateCheckins}',
-          label: 'Check-in\ntrễ',
+          label: 'Check-in\nLate',
           color: const Color(0xFFF97316),
         ),
         TrustStatCard(
           icon: Icons.warning_amber_rounded,
           value: '${_trust.noShows}',
-          label: 'Leo cây\n(no-show)',
+          label: 'No-Show\nEvents',
           color: const Color(0xFFEF4444),
         ),
       ],
@@ -365,7 +365,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                   ),
                 ),
                 Text(
-                  'Đánh giá trung bình từ host',
+                  'Average rating from host',
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? Colors.white54 : const Color(0xFF64748B),
@@ -395,7 +395,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${_trust.eventsJoined} lượt',
+                '${_trust.eventsJoined} votes',
                 style: const TextStyle(
                   fontSize: 10,
                   color: Color(0xFF64748B),
@@ -434,7 +434,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
     if (logs.isEmpty) {
       return Center(
         child: Text(
-          'Chưa có lịch sử',
+          'No history available.',
           style: TextStyle(
             color: isDark ? Colors.white38 : Colors.black38,
             fontSize: 13,
@@ -502,7 +502,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Tài khoản đang bị hạn chế',
+                  'Account is currently restricted',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -511,7 +511,7 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Còn $daysLeft ngày. Không thể đăng ký sự kiện mới.',
+                  'Left $daysLeft days of restriction',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFFEF4444),
@@ -612,13 +612,16 @@ class _TrustDashboardPageState extends State<TrustDashboardPage> {
               ),
               const SizedBox(height: 16),
               ...[
-                _ScoreRule('✅ Check-in đúng giờ', '+5 điểm'),
-                _ScoreRule('⏰ Trễ dưới 15 phút', '+2 điểm'),
-                _ScoreRule('⭐ Host đánh giá 5 sao', '+5 điểm'),
-                _ScoreRule('👍 Host đánh giá 3-4 sao', '+2 điểm'),
-                _ScoreRule('❌ Hủy sát giờ', '-5 điểm'),
-                _ScoreRule('💀 Không đến, không báo', '-15 điểm'),
-                _ScoreRule('👎 Host đánh giá < 3 sao', '-3 điểm'),
+                _ScoreRule('✅ Check-in in time', '+5 points'),
+                _ScoreRule('⏰ Late (under 15 minutes)', '+2 points'),
+                _ScoreRule('⭐ Host gave rating 5 star', '+5 points'),
+                _ScoreRule('👍 Host gave rating 3-4 stars', '+2 points'),
+                _ScoreRule('❌ Cancelled at the last minute', '-5 points'),
+                _ScoreRule(
+                  '💀 Did not show up and did not notify',
+                  '-15 points',
+                ),
+                _ScoreRule('👎 Host gave rating < 3 stars', '-3 points'),
               ].map(
                 (r) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),

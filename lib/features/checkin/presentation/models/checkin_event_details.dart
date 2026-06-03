@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/app_localizations.dart';
 import '../../../event/domain/entities/event.dart';
 
 class CheckinEventDetails {
@@ -48,10 +49,10 @@ class CheckinEventDetails {
   factory CheckinEventDetails.fallback({String? matchId}) {
     return CheckinEventDetails(
       matchId: matchId,
-      title: 'Meetup check-in',
-      locationName: 'Event venue',
-      locationAddress: 'Location will be verified by the venue.',
-      eventTime: 'Scheduled meetup',
+      title: AppLocalizations.tr('checkin_fallback_title'),
+      locationName: AppLocalizations.tr('checkin_fallback_location_name'),
+      locationAddress: AppLocalizations.tr('checkin_fallback_location_address'),
+      eventTime: AppLocalizations.tr('checkin_fallback_time'),
     );
   }
 }

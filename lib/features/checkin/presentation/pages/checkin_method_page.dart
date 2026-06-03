@@ -26,7 +26,7 @@ class CheckinMethodPage extends StatelessWidget {
         eventDetails ?? CheckinEventDetails.fallback(matchId: matchId);
 
     return CheckinScaffold(
-      title: 'Choose Check-in',
+      title: AppLocalizations.tr('checkin_choose_title'),
       leadingIcon: Icons.arrow_back_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       activeTab: CheckinShellTab.scan,
@@ -66,10 +66,12 @@ class CheckinMethodPage extends StatelessWidget {
                     option: option,
                     title: AppLocalizations.tr(option.titleKey),
                     subtitle: AppLocalizations.tr(option.subtitleKey),
-                    badge: option.recommended ? 'Recommended' : 'Tap to verify',
+                    badge: option.recommended
+                        ? AppLocalizations.tr('checkin_recommended_title')
+                        : AppLocalizations.tr('checkin_tap_to_verify'),
                     footnote: option.recommended
-                        ? 'Best for event check-in desks.'
-                        : 'Use NFC when a venue tag is available.',
+                        ? AppLocalizations.tr('checkin_qr_method_footnote')
+                        : AppLocalizations.tr('checkin_nfc_method_footnote'),
                     onTap: () {
                       final page = option.recommended
                           ? QrCheckinScannerPage(eventDetails: details)

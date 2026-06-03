@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/finder_cubit.dart';
@@ -45,14 +46,18 @@ class FinderRadarPage extends StatelessWidget {
               : participantToUi(
                   partner,
                   distanceLabel: state.navigation?.distanceLabel ?? '--',
-                  directionLabel: state.navigation?.directionLabel ?? 'Waiting',
+                  directionLabel:
+                      state.navigation?.directionLabel ??
+                      AppLocalizations.tr('finder_waiting_location'),
                 );
           final colorScheme = Theme.of(context).colorScheme;
 
           return FinderScaffold(
-            title: partner == null ? 'Finding' : 'Finding ${partner.firstName}',
+            title: partner == null
+                ? AppLocalizations.tr('finder_finding')
+                : '${AppLocalizations.tr('finder_finding_prefix')} ${partner.firstName}',
             subtitle:
-                '${state.navigation?.distanceLabel ?? 'Live'} - ${state.navigation?.directionLabel ?? 'Waiting'}',
+                '${state.navigation?.distanceLabel ?? AppLocalizations.tr('finder_live')} - ${state.navigation?.directionLabel ?? AppLocalizations.tr('finder_waiting_location')}',
             body: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
@@ -60,8 +65,8 @@ class FinderRadarPage extends StatelessWidget {
                 children: [
                   FinderStatusPill(
                     label: state.navigation == null
-                        ? 'Waiting for shared location'
-                        : '${state.navigation!.distanceLabel} away',
+                        ? AppLocalizations.tr('finder_waiting_shared_location')
+                        : '${state.navigation!.distanceLabel} ${AppLocalizations.tr('finder_away')}',
                     icon: Icons.navigation_rounded,
                     color: state.isVeryClose
                         ? AppColors.success
@@ -86,10 +91,13 @@ class FinderRadarPage extends StatelessWidget {
                     FinderSignalCard(
                       participant: participant,
                       signalLabel: state.hasStalePartnerLocation
-                          ? 'Reconnecting'
-                          : (state.weakGps ? 'Weak GPS' : 'Live signal'),
+                          ? AppLocalizations.tr('finder_reconnecting')
+                          : (state.weakGps
+                                ? AppLocalizations.tr('finder_weak_gps')
+                                : AppLocalizations.tr('finder_live_signal')),
                       accuracyLabel:
-                          state.currentLocation?.accuracyLabel ?? 'Waiting',
+                          state.currentLocation?.accuracyLabel ??
+                          AppLocalizations.tr('finder_waiting_location'),
                       distanceLabel: state.navigation?.distanceLabel,
                       directionLabel: state.navigation?.directionLabel,
                     ),
@@ -118,10 +126,16 @@ class FinderRadarPage extends StatelessWidget {
                         Expanded(
                           child: Text(
                             state.hasStalePartnerLocation
-                                ? 'Waiting for the latest partner location. Sharing resumes when both apps are active.'
+                                ? AppLocalizations.tr(
+                                    'finder_stale_location_note',
+                                  )
                                 : state.isNearby
-                                ? 'Final guidance is available. Keep moving slowly and look around visually near the last few meters.'
-                                : 'Live location sharing is active. Follow the direction card until you are close enough for final guidance.',
+                                ? AppLocalizations.tr(
+                                    'finder_final_guidance_note',
+                                  )
+                                : AppLocalizations.tr(
+                                    'finder_active_sharing_note',
+                                  ),
                             style: AppTextStyles.captionMedium.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
@@ -134,8 +148,8 @@ class FinderRadarPage extends StatelessWidget {
                   const SizedBox(height: AppSpacing.lg),
                   FinderActionButton(
                     label: state.isNearby
-                        ? 'Open Final Guidance'
-                        : 'Final Guidance Unlocks Within 30m',
+                        ? AppLocalizations.tr('finder_open_final_guidance')
+                        : AppLocalizations.tr('finder_final_guidance_locked'),
                     icon: state.isNearby
                         ? Icons.directions_walk_rounded
                         : Icons.social_distance_rounded,
@@ -147,7 +161,7 @@ class FinderRadarPage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   FinderActionButton(
-                    label: 'Stop Sharing',
+                    label: AppLocalizations.tr('finder_stop_sharing'),
                     icon: Icons.stop_circle_rounded,
                     secondary: true,
                     destructive: true,

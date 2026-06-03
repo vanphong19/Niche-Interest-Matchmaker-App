@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/checkin_ui_model.dart';
 import 'glass_card.dart';
 import 'status_pill.dart';
@@ -57,7 +58,7 @@ class TrustActivityTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              StatusPill(label: item.status, tone: item.tone),
+              StatusPill(label: _localizedStatus(item.status), tone: item.tone),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 item.points,
@@ -71,5 +72,14 @@ class TrustActivityTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _localizedStatus(String value) {
+    return switch (value) {
+      'Arrived' => AppLocalizations.tr('checkin_status_arrived'),
+      'Late Risk' => AppLocalizations.tr('checkin_status_late_risk'),
+      'No-show' => AppLocalizations.tr('checkin_status_no_show'),
+      _ => value,
+    };
   }
 }

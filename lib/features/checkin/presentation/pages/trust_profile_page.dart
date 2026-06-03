@@ -19,7 +19,7 @@ class TrustProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CheckinScaffold(
-      title: 'Trust Profile',
+      title: AppLocalizations.tr('checkin_trust_profile_title'),
       leadingIcon: Icons.arrow_back_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       activeTab: CheckinShellTab.trust,
@@ -120,11 +120,7 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
         ),
-        if (action != null)
-          TextButton(
-            onPressed: () {},
-            child: Text(action!),
-          ),
+        if (action != null) TextButton(onPressed: () {}, child: Text(action!)),
       ],
     );
   }

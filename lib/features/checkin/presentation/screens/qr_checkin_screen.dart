@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
+import '../../../../injection/injection_container.dart';
 import '../bloc/checkin_bloc.dart';
 import '../bloc/checkin_event.dart';
 import '../bloc/checkin_state.dart';
@@ -12,7 +14,6 @@ import '../widgets/checkin_status_view.dart';
 import '../widgets/gps_status_card.dart';
 import '../widgets/qr_scanner_view.dart';
 import '../pages/checkin_verifying_page.dart';
-import '../../../../injection/injection_container.dart';
 
 class QrCheckinScreen extends StatelessWidget {
   const QrCheckinScreen({super.key, this.matchId, this.eventDetails});
@@ -46,7 +47,7 @@ class _QrCheckinView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CheckinScaffold(
-      title: 'QR Check-in',
+      title: AppLocalizations.tr('checkin_qr_method'),
       leadingIcon: Icons.close_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       body: BlocListener<CheckinBloc, CheckinState>(
@@ -58,7 +59,7 @@ class _QrCheckinView extends StatelessWidget {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute<void>(
                   builder: (_) => CheckinVerifyingPage(
-                    method: 'QR Check-in',
+                    method: AppLocalizations.tr('checkin_qr_method'),
                     result: state.result,
                     eventDetails: details,
                   ),
@@ -70,7 +71,7 @@ class _QrCheckinView extends StatelessWidget {
                 SnackBar(
                   content: Text(
                     state.errorMessage ??
-                        'QR check-in failed. Please try again.',
+                        AppLocalizations.tr('checkin_qr_failed'),
                   ),
                 ),
               );
@@ -85,20 +86,20 @@ class _QrCheckinView extends StatelessWidget {
             switch (state.qrStatus) {
               case QrCheckinStatus.initial:
               case QrCheckinStatus.requestingPermission:
-                return const CheckinStatusView(
+                return CheckinStatusView(
                   icon: Icons.camera_alt_rounded,
-                  title: 'Requesting camera access',
-                  message: 'Camera permission is needed to scan the QR code.',
+                  title: AppLocalizations.tr('checkin_qr_requesting_camera'),
+                  message: AppLocalizations.tr('checkin_qr_camera_needed'),
                   loading: true,
                 );
               case QrCheckinStatus.permissionDenied:
                 return CheckinStatusView(
                   icon: Icons.no_photography_rounded,
-                  title: 'Camera permission denied',
+                  title: AppLocalizations.tr('checkin_qr_permission_denied'),
                   message:
                       state.errorMessage ??
-                      'Camera permission is required to scan the event QR code.',
-                  actionLabel: 'Retry',
+                      AppLocalizations.tr('checkin_qr_permission_required'),
+                  actionLabel: AppLocalizations.tr('checkin_retry'),
                   onAction: () {
                     context.read<CheckinBloc>().add(
                       const CheckinEvent.qrRetryRequested(),
@@ -108,21 +109,23 @@ class _QrCheckinView extends StatelessWidget {
               case QrCheckinStatus.scanning:
                 return _ScannerContent(details: details);
               case QrCheckinStatus.success:
-                return const CheckinStatusView(
+                return CheckinStatusView(
                   icon: Icons.verified_rounded,
-                  title: 'QR code detected',
-                  message: 'Preparing secure verification...',
+                  title: AppLocalizations.tr('checkin_qr_detected'),
+                  message: AppLocalizations.tr(
+                    'checkin_preparing_verification',
+                  ),
                   loading: true,
                   success: true,
                 );
               case QrCheckinStatus.failure:
                 return CheckinStatusView(
                   icon: Icons.error_outline_rounded,
-                  title: 'Unable to scan QR code',
+                  title: AppLocalizations.tr('checkin_qr_unable_to_scan'),
                   message:
                       state.errorMessage ??
-                      'Something went wrong while scanning. Please try again.',
-                  actionLabel: 'Retry',
+                      AppLocalizations.tr('checkin_qr_scan_error'),
+                  actionLabel: AppLocalizations.tr('checkin_retry'),
                   onAction: () {
                     context.read<CheckinBloc>().add(
                       const CheckinEvent.qrRetryRequested(),
@@ -160,7 +163,7 @@ class _ScannerContent extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                'Scan the event QR code',
+                AppLocalizations.tr('checkin_qr_scan_heading'),
                 style: theme.textTheme.headlineSmall?.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
@@ -169,7 +172,7 @@ class _ScannerContent extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Allow the camera to focus on the code at the check-in desk.',
+                AppLocalizations.tr('checkin_qr_scan_desc'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -178,11 +181,10 @@ class _ScannerContent extends StatelessWidget {
               const SizedBox(height: AppSpacing.xxl),
               CheckinEventSummaryCard(details: details),
               const SizedBox(height: AppSpacing.lg),
-              const CheckinInstructionCard(
+              CheckinInstructionCard(
                 icon: Icons.center_focus_strong_rounded,
-                title: 'Camera ready',
-                message:
-                    'Keep the QR code flat and inside the frame until verification completes.',
+                title: AppLocalizations.tr('checkin_camera_ready'),
+                message: AppLocalizations.tr('checkin_qr_camera_ready_desc'),
               ),
               const SizedBox(height: AppSpacing.lg),
               QrScannerView(

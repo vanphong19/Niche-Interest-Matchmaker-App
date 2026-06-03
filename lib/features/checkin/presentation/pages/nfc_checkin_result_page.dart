@@ -13,18 +13,17 @@ import '../widgets/checkin_scaffold.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/gradient_action_button.dart';
 import '../widgets/nfc_pulse_target.dart';
-import 'trust_profile_page.dart';
 
 @RoutePage()
 class NfcCheckinResultPage extends StatelessWidget {
   const NfcCheckinResultPage({
     super.key,
-    this.method = 'QR Check-in',
+    this.method,
     this.result,
     this.eventDetails,
   });
 
-  final String method;
+  final String? method;
   final CheckinResult? result;
   final CheckinEventDetails? eventDetails;
 
@@ -35,7 +34,7 @@ class NfcCheckinResultPage extends StatelessWidget {
     final statusColor = verified ? AppColors.success : AppColors.error;
 
     return CheckinScaffold(
-      title: 'Check-in Complete',
+      title: AppLocalizations.tr('checkin_complete_title'),
       leadingIcon: Icons.close_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       showBottomNav: false,
@@ -66,7 +65,8 @@ class NfcCheckinResultPage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    result?.message ?? 'You have successfully checked in.',
+                    result?.message ??
+                        AppLocalizations.tr('checkin_result_success_message'),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -135,7 +135,7 @@ class NfcCheckinResultPage extends StatelessWidget {
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
-                                'Method: $method',
+                                '${AppLocalizations.tr('checkin_method_label')}: $_localizedMethod',
                                 style: AppTextStyles.captionMedium.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w800,
@@ -148,18 +148,18 @@ class NfcCheckinResultPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  GradientActionButton(
-                    label: AppLocalizations.tr('checkin_view_trust'),
-                    icon: Icons.verified_user_rounded,
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const TrustProfilePage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
+                  // GradientActionButton(
+                  //   label: AppLocalizations.tr('checkin_view_trust'),
+                  //   icon: Icons.verified_user_rounded,
+                  //   onPressed: () {
+                  //     Navigator.of(context).push(
+                  //       MaterialPageRoute<void>(
+                  //         builder: (_) => const TrustProfilePage(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
+                  // const SizedBox(height: AppSpacing.sm),
                   GradientActionButton(
                     label: AppLocalizations.tr('done'),
                     secondary: true,
@@ -191,19 +191,36 @@ class NfcCheckinResultPage extends StatelessWidget {
 
   String get _title {
     return switch (result?.status) {
-      'duplicate' => 'Already checked in',
+      'duplicate' => AppLocalizations.tr('checkin_already_checked_in'),
       'valid' => AppLocalizations.tr('checkin_nfc_result_title'),
       null => AppLocalizations.tr('checkin_nfc_result_title'),
-      _ => 'Check-in not verified',
+      _ => AppLocalizations.tr('checkin_not_verified'),
     };
   }
 
   String get _statusText {
-    if (result?.status == 'valid') return 'Attendance verified';
-    if (result?.status == 'duplicate') return 'Already verified for this event';
+    if (result?.status == 'valid') {
+      return AppLocalizations.tr('checkin_attendance_verified');
+    }
+    if (result?.status == 'duplicate') {
+      return AppLocalizations.tr('checkin_already_verified_event');
+    }
     if (result?.status != null && result?.status != 'valid') {
       return result?.status ?? '';
     }
-    return 'Check-in verified';
+    return AppLocalizations.tr('checkin_verified_status');
+  }
+
+  String get _localizedMethod {
+    if (method == null || method!.trim().isEmpty) {
+      return AppLocalizations.tr('checkin_qr_method');
+    }
+    if (method == 'QR Check-in') {
+      return AppLocalizations.tr('checkin_qr_method');
+    }
+    if (method == 'NFC Check-in') {
+      return AppLocalizations.tr('checkin_nfc_method');
+    }
+    return method!;
   }
 }

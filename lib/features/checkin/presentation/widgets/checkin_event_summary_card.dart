@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../mock/checkin_mock_data.dart';
 import '../models/checkin_event_details.dart';
 
@@ -57,7 +58,7 @@ class CheckinEventSummaryCard extends StatelessWidget {
                     children: [
                       _CheckinBadge(
                         icon: Icons.verified_user_rounded,
-                        label: 'Secure check-in',
+                        label: AppLocalizations.tr('checkin_secure_checkin'),
                         foreground: colorScheme.onPrimary,
                         background: colorScheme.primary,
                       ),
@@ -84,7 +85,7 @@ class CheckinEventSummaryCard extends StatelessWidget {
                 Expanded(
                   child: _EventMetaItem(
                     icon: Icons.schedule_rounded,
-                    label: 'Time',
+                    label: AppLocalizations.tr('checkin_time'),
                     value: details?.eventTime ?? CheckinMockData.eventTime,
                   ),
                 ),
@@ -92,7 +93,7 @@ class CheckinEventSummaryCard extends StatelessWidget {
                 Expanded(
                   child: _EventMetaItem(
                     icon: Icons.location_on_rounded,
-                    label: 'Location',
+                    label: AppLocalizations.tr('checkin_location'),
                     value:
                         details?.locationName ?? CheckinMockData.locationName,
                   ),
@@ -111,29 +112,29 @@ class CheckinQuickStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
         Expanded(
           child: _QuickStatCard(
             icon: Icons.groups_rounded,
             value: '3',
-            label: 'Confirmed',
+            label: AppLocalizations.tr('checkin_confirmed'),
           ),
         ),
-        SizedBox(width: AppSpacing.md),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: _QuickStatCard(
             icon: Icons.near_me_rounded,
             value: '2m',
-            label: 'Distance',
+            label: AppLocalizations.tr('checkin_distance'),
           ),
         ),
-        SizedBox(width: AppSpacing.md),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: _QuickStatCard(
             icon: Icons.shield_rounded,
             value: 'GPS',
-            label: 'Verified',
+            label: AppLocalizations.tr('checkin_verified_label'),
           ),
         ),
       ],

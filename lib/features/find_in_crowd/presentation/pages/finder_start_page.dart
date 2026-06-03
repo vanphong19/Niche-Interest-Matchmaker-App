@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/finder_cubit.dart';
@@ -28,7 +29,8 @@ class FinderStartPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) =>
-          sl<FinderCubit>()..prepareStart(eventId: eventId, partnerId: partnerId),
+          sl<FinderCubit>()
+            ..prepareStart(eventId: eventId, partnerId: partnerId),
       child: BlocConsumer<FinderCubit, FinderState>(
         listenWhen: (previous, current) =>
             previous.status != current.status ||
@@ -49,8 +51,10 @@ class FinderStartPage extends StatelessWidget {
               state.status == FinderFlowStatus.permissionRequired;
 
           return FinderScaffold(
-            title: partner == null ? 'Find in Crowd' : 'Find ${partner.firstName}',
-            subtitle: 'Temporary live location',
+            title: partner == null
+                ? AppLocalizations.tr('finder_find_in_crowd')
+                : '${AppLocalizations.tr('finder_find_question_prefix')} ${partner.firstName}',
+            subtitle: AppLocalizations.tr('finder_temporary_live_location'),
             background: const FinderMapBackground(dimmed: true),
             body: Center(
               child: SingleChildScrollView(

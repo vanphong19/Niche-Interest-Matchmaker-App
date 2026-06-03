@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/app_localizations.dart';
+import '../../../../injection/injection_container.dart';
 import '../bloc/checkin_bloc.dart';
 import '../bloc/checkin_event.dart';
 import '../bloc/checkin_state.dart';
@@ -9,7 +11,6 @@ import '../widgets/checkin_scaffold.dart';
 import '../widgets/checkin_status_view.dart';
 import '../widgets/nfc_scan_view.dart';
 import '../pages/checkin_verifying_page.dart';
-import '../../../../injection/injection_container.dart';
 
 class NfcCheckinScreen extends StatelessWidget {
   const NfcCheckinScreen({super.key, this.matchId, this.eventDetails});
@@ -43,7 +44,7 @@ class _NfcCheckinView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CheckinScaffold(
-      title: 'NFC Check-in',
+      title: AppLocalizations.tr('checkin_nfc_method'),
       leadingIcon: Icons.close_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       body: BlocListener<CheckinBloc, CheckinState>(
@@ -55,7 +56,7 @@ class _NfcCheckinView extends StatelessWidget {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute<void>(
                   builder: (_) => CheckinVerifyingPage(
-                    method: 'NFC Check-in',
+                    method: AppLocalizations.tr('checkin_nfc_method'),
                     result: state.result,
                     eventDetails: details,
                   ),
@@ -66,7 +67,7 @@ class _NfcCheckinView extends StatelessWidget {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute<void>(
                   builder: (_) => CheckinVerifyingPage(
-                    method: 'NFC Check-in',
+                    method: AppLocalizations.tr('checkin_nfc_method'),
                     result: state.result,
                     eventDetails: details,
                   ),
@@ -79,7 +80,7 @@ class _NfcCheckinView extends StatelessWidget {
                 SnackBar(
                   content: Text(
                     state.errorMessage ??
-                        'NFC check-in failed. Please try again.',
+                        AppLocalizations.tr('checkin_nfc_failed'),
                   ),
                 ),
               );
@@ -95,50 +96,52 @@ class _NfcCheckinView extends StatelessWidget {
             switch (state.nfcStatus) {
               case NfcCheckinStatus.initial:
               case NfcCheckinStatus.checkingAvailability:
-                return const CheckinStatusView(
+                return CheckinStatusView(
                   icon: Icons.contactless_rounded,
-                  title: 'Checking NFC',
-                  message: 'Checking whether NFC is available on this device.',
+                  title: AppLocalizations.tr('checkin_nfc_checking'),
+                  message: AppLocalizations.tr('checkin_nfc_checking_desc'),
                   loading: true,
                 );
               case NfcCheckinStatus.readyToScan:
-                return const NfcScanView(
-                  title: 'Preparing NFC scanner',
-                  message: 'Keep your phone near the event NFC tag.',
+                return NfcScanView(
+                  title: AppLocalizations.tr('checkin_nfc_preparing'),
+                  message: AppLocalizations.tr('checkin_nfc_waiting_title'),
                   scanning: false,
                 );
               case NfcCheckinStatus.scanning:
-                return const NfcScanView(
-                  title: 'Ready to scan',
-                  message: 'Hold your phone near the NFC tag to check in.',
+                return NfcScanView(
+                  title: AppLocalizations.tr('checkin_nfc_ready'),
+                  message: AppLocalizations.tr('checkin_nfc_ready_desc'),
                   scanning: true,
                 );
               case NfcCheckinStatus.success:
               case NfcCheckinStatus.duplicate:
               case NfcCheckinStatus.rejected:
-                return const CheckinStatusView(
+                return CheckinStatusView(
                   icon: Icons.verified_rounded,
-                  title: 'NFC tag detected',
-                  message: 'Preparing secure verification...',
+                  title: AppLocalizations.tr('checkin_nfc_detected'),
+                  message: AppLocalizations.tr(
+                    'checkin_preparing_verification',
+                  ),
                   loading: true,
                   success: true,
                 );
               case NfcCheckinStatus.unsupported:
                 return CheckinStatusView(
                   icon: Icons.block_rounded,
-                  title: 'NFC is not supported',
+                  title: AppLocalizations.tr('checkin_nfc_unsupported'),
                   message:
                       state.errorMessage ??
-                      'This device does not support NFC check-in.',
+                      AppLocalizations.tr('checkin_nfc_unsupported_desc'),
                 );
               case NfcCheckinStatus.disabled:
                 return CheckinStatusView(
                   icon: Icons.block_rounded,
-                  title: 'NFC is turned off',
+                  title: AppLocalizations.tr('checkin_nfc_disabled'),
                   message:
                       state.errorMessage ??
-                      'Enable NFC in device settings and try again.',
-                  actionLabel: 'Retry',
+                      AppLocalizations.tr('checkin_nfc_disabled_desc'),
+                  actionLabel: AppLocalizations.tr('checkin_retry'),
                   onAction: () {
                     context.read<CheckinBloc>().add(
                       const CheckinEvent.nfcRetryRequested(),
@@ -148,11 +151,11 @@ class _NfcCheckinView extends StatelessWidget {
               case NfcCheckinStatus.failure:
                 return CheckinStatusView(
                   icon: Icons.error_outline_rounded,
-                  title: 'Unable to start NFC',
+                  title: AppLocalizations.tr('checkin_nfc_unable_to_start'),
                   message:
                       state.errorMessage ??
-                      'Something went wrong while starting NFC scanning.',
-                  actionLabel: 'Retry',
+                      AppLocalizations.tr('checkin_nfc_start_error'),
+                  actionLabel: AppLocalizations.tr('checkin_retry'),
                   onAction: () {
                     context.read<CheckinBloc>().add(
                       const CheckinEvent.nfcRetryRequested(),

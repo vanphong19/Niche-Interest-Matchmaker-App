@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../router/app_router.gr.dart';
 import '../widgets/finder_action_button.dart';
 import '../widgets/finder_glass_panel.dart';
@@ -17,8 +18,8 @@ class FindInCrowdMeetingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FinderScaffold(
-      title: 'Find In Crowd',
-      subtitle: 'Open from an event',
+      title: AppLocalizations.tr('finder_title'),
+      subtitle: AppLocalizations.tr('finder_open_from_event'),
       background: const FinderMapBackground(),
       body: Center(
         child: SingleChildScrollView(
@@ -32,22 +33,24 @@ class FindInCrowdMeetingPage extends StatelessWidget {
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   eventId == null
-                      ? 'Choose a checked-in event member first'
-                      : 'Continue to event members',
+                      ? AppLocalizations.tr('finder_choose_member_first')
+                      : AppLocalizations.tr('finder_continue_event_members'),
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Finder is a consent-based live GPS flow for two people in the same event.',
+                  AppLocalizations.tr('finder_consent_flow_desc'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 FinderActionButton(
-                  label: eventId == null ? 'Back to Events' : 'View Members',
+                  label: eventId == null
+                      ? AppLocalizations.tr('finder_back_to_events')
+                      : AppLocalizations.tr('finder_view_members'),
                   icon: Icons.group_rounded,
                   onPressed: () {
                     final id = eventId;

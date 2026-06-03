@@ -1,5 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 
+import '../../../../core/utils/app_localizations.dart';
 import '../models/finder_location_ui_model.dart';
 
 class FinderNavigationCalculator {
@@ -38,53 +39,65 @@ class FinderNavigationCalculator {
       relativeBearingDegrees: relativeBearing,
       directionLabel: _directionLabel(normalizedBearing),
       guidanceLabel: heading == null
-          ? 'Walk toward ${_directionLabel(normalizedBearing).toLowerCase()}'
+          ? '${AppLocalizations.tr('finder_walk_toward')} ${_directionLabel(normalizedBearing).toLowerCase()}'
           : _guidanceLabel(relativeBearing),
       stepInstructionLabel: heading == null
-          ? 'Move $distanceLabel toward ${_directionLabel(normalizedBearing).toLowerCase()}'
+          ? '${AppLocalizations.tr('finder_move')} $distanceLabel ${AppLocalizations.tr('finder_toward')} ${_directionLabel(normalizedBearing).toLowerCase()}'
           : _stepInstructionLabel(relativeBearing, distanceLabel),
       headingConfidenceLabel: heading == null
-          ? 'Approximate compass direction'
+          ? AppLocalizations.tr('finder_approx_compass')
           : usesDeviceCompass
-          ? 'Direction follows your phone heading'
-          : 'Direction follows your movement',
+          ? AppLocalizations.tr('finder_phone_heading')
+          : AppLocalizations.tr('finder_movement_heading'),
       usesDeviceHeading: heading != null,
     );
   }
 
   String _directionLabel(double bearing) {
     const labels = [
-      'North',
-      'North-east',
-      'East',
-      'South-east',
-      'South',
-      'South-west',
-      'West',
-      'North-west',
+      'finder_north',
+      'finder_north_east',
+      'finder_east',
+      'finder_south_east',
+      'finder_south',
+      'finder_south_west',
+      'finder_west',
+      'finder_north_west',
     ];
     final index = ((bearing + 22.5) / 45).floor() % labels.length;
-    return labels[index];
+    return AppLocalizations.tr(labels[index]);
   }
 
   String _guidanceLabel(double relativeBearing) {
     if (relativeBearing <= 22.5 || relativeBearing >= 337.5) {
-      return 'Keep going straight';
+      return AppLocalizations.tr('finder_keep_straight');
     }
-    if (relativeBearing < 157.5) return 'Turn right';
-    if (relativeBearing <= 202.5) return 'Turn around';
-    return 'Turn left';
+    if (relativeBearing < 157.5) {
+      return AppLocalizations.tr('finder_turn_right');
+    }
+    if (relativeBearing <= 202.5) {
+      return AppLocalizations.tr('finder_turn_around');
+    }
+    return AppLocalizations.tr('finder_turn_left');
   }
 
   String _stepInstructionLabel(double relativeBearing, String distanceLabel) {
     if (relativeBearing <= 22.5 || relativeBearing >= 337.5) {
-      return 'Go straight for $distanceLabel';
+      return '${AppLocalizations.tr('finder_go_straight_for')} $distanceLabel';
     }
-    if (relativeBearing < 67.5) return 'Slight right, then $distanceLabel';
-    if (relativeBearing < 157.5) return 'Turn right, then $distanceLabel';
-    if (relativeBearing <= 202.5) return 'Turn around, then $distanceLabel';
-    if (relativeBearing <= 292.5) return 'Turn left, then $distanceLabel';
-    return 'Slight left, then $distanceLabel';
+    if (relativeBearing < 67.5) {
+      return '${AppLocalizations.tr('finder_slight_right_then')} $distanceLabel';
+    }
+    if (relativeBearing < 157.5) {
+      return '${AppLocalizations.tr('finder_turn_right_then')} $distanceLabel';
+    }
+    if (relativeBearing <= 202.5) {
+      return '${AppLocalizations.tr('finder_turn_around_then')} $distanceLabel';
+    }
+    if (relativeBearing <= 292.5) {
+      return '${AppLocalizations.tr('finder_turn_left_then')} $distanceLabel';
+    }
+    return '${AppLocalizations.tr('finder_slight_left_then')} $distanceLabel';
   }
 
   String _distanceLabel(double distanceMeters) {

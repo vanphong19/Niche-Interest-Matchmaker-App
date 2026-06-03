@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/app_localizations.dart';
 import 'checkin_top_bar.dart';
 
 class CheckinScaffold extends StatelessWidget {
   const CheckinScaffold({
     super.key,
     required this.body,
-    this.title = 'Check-in',
+    this.title,
     this.leadingIcon,
     this.onLeadingPressed,
     this.trailingIcon,
@@ -18,7 +19,7 @@ class CheckinScaffold extends StatelessWidget {
   });
 
   final Widget body;
-  final String title;
+  final String? title;
   final IconData? leadingIcon;
   final VoidCallback? onLeadingPressed;
   final IconData? trailingIcon;
@@ -41,7 +42,7 @@ class CheckinScaffold extends StatelessWidget {
           children: [
             if (showTopBar)
               CheckinTopBar(
-                title: title,
+                title: title ?? AppLocalizations.tr('checkin_title'),
                 leadingIcon: leadingIcon,
                 onLeadingPressed: onLeadingPressed,
                 trailingIcon: trailingIcon,

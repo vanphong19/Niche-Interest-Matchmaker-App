@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/finder_cubit.dart';
@@ -43,17 +44,22 @@ class FinderNearbyPage extends StatelessWidget {
               ? null
               : participantToUi(
                   partner,
-                  distanceLabel: state.navigation?.distanceLabel ?? 'nearby',
+                  distanceLabel:
+                      state.navigation?.distanceLabel ??
+                      AppLocalizations.tr('finder_nearby_label'),
                   directionLabel:
-                      state.navigation?.directionLabel ?? 'toward marker',
+                      state.navigation?.directionLabel ??
+                      AppLocalizations.tr('finder_toward_marker'),
                 );
           final colorScheme = Theme.of(context).colorScheme;
-          final distance = state.navigation?.distanceLabel ?? 'nearby';
+          final distance =
+              state.navigation?.distanceLabel ??
+              AppLocalizations.tr('finder_nearby_label');
           final isVeryClose = state.isVeryClose;
 
           return FinderScaffold(
-            title: 'Nearby',
-            subtitle: 'Final approach',
+            title: AppLocalizations.tr('finder_nearby'),
+            subtitle: AppLocalizations.tr('finder_final_approach'),
             body: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
@@ -89,17 +95,17 @@ class FinderNearbyPage extends StatelessWidget {
                         const SizedBox(height: AppSpacing.md),
                         FinderStatusPill(
                           label: isVeryClose
-                              ? 'Very close - $distance'
-                              : 'Nearby - $distance',
+                              ? '${AppLocalizations.tr('finder_very_close')} - $distance'
+                              : '${AppLocalizations.tr('finder_nearby')} - $distance',
                           icon: Icons.circle,
                           color: AppColors.success,
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         Text(
                           isVeryClose
-                              ? '${partner?.firstName ?? 'They'} should be right around you.'
+                              ? '${partner?.firstName ?? AppLocalizations.tr('finder_they')} ${AppLocalizations.tr('finder_should_be_around')}'
                               : state.navigation?.stepInstructionLabel ??
-                                    '${partner?.firstName ?? 'They'} is close. Keep moving toward the marker.',
+                                    '${partner?.firstName ?? AppLocalizations.tr('finder_they')} ${AppLocalizations.tr('finder_is_close_keep_moving')}',
                           style: AppTextStyles.headingMedium.copyWith(
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w900,
@@ -109,8 +115,10 @@ class FinderNearbyPage extends StatelessWidget {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           isVeryClose
-                              ? 'Look around, wave, or message them. GPS can drift in the last few meters.'
-                              : 'Distance updates live from GPS. Walk slowly so Finder can keep the arrow stable.',
+                              ? AppLocalizations.tr('finder_look_around_note')
+                              : AppLocalizations.tr(
+                                  'finder_distance_updates_note',
+                                ),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -118,7 +126,7 @@ class FinderNearbyPage extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         FinderActionButton(
-                          label: 'Stop Sharing',
+                          label: AppLocalizations.tr('finder_stop_sharing'),
                           icon: Icons.stop_circle_rounded,
                           secondary: true,
                           destructive: true,

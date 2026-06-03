@@ -91,7 +91,7 @@ class EventHeroCard extends StatelessWidget {
                             ),
                             const SizedBox(width: AppSpacing.xs),
                             Text(
-                              'Verified',
+                              AppLocalizations.tr('checkin_verified_label'),
                               style: AppTextStyles.labelSmall.copyWith(
                                 color: colorScheme.primary,
                                 fontWeight: FontWeight.w900,

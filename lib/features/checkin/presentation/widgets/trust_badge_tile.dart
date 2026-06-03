@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/checkin_ui_model.dart';
 import 'glass_card.dart';
 import 'status_pill.dart';
@@ -14,8 +15,9 @@ class TrustBadgeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final color =
-        item.locked ? colorScheme.onSurfaceVariant : checkinToneColor(item.tone);
+    final color = item.locked
+        ? colorScheme.onSurfaceVariant
+        : checkinToneColor(item.tone);
     return SizedBox(
       width: 112,
       child: Opacity(
@@ -36,7 +38,7 @@ class TrustBadgeTile extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                item.label,
+                _localizedLabel(item.label),
                 style: AppTextStyles.captionMedium.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
@@ -50,5 +52,15 @@ class TrustBadgeTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _localizedLabel(String value) {
+    return switch (value) {
+      'Early Bird' => AppLocalizations.tr('checkin_badge_early_bird'),
+      'Reliable Host' => AppLocalizations.tr('checkin_badge_reliable_host'),
+      'Explorer' => AppLocalizations.tr('checkin_badge_explorer'),
+      'Top Guest' => AppLocalizations.tr('checkin_badge_top_guest'),
+      _ => value,
+    };
   }
 }

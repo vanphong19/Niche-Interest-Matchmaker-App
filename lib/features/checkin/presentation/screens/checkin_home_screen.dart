@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../models/checkin_ui_model.dart';
 import '../widgets/checkin_event_summary_card.dart';
 import '../widgets/checkin_method_card.dart';
@@ -30,7 +31,7 @@ class CheckinHomeScreen extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return CheckinScaffold(
-      title: 'Check-in',
+      title: AppLocalizations.tr('checkin_title'),
       leadingIcon: Icons.arrow_back_rounded,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
       body: SingleChildScrollView(
@@ -55,7 +56,7 @@ class CheckinHomeScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Check-in method',
+                        AppLocalizations.tr('checkin_method_section'),
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: colorScheme.onSurface,
                           fontWeight: FontWeight.w900,
@@ -68,7 +69,9 @@ class CheckinHomeScreen extends StatelessWidget {
                         color: colorScheme.primary,
                         size: 16,
                       ),
-                      label: const Text('Verified'),
+                      label: Text(
+                        AppLocalizations.tr('checkin_verified_label'),
+                      ),
                       visualDensity: VisualDensity.compact,
                       side: BorderSide(color: colorScheme.outline),
                       backgroundColor: colorScheme.surface,
@@ -81,7 +84,7 @@ class CheckinHomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Choose the fastest available option at the venue.',
+                  AppLocalizations.tr('checkin_method_hint'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -89,10 +92,10 @@ class CheckinHomeScreen extends StatelessWidget {
                 const SizedBox(height: AppSpacing.lg),
                 CheckinMethodCard(
                   option: _qrOption,
-                  title: 'QR Check-in',
-                  subtitle: 'Scan the event QR code with your camera.',
-                  badge: 'Recommended',
-                  footnote: 'Best for hosted events and check-in desks.',
+                  title: AppLocalizations.tr('checkin_qr_method'),
+                  subtitle: AppLocalizations.tr('checkin_qr_home_desc'),
+                  badge: AppLocalizations.tr('checkin_recommended_title'),
+                  footnote: AppLocalizations.tr('checkin_qr_home_footnote'),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -104,10 +107,10 @@ class CheckinHomeScreen extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 CheckinMethodCard(
                   option: _nfcOption,
-                  title: 'NFC Check-in',
-                  subtitle: 'Hold your phone near the event NFC tag.',
-                  badge: 'Tap to verify',
-                  footnote: 'Works when NFC is enabled on your device.',
+                  title: AppLocalizations.tr('checkin_nfc_method'),
+                  subtitle: AppLocalizations.tr('checkin_nfc_home_desc'),
+                  badge: AppLocalizations.tr('checkin_tap_to_verify'),
+                  footnote: AppLocalizations.tr('checkin_nfc_home_footnote'),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(

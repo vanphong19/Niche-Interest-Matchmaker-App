@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 
 class NfcScanView extends StatelessWidget {
   const NfcScanView({
@@ -111,7 +112,7 @@ class _NfcHintRow extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
-                'Keep the top of your phone close to the NFC tag.',
+                AppLocalizations.tr('checkin_nfc_hint'),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w700,

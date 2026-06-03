@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 
 class QrScannerView extends StatefulWidget {
   const QrScannerView({super.key, required this.onCodeDetected});
@@ -75,11 +76,11 @@ class _QrScannerViewState extends State<QrScannerView> {
                     padding: const EdgeInsets.all(AppSpacing.md),
                     color: colorScheme.surface.withValues(alpha: 0.92),
                     child: Text(
-                      'Position the QR code inside the frame.',
+                      AppLocalizations.tr('checkin_qr_frame_hint'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),

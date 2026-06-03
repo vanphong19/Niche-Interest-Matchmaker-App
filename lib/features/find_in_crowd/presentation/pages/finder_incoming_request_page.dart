@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/finder_cubit.dart';
@@ -37,8 +38,8 @@ class FinderIncomingRequestPage extends StatelessWidget {
               SnackBar(
                 content: Text(
                   state.status == FinderFlowStatus.requestExpired
-                      ? 'Finder request expired.'
-                      : 'Finder request was cancelled.',
+                      ? AppLocalizations.tr('finder_request_expired')
+                      : AppLocalizations.tr('finder_request_was_cancelled'),
                 ),
               ),
             );
@@ -48,8 +49,10 @@ class FinderIncomingRequestPage extends StatelessWidget {
         builder: (context, state) {
           final requester = state.partner;
           return FinderScaffold(
-            title: 'Finder Request',
-            subtitle: requester?.fullName ?? 'Live location request',
+            title: AppLocalizations.tr('finder_request_title'),
+            subtitle:
+                requester?.fullName ??
+                AppLocalizations.tr('finder_live_location_request'),
             background: const FinderMapBackground(dimmed: true),
             body: Center(
               child: SingleChildScrollView(

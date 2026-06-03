@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../widgets/finder_map_background.dart';
 import '../widgets/finder_panels.dart';
 import '../widgets/finder_scaffold.dart';
@@ -23,8 +24,10 @@ class FinderEndedPage extends StatelessWidget {
         if (!didPop) _exitFinderFlow(context);
       },
       child: FinderScaffold(
-        title: 'Finder Ended',
-        subtitle: isExpired ? 'Session expired' : 'Location sharing stopped',
+        title: AppLocalizations.tr('finder_ended_title'),
+        subtitle: isExpired
+            ? AppLocalizations.tr('finder_session_expired')
+            : AppLocalizations.tr('finder_location_stopped'),
         showBack: false,
         background: const FinderMapBackground(dimmed: true),
         body: Center(
@@ -32,10 +35,11 @@ class FinderEndedPage extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: FinderConfirmationPanel(
-              title: isExpired ? 'Finder session expired' : 'Finder ended',
-              message:
-                  'Your temporary location is no longer shared for this finder session.',
-              primaryLabel: 'Done',
+              title: isExpired
+                  ? AppLocalizations.tr('finder_session_expired_title')
+                  : AppLocalizations.tr('finder_ended_panel_title'),
+              message: AppLocalizations.tr('finder_ended_message'),
+              primaryLabel: AppLocalizations.tr('done'),
               icon: Icons.check_circle_rounded,
               onPrimary: () => _exitFinderFlow(context),
             ),

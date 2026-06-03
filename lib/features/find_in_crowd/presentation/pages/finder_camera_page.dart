@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/app_localizations.dart';
 import '../../../../injection/injection_container.dart';
 import '../../../../router/app_router.gr.dart';
 import '../bloc/finder_cubit.dart';
@@ -38,13 +39,15 @@ class FinderCameraPage extends StatelessWidget {
               : participantToUi(
                   state.partner!,
                   distanceLabel: state.navigation?.distanceLabel ?? '--',
-                  directionLabel: state.navigation?.directionLabel ?? 'Waiting',
+                  directionLabel:
+                      state.navigation?.directionLabel ??
+                      AppLocalizations.tr('finder_waiting_location'),
                 );
           return FinderScaffold(
-            title: 'Visual Finder',
+            title: AppLocalizations.tr('finder_visual_title'),
             subtitle: state.navigation == null
-                ? 'GPS-based direction'
-                : '${state.navigation!.distanceLabel} - approximate direction',
+                ? AppLocalizations.tr('finder_gps_based_direction')
+                : '${state.navigation!.distanceLabel} - ${AppLocalizations.tr('finder_approx_direction')}',
             extendBody: true,
             background: const FinderMapBackground(cameraMode: true),
             body: Stack(
@@ -67,7 +70,7 @@ class FinderCameraPage extends StatelessWidget {
                           children: [
                             Expanded(
                               child: FinderActionButton(
-                                label: 'Exit AR',
+                                label: AppLocalizations.tr('finder_exit_ar'),
                                 icon: Icons.arrow_back_rounded,
                                 secondary: true,
                                 onPressed: () => context.router.maybePop(),
@@ -76,7 +79,7 @@ class FinderCameraPage extends StatelessWidget {
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: FinderActionButton(
-                                label: 'Stop',
+                                label: AppLocalizations.tr('finder_stop_short'),
                                 icon: Icons.stop_circle_rounded,
                                 secondary: true,
                                 destructive: true,
