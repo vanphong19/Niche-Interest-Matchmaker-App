@@ -218,6 +218,19 @@ class UserApiService {
     await _dio.delete('/api/app/profile/friends/$userId');
   }
 
+  Future<List<FriendProfile>> getFriends() async {
+    final response = await _dio.get('/api/app/profile/friends');
+    final raw = response.data is Map<String, dynamic>
+        ? ((response.data as Map<String, dynamic>)['data'] ??
+              (response.data as Map<String, dynamic>)['Data'])
+        : response.data;
+    final list = raw is List ? raw : const [];
+    return list
+        .whereType<Map>()
+        .map((item) => FriendProfile.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
   Future<List<Map<String, dynamic>>> getNotifications() async {
     final response = await _dio.get('/api/app/profile/notifications');
     final data =
@@ -265,5 +278,39 @@ class UserApiService {
 
   Future<void> deleteAccount() async {
     await _dio.delete('/api/app/profile/account');
+  }
+}
+
+class FriendProfile {
+  const FriendProfile({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.avatarUrl,
+    required this.reputationScore,
+  });
+
+  final String id;
+  final String name;
+  final String email;
+  final String avatarUrl;
+  final int reputationScore;
+
+  factory FriendProfile.fromJson(Map<String, dynamic> json) {
+    return FriendProfile(
+      id: (json['id'] ?? json['Id'] ?? '').toString(),
+      name: (json['name'] ?? json['Name'] ?? '').toString(),
+      email: (json['email'] ?? json['Email'] ?? '').toString(),
+      avatarUrl: (json['avatarUrl'] ?? json['AvatarUrl'] ?? '').toString(),
+      reputationScore: _asInt(
+        json['reputationScore'] ?? json['ReputationScore'],
+      ),
+    );
+  }
+
+  static int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

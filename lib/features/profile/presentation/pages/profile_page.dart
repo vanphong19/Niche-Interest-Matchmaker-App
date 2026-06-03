@@ -106,6 +106,16 @@ class _ProfilePageState extends State<ProfilePage>
     }
   }
 
+  void _showFriendsSheet() {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _FriendsBottomSheet(),
+    );
+  }
+
   @override
   void dispose() {
     _realtimeSubscription?.cancel();
@@ -372,6 +382,7 @@ class _ProfilePageState extends State<ProfilePage>
                 isDark: isDark,
                 icon: Icons.favorite_rounded,
                 color: const Color(0xFFF43F5E),
+                onTap: _showFriendsSheet,
               ),
             ),
           ],
@@ -1669,16 +1680,18 @@ class _StatChip extends StatelessWidget {
     required this.isDark,
     required this.icon,
     required this.color,
+    this.onTap,
   });
   final String value;
   final String label;
   final bool isDark;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -1710,6 +1723,219 @@ class _StatChip extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    if (onTap == null) return content;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: content,
+        ),
+      ),
+    );
+  }
+}
+
+class _FriendsBottomSheet extends StatefulWidget {
+  const _FriendsBottomSheet();
+
+  @override
+  State<_FriendsBottomSheet> createState() => _FriendsBottomSheetState();
+}
+
+class _FriendsBottomSheetState extends State<_FriendsBottomSheet> {
+  late Future<List<FriendProfile>> _friendsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _friendsFuture = sl<UserApiService>().getFriends();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _friendsFuture = sl<UserApiService>().getFriends();
+    });
+    await _friendsFuture;
+  }
+
+  Future<void> _openFriend(FriendProfile friend) async {
+    if (friend.id.isEmpty) return;
+    HapticFeedback.selectionClick();
+    final router = context.router;
+    Navigator.of(context).pop();
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+    router.push(PublicProfileRoute(userId: friend.id));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mediaQuery = MediaQuery.of(context);
+    final maxHeight =
+        mediaQuery.size.height -
+        mediaQuery.viewPadding.top -
+        mediaQuery.viewInsets.bottom -
+        12;
+
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF151B28) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            border: Border.all(
+              color: isDark ? Colors.white10 : AppColors.borderLight,
+            ),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            12,
+            24,
+            20 + mediaQuery.viewPadding.bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Friends',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppColors.secondary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: FutureBuilder<List<FriendProfile>>(
+                  future: _friendsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: VibeEmptyState(
+                          title: 'Could not load friends',
+                          message: 'Pull down to try again.',
+                          icon: Icons.info_outline_rounded,
+                        ),
+                      );
+                    }
+
+                    final friends = snapshot.data ?? const [];
+                    if (friends.isEmpty) {
+                      return const Center(
+                        child: VibeEmptyState(
+                          title: 'No friends yet',
+                          message: 'Accepted friends will appear here.',
+                          icon: Icons.people_outline_rounded,
+                        ),
+                      );
+                    }
+
+                    return RefreshIndicator(
+                      onRefresh: _refresh,
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: friends.length,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: isDark
+                              ? Colors.white10
+                              : Colors.black.withValues(alpha: 0.04),
+                        ),
+                        itemBuilder: (context, index) {
+                          final friend = friends[index];
+                          return ListTile(
+                            onTap: () => _openFriend(friend),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                            ),
+                            leading: VibeAvatar(
+                              imageUrl: friend.avatarUrl,
+                              name: friend.name,
+                              size: 48,
+                              showBorder: true,
+                              borderColor: AppColors.primary.withValues(
+                                alpha: 0.18,
+                              ),
+                              borderWidth: 2,
+                            ),
+                            title: Text(
+                              friend.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.secondary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            subtitle: Text(
+                              friend.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textHint,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: isDark
+                                  ? Colors.white38
+                                  : AppColors.textHint,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
